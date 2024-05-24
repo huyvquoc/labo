@@ -2,7 +2,7 @@ import os
 import pickle
 
 
-INPUT_PATH = '/data/hqvo3/codes/LaBo/datasets/flower/splits/class2images_{}.p'
+INPUT_PATH = '/data/hqvo3/codes/LaBo/datasets/GlomCrawl/splits/class2images_{}.p'
 
 for split_name in ['train', 'val', 'test']:
   print(f'--- Read {split_name} pickle file ---')
@@ -19,5 +19,5 @@ for split_name in ['train', 'val', 'test']:
   print('-> len(objects_list): ', len(objects_list))
   print('-> type(objects_list[0]): ', type(objects_list[0]))
   for key, value in objects_list[0].items():
-    print(type(key), ' ', type(value))
+    print(key, ' ', value)
 
