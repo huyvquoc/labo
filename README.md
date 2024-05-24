@@ -58,6 +58,10 @@ sh labo_test.sh {CONFIG_PATH} {CHECKPOINT_PATH}
 ```
 The test accuracy will be printed to `output/asso_opt/{DATASET}.txt`.
 
+## My instructions
+
+Follow this [comment](https://github.com/YueYANG1996/LaBo/issues/14#issuecomment-1847983397) for installing required packages
+
 Please cite our paper if you find it useful!
 ```
 @inproceedings{yang2023language,
