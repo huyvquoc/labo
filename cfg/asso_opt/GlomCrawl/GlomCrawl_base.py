@@ -19,15 +19,15 @@ on_gpu = True
 num_concept = num_cls * 25
 
 # weight matrix fitting
-lr = 5e-6
-max_epochs = 1000
+lr = 5e-5
+max_epochs = 100000
 
 # weight matrix
 use_rand_init = False
 init_val = 1.
 asso_act = 'softmax'
-use_l1_loss = False
-use_div_loss = False
+use_l1_loss = True
+use_div_loss = True
 lambda_l1 = 0.01
 lambda_div = 0.005
 
