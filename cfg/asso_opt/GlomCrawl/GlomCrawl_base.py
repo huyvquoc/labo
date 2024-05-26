@@ -19,8 +19,8 @@ on_gpu = True
 num_concept = num_cls * 25
 
 # weight matrix fitting
-lr = 5e-5
-max_epochs = 100000
+lr = 5e-6
+max_epochs = 10000
 
 # weight matrix
 use_rand_init = False
