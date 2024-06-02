@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Train LaBo",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "justMyCode": true,
+            "cwd": "/data/hqvo3/codes/LaBo",
+            "env": {"CUDA_VISIBLE_DEVICES":"6"},
+            "args": [
+                "--cfg",
+                "cfg/asso_opt/GlomCrawl/GlomCrawl_4shot_fac.py",
+                "--work-dir",
+                "exp/asso_opt/GlomCrawl/GlomCrawl_4shot_fac",
+                "--func",
+                "asso_opt_main",
+            ]
+        }
+    ]
+}
