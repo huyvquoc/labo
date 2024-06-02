@@ -5,5 +5,7 @@ lr = 1e-5
 bs = 64
 
 concept_type = "all_submodular"
-concept_select_fn = "submodular"
+concept_select_fn = "clip"
+use_mi = False
+group_select = True
 submodular_weights = [1e7, 10]

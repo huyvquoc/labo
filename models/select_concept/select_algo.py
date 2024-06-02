@@ -54,10 +54,17 @@ def group_clip_select(img_feat, concept_feat, n_shots, concept2cls, num_concepts
     scores = clip_score(img_feat, concept_feat, n_shots, num_images_per_class).max(dim=-1)[0]
 
     selected_idx = []
+    print('[group_clip_select] ori concept2cls: ', concept2cls)
+    print('[group_clip_select] ori concept2cls.shape: ', concept2cls.shape)
     concept2cls = th.from_numpy(concept2cls).long()
     num_concepts_per_cls = num_concepts // num_cls
     for i in tqdm(range(num_cls)):
         cls_idx = th.where(concept2cls == i)[0]
+        print('[group_clip_select] num_concepts_per_cls: ', num_concepts_per_cls)
+        print('[group_clip_select] type(scores): ', type(scores))
+        print('[group_clip_select] scores.shape: ', scores.shape)
+        print('[group_clip_select] cls_idx: ', cls_idx)
+        print('[group_clip_select] scores[cls_idx].shape: ', scores[cls_idx].shape)
         _, idx_for_cls_idx = th.topk(scores[cls_idx], num_concepts_per_cls)
         global_idx = cls_idx[idx_for_cls_idx]
         selected_idx.extend(global_idx)
