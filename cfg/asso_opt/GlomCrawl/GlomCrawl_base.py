@@ -16,7 +16,7 @@ bs = 128
 on_gpu = True
 
 # concept select
-num_concept = num_cls * 25
+num_concept = num_cls * 15
 
 # weight matrix fitting
 lr = 5e-6

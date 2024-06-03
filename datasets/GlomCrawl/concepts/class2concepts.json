@@ -1,5 +1,5 @@
 {
-    "endocapillary_hypercellularity": [
+    "endocapillary hypercellularity": [
         "Increased Cellular Density within Glomerular Capillaries",
         "an increased number of cells within the capillary lumina",
         "capillary loops appear more crowded and less open than normal",
@@ -24,7 +24,7 @@
         "areas might appear more eosinophilic",
         "the increased cellular content"
     ],
-    "exudative_glomerulus": [
+    "exudative glomerulus": [
         "Hyaline Thrombi",
         "eosinophilic (pink-staining) material within the capillary lumina",
         "composed of plasma proteins",
@@ -61,7 +61,7 @@
         "PAS-positive material can highlight areas of hyaline deposits",
         "PAS-positive material can highlight areas of other exudative material"
     ],
-    "fibrinoid_necrosis_glomerulus": [
+    "fibrinoid necrosis glomerulus": [
         "Fibrinoid Material",
         "areas within the glomerulus that contain fibrinoid material",
         "intensely eosinophilic (pink-staining) amorphous within the glomerular tuft",
@@ -107,7 +107,7 @@
         "severe glomerular injury",
         "fibrinoid necrosis of small arteries"
     ],
-    "fibrocellular_crescent": [
+    "fibrocellular crescent": [
         "Crescent Formation",
         "crescent-shaped cellular proliferations located between the glomerular basement membrane (GBM) and Bowman's capsule",
         "These crescents typically encircle part of the glomerular tuft",
@@ -148,7 +148,7 @@
         "associated tubulitis in the areas surrounding the affected glomerulus",
         "an ongoing inflammatory process contributing to the crescent formation"
     ],
-    "fibrous_crescent": [
+    "fibrous crescent": [
         "Dense Fibrous Tissue",
         "dense fibrous tissue within the crescent",
         "collagen-rich fibrous tissue within the crescent",
@@ -192,7 +192,7 @@
         "sclerosis of Bowman's capsule itself",
         "part of the chronic fibrotic process"
     ],
-    "glomerul_lipoprotein_thrombus": [
+    "glomerul lipoprotein thrombus": [
         "Hyaline Thrombi Appearance",
         "hyaline thrombi appear as eosinophilic (pink-staining) within the capillary lumina on hematoxylin and eosin (H&E) staining.",
         "hyaline thrombi appear as homogeneous material within the capillary lumina on hematoxylin and eosin (H&E) staining.",
@@ -229,7 +229,7 @@
         "arteriosclerosis",
         "hyaline arteriosclerosis"
     ],
-    "glomerular_adhesion": [
+    "glomerular adhesion": [
         "Segmental Attachment",
         "areas where the glomerular tuft is attached to Bowman's capsule",
         "can be focal, involving only a segment of the glomerular circumference",
@@ -279,7 +279,7 @@
         "the extent of adhesions",
         "the severity of adhesions"
     ],
-    "glomerular_basement_membrane_duplication_splitting": [
+    "glomerular basement membrane duplication splitting": [
         "Double Contours",
         "double contours of the GBM",
         "double contours are best visualized with silver stains (e.g., Jones' methenamine silver)",
@@ -318,7 +318,7 @@
         "the duplicated GBM will stain more prominently",
         "the duplicated GBM will stain more prominently, making it easier to differentiate the two layers."
     ],
-    "glomerular_basement_membrane_thickening": [
+    "glomerular basement membrane thickening": [
         "Increased Thickness of the GBM",
         "an overall increase in the thickness of the GBM surrounding the glomerular capillaries",
         "best appreciated with appropriate staining techniques",
@@ -360,7 +360,7 @@
         "Compare the thickness of the GBM to the normal GBM in unaffected areas or glomeruli",
         "appreciate the relative thickening"
     ],
-    "glomerular_collapse": [
+    "glomerular collapse": [
         "Capillary Loop Collapse",
         "a marked reduction of the capillary lumina",
         "a marked obliteration of the capillary lumina",
@@ -397,7 +397,7 @@
         "a decrease in the endothelial",
         "a decrease in the mesangial cells"
     ],
-    "glomerular_congestion": [
+    "glomerular congestion": [
         "Dilated Capillary Lumina",
         "capillary loops that appear enlarged due to the accumulation of excess blood",
         "capillary loops that appear swollen due to the accumulation of excess blood",
@@ -431,7 +431,7 @@
         "signs of congestion in the peritubular capillaries",
         "Examine the surrounding renal cortex for signs of congestion in the peritubular capillaries"
     ],
-    "glomerular_foam_cell": [
+    "glomerular foam cell": [
         "Foamy Appearance",
         "cells within the glomerulus that appear foamy due to the accumulation of lipid droplets. ",
         "cells within the glomerulus that appear vacuolated due to the accumulation of lipid droplets. ",
@@ -471,7 +471,7 @@
         "Foam cells may be associated with changes in the mesangial proliferation",
         "Foam cells may be associated with changes in the other glomerular lesions"
     ],
-    "glomerular_hyaline_pseudothrombus": [
+    "glomerular hyaline pseudothrombus": [
         "Homogeneous Appearance",
         "a homogeneous material within the glomerular capillary lumina",
         "a eosinophilic (pink-staining) material within the glomerular capillary lumina",
@@ -510,7 +510,7 @@
         "hyaline pseudothrombi are often associated with diabetic nephropathy",
         "hyaline pseudothrombi are often associated with hypertensive nephrosclerosis"
     ],
-    "glomerular_hyalinosis": [
+    "glomerular hyalinosis": [
         "Homogeneous Material",
         "the presence of homogeneous, eosinophilic (pink-staining) material within the glomerular tuft",
         "This homogeneous, eosinophilic (pink-staining) material typically fills the mesangial areas",
@@ -546,7 +546,7 @@
         "a progressive lesion associated with chronic glomerular injury",
         "may contribute to glomerulosclerosis over time"
     ],
-    "glomerular_obsolesce": [
+    "glomerular obsolesce": [
         "Sclerosed Glomerulus",
         "glomeruli that appear shrunken",
         "glomeruli that appear hyalinized",
@@ -593,7 +593,7 @@
         "the absence of inflammatory cell infiltration",
         "evidence of ongoing inflammation within the glomerulus"
     ],
-    "glomerular_segmental_sclerosis": [
+    "glomerular segmental sclerosis": [
         "Segmental Involvement",
         "focal areas within the glomerulus where sclerosis of capillary loops are present",
         "focal areas within the glomerulus where obliteration of capillary loops are present",
@@ -630,7 +630,7 @@
         "phagocytosing debris",
         "lipid material"
     ],
-    "glomerular_thrombus": [
+    "glomerular thrombus": [
         "Presence of Intraluminal Material",
         "the presence of material within the glomerular capillary lumina",
         "material appears as an eosinophilic (pink-staining) mass occupying the capillary loops",
@@ -713,7 +713,7 @@
         "Hypertrophied podocytes may appear enlarged",
         "Hypertrophied podocytes may contain prominent nuclei"
     ],
-    "glomerulonephritis_hyaline_thrombus": [
+    "glomerulonephritis hyaline thrombus": [
         "Intraluminal Hyaline Material",
         "the presence of homogeneously eosinophilic (pink-staining) material within the glomerular capillary lumina",
         "homogeneously eosinophilic material",
@@ -754,7 +754,7 @@
         "Using staining techniques such as periodic acid-Schiff (PAS) or silver stains",
         "PAS or silver stains may help differentiate it from other intraluminal materials"
     ],
-    "glomerulus_endotheliosis": [
+    "glomerulus endotheliosis": [
         "Endothelial Swelling",
         "endothelial cells that appear swollen compared to normal",
         "endothelial cells that appear  enlarged compared to normal",
@@ -795,7 +795,7 @@
         "associated inflammatory infiltrates may be present in the glomerular tuft",
         "associated inflammatory infiltrates may be present in the surrounding interstitium"
     ],
-    "hyalin_drop_diabetic_glomerulus": [
+    "hyalin drop diabetic glomerulus": [
         "Hyalin Droplet Presence",
         "the presence of eosinophilic (pink-staining) droplets within the glomerular capillary lumina",
         "the presence of eosinophilic (pink-staining) droplets within the glomerular mesangium",
@@ -830,7 +830,7 @@
         "podocyte foot process effacement",
         "podocyte hypertrophy"
     ],
-    "immature_glomerulus": [
+    "immature glomerulus": [
         "Size and Shape",
         "the smaller size compared to mature glomeruli",
         "the rounder shape compared to mature glomeruli",
@@ -870,7 +870,7 @@
         "the surrounding renal tissue for signs of ongoing nephrogenesis",
         "the surrounding renal tissue for signs of nephrogenesis development"
     ],
-    "ischemic_glomerular_collapse": [
+    "ischemic glomerular collapse": [
         "Global Glomerular Collapse",
         "glomeruli that appear shrunken compared to adjacent normal glomeruli",
         "glomeruli that appear collapsed compared to adjacent normal glomeruli",
@@ -911,7 +911,7 @@
         "the presence of foam cells within the collapsed glomerulus",
         "lipid accumulation secondary to ischemic injury"
     ],
-    "karyorrhexis_glomerulonephritis": [
+    "karyorrhexis glomerulonephritis": [
         "Pyknotic Nuclei",
         "pyknotic nuclei within the glomerular tuft",
         "pyknotic nuclei within the glomerular mesangium",
@@ -961,7 +961,7 @@
         "staining techniques such as hematoxylin and eosin (H&E), periodic acid-Schiff (PAS), or silver stains",
         "the karyorrhectic nuclei for characteristic staining patterns"
     ],
-    "membranous_nephropathy_holes": [
+    "membranous nephropathy holes": [
         "Spike Formation",
         "subepithelial projections extending into the glomerular basement membrane (GBM) from the underlying podocytes",
         "spikes extending into the glomerular basement membrane (GBM) from the underlying podocytes",
@@ -1001,7 +1001,7 @@
         "is often associated with granular staining along the GBM",
         "a 'starry sky' pattern."
     ],
-    "membranous_nephropathy_spikes": [
+    "membranous nephropathy spikes": [
         "Subepithelial Projections (Spikes)",
         "subepithelial projections extending into the glomerular basement membrane (GBM) from the underlying podocytes",
         "spikes extending into the glomerular basement membrane (GBM) from the underlying podocytes",
@@ -1036,7 +1036,7 @@
         "Membranous nephropathy is often associated with granular staining along the GBM",
         "a 'starry sky' pattern"
     ],
-    "mesangial_hypercellularity": [
+    "mesangial hypercellularity": [
         "Increased Mesangial Cellularity",
         "an increased number of mesangial cells within the mesangium compared to normal",
         "is characterized by the presence of numerous mesangial cells filling the mesangial region",
@@ -1075,7 +1075,7 @@
         "may be associated with increased mesangial staining for immunoglobulins",
         "may be associated with increased mesangial staining for complement components"
     ],
-    "mesangial_matrix_expansion": [
+    "mesangial matrix expansion": [
         "Widened Mesangial Area",
         "widening of the mesangial area between the glomerular capillary loops",
         "results in increased mesangial volume",
@@ -1161,7 +1161,7 @@
         "Mesangiolysis may be associated with altered mesangial staining for immunoglobulins",
         "Mesangiolysis may be associated with altered mesangial staining for complement components"
     ],
-    "nodular_sclerosis_glomerulus": [
+    "nodular sclerosis glomerulus": [
         "Nodular Deposits",
         "discrete nodular deposits within the glomerular tuft, which may appear as rounded areas",
         "discrete nodular deposits within the glomerular tuft, which may appear as irregularly shaped eosinophilic (pink-staining) areas",
@@ -1198,7 +1198,7 @@
         "Nodular sclerosis may be associated with increased staining for matrix proteins",
         "Nodular sclerosis may be associated with increased staining for matrix immunoglobulins"
     ],
-    "parietal_cell_glomerulus": [
+    "parietal cell glomerulus": [
         "Presence of Parietal Epithelial Cells (PECs) on Glomerular Tuft",
         "cells resembling parietal epithelial cells extending from Bowman's capsule onto the glomerular tuft",
         "PECs on the glomerular tuft are characteristic of this lesion",
@@ -1236,7 +1236,7 @@
         "may be associated with increased staining for markers of inflammation",
         "may be associated with increased staining for markers of injury"
     ],
-    "periglomerular_fibrosis": [
+    "periglomerular fibrosis": [
         "Periglomerular Collagen Deposition",
         "areas of increased collagen deposition surrounding the glomerulus",
         "manifests as the accumulation of collagen fibers in the interstitium adjacent to the glomerulus",
@@ -1314,7 +1314,7 @@
         "are relatively large cells compared to mesangial cells",
         "cover the entire surface of the capillary loops"
     ],
-    "podocyte_hyperplasia": [
+    "podocyte hyperplasia": [
         "Increased Podocyte Density",
         "areas within the glomerulus where the density of podocytes is higher than normal",
         "results in an increased number of podocytes per glomerular tuft",
@@ -1354,7 +1354,7 @@
         "glomerulonephritis, which may precede or coincide with this lesion",
         "diabetic nephropathy, which may precede or coincide with this lesion"
     ],
-    "podocyte_hypertrophy": [
+    "podocyte hypertrophy": [
         "Enlarged Podocyte Cell Bodies",
         "podocyte cell bodies that appear larger than normal within Bowman's capsule",
         "podocyte cell bodies that appear larger than normal along the glomerular capillaries",
@@ -1388,7 +1388,7 @@
         "glomerulonephritis, which may precede or coincide with this lesion",
         "diabetic nephropathy, which may precede or coincide with this lesion"
     ],
-    "podocyte_reabsorption_droplet": [
+    "podocyte reabsorption droplet": [
         "Intracellular Vacuoles or Droplets",
         "vacuoles or droplets within the cytoplasm of podocytes",
         "The intracellular structures appear as clear rounded or oval bodies",
@@ -1461,7 +1461,7 @@
         "for evidence of podocyte injury, which may contribute to the formation of pseudocrescents in certain glomerular diseases",
         "for evidence of podocyte loss, which may contribute to the formation of pseudocrescents in certain glomerular diseases"
     ],
-    "solidified_glomerular_sclerosis_global": [
+    "solidified glomerular sclerosis global": [
         "Complete Glomerular Obliteration",
         "areas within the glomerulus where the normal glomerular architecture is entirely replaced by fibrous tissue",
         "the normal glomerular architecture is entirely replaced by fibrous tissue",
@@ -1499,7 +1499,7 @@
         "If available, confirm the presence of fibrous tissue by electron microscopy",
         "Electron microscopy provides high-resolution images that can further characterize the fibrotic changes in solidified global sclerosis"
     ],
-    "spikes_glomerular_amyoidosis": [
+    "spikes glomerular amyoidosis": [
         "Presence of Amyloid Deposits",
         "areas within the glomerulus where there is extracellular deposition of amorphous, eosinophilic material",
         "Amyloid deposits may appear as pale material within the glomerular tuft",
@@ -1534,7 +1534,7 @@
         "serum amyloid P component (SAP)",
         "Positive immunostaining for amyloid markers confirms the presence of amyloid deposits within the glomerulus"
     ],
-    "visceral_epithelial_cell": [
+    "visceral epithelial cell": [
         "Location Within Bowman's Capsule",
         "cells located on the visceral layer of Bowman's capsule",
         "covering the outer surface of the glomerular capillaries",
@@ -1573,7 +1573,7 @@
         "The ultrastructural features are characteristic of podocytes",
         "The ultrastructural features contribute to the function of podocytes in maintaining the glomerular filtration barrier"
     ],
-    "visceral_epithelial_cell_capping": [
+    "visceral epithelial cell capping": [
         "Abnormal Distribution of Podocytes",
         "a cap-like structure",
         "areas within the glomerulus where podocytes appear to aggregate at the top of the glomerular tuft",
@@ -1605,7 +1605,7 @@
         "Employ immunohistochemical staining for podocyte-specific markers",
         "Altered expression of the podocin, synaptopodin, or WT1 (Wilms tumor 1) markers in podocytes forming the cap may be observed"
     ],
-    "wire_loop_glomerulus": [
+    "wire loop glomerulus": [
         "Thickened and Hyalinized Capillary Loops",
         "areas within the glomerulus where the capillary loops appear thickened",
         "areas within the glomerulus where the capillary loops appear hyalinized",

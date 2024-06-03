@@ -62,6 +62,8 @@ The test accuracy will be printed to `output/asso_opt/{DATASET}.txt`.
 
 Follow this [comment](https://github.com/YueYANG1996/LaBo/issues/14#issuecomment-1847983397) for installing required packages
 
+For error of negative in apricot, follow this [comment](https://github.com/YueYANG1996/LaBo/issues/1#issuecomment-1583107414). To check the source file of apricot in conda, follow this [comment](https://stackoverflow.com/questions/31003994/where-is-site-packages-located-in-a-conda-environment)
+
 Please cite our paper if you find it useful!
 ```
 @inproceedings{yang2023language,
