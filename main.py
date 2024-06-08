@@ -246,7 +246,9 @@ def asso_opt_main(cfg):
             use_cls_name_init=cfg.cls_name_init if 'cls_name_init' in cfg else 'none',
             use_cls_sim_prior=cfg.cls_sim_prior if 'cls_sim_prior' in cfg else 'none',
             remove_cls_name=cfg.remove_cls_name if 'remove_cls_name' in cfg else True,
-            submodular_weights=cfg.submodular_weights
+            submodular_weights=cfg.submodular_weights,
+            force_compute=False,
+            force_select_concepts=True
             )
 
     if cfg.test:

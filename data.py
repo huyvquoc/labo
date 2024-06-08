@@ -93,6 +93,7 @@ class DataModule(pl.LightningDataModule):
             clip_ckpt=None,
             on_gpu=False,
             force_compute=True,
+            force_select_concepts=True,
             use_cls_name_init='none',
             use_cls_sim_prior='none',
             remove_cls_name=False,
@@ -101,6 +102,7 @@ class DataModule(pl.LightningDataModule):
         
         # image feature is costly to compute, so it will always be cached
         self.force_compute = force_compute 
+        self.force_select_concepts = force_select_concepts
         self.use_txt_norm = use_txt_norm 
         self.use_img_norm = use_img_norm
         self.use_cls_name_init = use_cls_name_init
@@ -114,14 +116,14 @@ class DataModule(pl.LightningDataModule):
         # all variables save_dir that will be created inside this module
         self.img_feat_save_dir = {
             mode: self.img_split_path.joinpath(
-                'img_feat_{}_{}_{}{}_{}.pth'.format(mode, n_shots, int(self.use_img_norm), int(self.use_txt_norm), clip_model.replace('/','-')) if mode ==
-                'train' else 'img_feat_{}_{}{}_{}.pth'.format(mode, int(self.use_img_norm), int(self.use_txt_norm), clip_model.replace('/', '-')))
+                'img_feat_conch_{}_{}_{}{}_{}.pth'.format(mode, n_shots, int(self.use_img_norm), int(self.use_txt_norm), clip_model.replace('/','-')) if mode ==
+                'train' else 'img_feat_conch_{}_{}{}_{}.pth'.format(mode, int(self.use_img_norm), int(self.use_txt_norm), clip_model.replace('/', '-')))
             for mode in ['train', 'val', 'test']
         }
         self.label_save_dir = {
             mode: self.img_split_path.joinpath(
-                'label_{}_{}.pth'.format(mode, n_shots) if mode ==
-                'train' else 'label_{}.pth'.format(mode))
+                'label_conch_{}_{}.pth'.format(mode, n_shots) if mode ==
+                'train' else 'label_conch_{}.pth'.format(mode))
             for mode in ['train', 'val', 'test']
         }
         if self.use_cls_name_init != 'none':
@@ -261,7 +263,7 @@ class DataModule(pl.LightningDataModule):
     
 
     def select_concept(self, concept_select_fn, img_feat_train, concept_feat, n_shots, num_concepts, concept2cls, clip_ckpt, num_images_per_class, submodular_weights):
-        if not self.select_idx_save_dir.exists() or (self.force_compute and not clip_ckpt):
+        if not self.select_idx_save_dir.exists() or (self.force_select_concepts and not clip_ckpt):
             print('select concept')
             self.select_idx = concept_select_fn(img_feat_train, concept_feat, n_shots, concept2cls, 
                                                 num_concepts, num_images_per_class, submodular_weights)
