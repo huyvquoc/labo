@@ -264,7 +264,7 @@ class DataModule(pl.LightningDataModule):
 
     def select_concept(self, concept_select_fn, img_feat_train, concept_feat, n_shots, num_concepts, concept2cls, clip_ckpt, num_images_per_class, submodular_weights):
         if not self.select_idx_save_dir.exists() or (self.force_select_concepts and not clip_ckpt):
-            print('select concept')
+            print('[select concept]')
             self.select_idx = concept_select_fn(img_feat_train, concept_feat, n_shots, concept2cls, 
                                                 num_concepts, num_images_per_class, submodular_weights)
             th.save(self.select_idx, self.select_idx_save_dir)
