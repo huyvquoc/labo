@@ -248,7 +248,8 @@ def asso_opt_main(cfg):
             remove_cls_name=cfg.remove_cls_name if 'remove_cls_name' in cfg else True,
             submodular_weights=cfg.submodular_weights,
             force_compute=False,
-            force_select_concepts=True
+            force_select_concepts=True,
+            clip_model_name=cfg.clip_model_name
             )
 
     if cfg.test:

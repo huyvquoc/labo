@@ -97,7 +97,8 @@ class DataModule(pl.LightningDataModule):
             use_cls_name_init='none',
             use_cls_sim_prior='none',
             remove_cls_name=False,
-            submodular_weights=None):
+            submodular_weights=None,
+            clip_model_name='conch'):
         super().__init__()
         
         # image feature is costly to compute, so it will always be cached
@@ -116,14 +117,14 @@ class DataModule(pl.LightningDataModule):
         # all variables save_dir that will be created inside this module
         self.img_feat_save_dir = {
             mode: self.img_split_path.joinpath(
-                'img_feat_conch_{}_{}_{}{}_{}.pth'.format(mode, n_shots, int(self.use_img_norm), int(self.use_txt_norm), clip_model.replace('/','-')) if mode ==
-                'train' else 'img_feat_conch_{}_{}{}_{}.pth'.format(mode, int(self.use_img_norm), int(self.use_txt_norm), clip_model.replace('/', '-')))
+                'img_feat_{}_{}_{}_{}{}_{}.pth'.format(clip_model_name, mode, n_shots, int(self.use_img_norm), int(self.use_txt_norm), clip_model.replace('/','-')) if mode ==
+                'train' else 'img_feat_{}_{}_{}{}_{}.pth'.format(clip_model_name, mode, int(self.use_img_norm), int(self.use_txt_norm), clip_model.replace('/', '-')))
             for mode in ['train', 'val', 'test']
         }
         self.label_save_dir = {
             mode: self.img_split_path.joinpath(
-                'label_conch_{}_{}.pth'.format(mode, n_shots) if mode ==
-                'train' else 'label_conch_{}.pth'.format(mode))
+                'label_{}_{}_{}.pth'.format(clip_model_name, mode, n_shots) if mode ==
+                'train' else 'label_{}_{}.pth'.format(clip_model_name, mode))
             for mode in ['train', 'val', 'test']
         }
         if self.use_cls_name_init != 'none':
