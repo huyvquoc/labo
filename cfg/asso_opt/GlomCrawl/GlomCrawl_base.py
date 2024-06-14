@@ -28,8 +28,10 @@ init_val = 1.
 asso_act = 'softmax'
 use_l1_loss = True
 use_div_loss = True
-lambda_l1 = 0.01
-lambda_div = 0.005
+lambda_l1 = 0
+lambda_div = 0
+# lambda_l1 = 0.000001
+# lambda_div = 0.000005
 
 # CLIP Backbone
 # clip_model = 'ViT-L/14'

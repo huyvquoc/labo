@@ -21,8 +21,8 @@ def clip_score(img_feat, concept_feat, n_shots, num_images_per_class):
             end_loc = sum(num_images_per_class[:i+1].astype(np.int64))
         elif isinstance(num_images_per_class, list):
             end_loc = sum(num_images_per_class[:i+1])
-        # scores_mean[:, i] = (concept_feat @ img_feat[start_loc:end_loc].t()).mean(dim=-1) # for CLIP
-        scores_mean[:, i] = (concept_feat @ img_feat[start_loc:end_loc].t() * 56.3477).mean(dim=-1) # for CONCH
+        scores_mean[:, i] = (concept_feat @ img_feat[start_loc:end_loc].t()).mean(dim=-1) # for CLIP
+        # scores_mean[:, i] = (concept_feat @ img_feat[start_loc:end_loc].t() * 56.3477).mean(dim=-1) # for CONCH
         start_loc = end_loc
     print(scores_mean)
     print(scores_mean.shape)

@@ -1,2 +1,3 @@
 GlomCrawl_1shot_fac	2.93
 GlomCrawl_allshot_fac	21.31
+GlomCrawl_allshot_fac	30.4
