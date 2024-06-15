@@ -67,7 +67,7 @@ class AssoConcept(pl.LightningModule):
         self.asso_mat = th.nn.Parameter(self.init_weight.clone())
         self.train_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.valid_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass') # micro, macro, or weighted
+        self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=cfg.top_k) # micro, macro, or weighted
         # self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.test_f1 = torchmetrics.F1Score(num_classes=cfg.num_cls, average='macro', task='multiclass')
         self.test_ap = torchmetrics.AveragePrecision(num_classes=cfg.num_cls, average='macro', task='multiclass')
@@ -177,7 +177,7 @@ class AssoConcept(pl.LightningModule):
         all_y = th.hstack(self.all_y)
         all_pred = th.hstack(self.all_pred)
         all_logit = th.hstack(self.all_logit)
-        self.total_test_acc = self.test_acc(all_pred, all_y)
+        self.total_test_acc = self.test_acc(all_logit, all_y)
         self.total_test_f1 = self.test_f1(all_pred, all_y)
         self.total_test_ap = self.test_ap(all_logit, all_y)
         pass

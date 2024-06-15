@@ -38,3 +38,4 @@ lambda_div = 0
 # clip_model_name = 'clip'
 clip_model = 'conch_ViT-B-16'
 clip_model_name = 'conch'
+top_k = 5

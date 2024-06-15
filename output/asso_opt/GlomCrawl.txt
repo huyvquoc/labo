@@ -10,3 +10,8 @@ GlomCrawl_allshot_fac	21.38
 GlomCrawl_allshot_fac	30.4
 GlomCrawl_allshot_fac	30.4
 GlomCrawl_allshot_fac	30.4
+GlomCrawl_allshot_fac	52.63
+GlomCrawl_allshot_fac	64.55
+GlomCrawl_allshot_fac	64.55
+GlomCrawl_allshot_fac	30.4
+GlomCrawl_allshot_fac	64.75
