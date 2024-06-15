@@ -67,10 +67,14 @@ class AssoConcept(pl.LightningModule):
         self.asso_mat = th.nn.Parameter(self.init_weight.clone())
         self.train_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.valid_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        # self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='macro')
-        self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
+        self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass') # micro, macro, or weighted
+        # self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
+        self.test_f1 = torchmetrics.F1Score(num_classes=cfg.num_cls, average='macro', task='multiclass')
+        self.test_ap = torchmetrics.AveragePrecision(num_classes=cfg.num_cls, average='macro', task='multiclass')
+
         self.all_y = []
         self.all_pred = []
+        self.all_logit = []
         self.confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=self.cfg.num_cls)
         self.save_hyperparameters()
 
@@ -158,16 +162,24 @@ class AssoConcept(pl.LightningModule):
         self.confmat(y_pred, y)
         self.all_y.append(y)
         self.all_pred.append(y_pred)
+        self.all_logit.append(pred)
         self.log('test_loss', loss)
         self.test_acc(pred, y)
         self.log('test_acc', self.test_acc, on_step=False, on_epoch=True)
+        self.test_f1(pred, y)
+        self.log('test_macro_f1', self.test_f1, on_step=False, on_epoch=True)
+        self.test_ap(pred, y)
+        self.log('test_ap', self.test_ap, on_step=False, on_epoch=True)
         return loss
 
 
     def test_epoch_end(self, outputs):
         all_y = th.hstack(self.all_y)
         all_pred = th.hstack(self.all_pred)
+        all_logit = th.hstack(self.all_logit)
         self.total_test_acc = self.test_acc(all_pred, all_y)
+        self.total_test_f1 = self.test_f1(all_pred, all_y)
+        self.total_test_ap = self.test_ap(all_logit, all_y)
         pass
 
 
