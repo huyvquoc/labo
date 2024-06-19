@@ -107,6 +107,7 @@ class AssoConcept(pl.LightningModule):
         pred = 100 * sim  # scaling as standard CLIP does
 
         # classification accuracy
+        # cls_loss = F.cross_entropy(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         if th.isnan(cls_loss):
             import pdb; pdb.set_trace() # yapf: disable
@@ -138,7 +139,7 @@ class AssoConcept(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        # opt = th.optim.Adam(self.parameters(), lr=self.cfg.lr, weight_decay=0.0000001)
+        # opt = th.optim.Adam(self.parameters(), lr=self.cfg.lr, weight_decay=0.00001)
         opt = th.optim.Adam(self.parameters(), lr=self.cfg.lr)
         return opt
 
