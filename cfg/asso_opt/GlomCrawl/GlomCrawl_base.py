@@ -30,8 +30,8 @@ use_l1_loss = True
 use_div_loss = True
 lambda_l1 = 0
 lambda_div = 0
-# lambda_l1 = 0.000001
-# lambda_div = 0.000005
+# lambda_l1 = 0.0001
+# lambda_div = 0.0005
 
 # CLIP Backbone
 # clip_model = 'ViT-L/14'

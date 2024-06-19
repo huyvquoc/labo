@@ -9,7 +9,8 @@ from pathlib import Path
 
 class AssoConcept(pl.LightningModule):
     def init_weight_concept(self, concept2cls):
-        self.init_weight = th.zeros((self.cfg.num_cls, len(self.select_idx))) #init with the actual number of selected index
+        # self.init_weight = th.zeros((self.cfg.num_cls, len(self.select_idx))) #init with the actual number of selected index
+        self.init_weight = th.zeros((128, len(self.select_idx))) #init with the actual number of selected index
 
         if self.cfg.use_rand_init: th.nn.init.kaiming_normal_(self.init_weight)
         else: self.init_weight.scatter_(0, concept2cls, self.cfg.init_val)
@@ -105,7 +106,7 @@ class AssoConcept(pl.LightningModule):
         pred = 100 * sim  # scaling as standard CLIP does
 
         # classification accuracy
-        cls_loss = F.cross_entropy(pred, label)
+        cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float())
         if th.isnan(cls_loss):
             import pdb; pdb.set_trace() # yapf: disable
 
@@ -117,9 +118,10 @@ class AssoConcept(pl.LightningModule):
                                                           dim=-1),
                                                 ord=1,
                                                 dim=-1).mean()
-        # asso_mat sparse regulation
-        row_l1_norm = th.linalg.vector_norm(self.asso_mat, ord=1,
-                                            dim=-1).max() #.mean()
+        else:
+            # asso_mat sparse regulation
+            row_l1_norm = th.linalg.vector_norm(self.asso_mat, ord=1,
+                                                dim=-1).max() #.mean()
         self.log('training_loss', cls_loss)
         self.log('mean l1 norm', row_l1_norm)
         self.log('div', div)
@@ -238,7 +240,25 @@ class AssoConcept(pl.LightningModule):
 
 
 class AssoConceptFast(AssoConcept):
+    def __init__(self, cfg, init_weight=None, select_idx=None) -> None:
+        AssoConcept.__init__(self, cfg, init_weight, select_idx)
+
+        self.fc2 = th.nn.Linear(128, 64)
+        self.relu2 = th.nn.LeakyReLU(0.1)
+        th.nn.init.kaiming_normal_(self.fc2.weight)
+        self.fc3 = th.nn.Linear(64, 64)
+        self.relu3 = th.nn.LeakyReLU(0.1)
+        th.nn.init.kaiming_normal_(self.fc3.weight)
+        self.fc4 = th.nn.Linear(64, 42)
+        th.nn.init.kaiming_normal_(self.fc4.weight)
 
     def forward(self, dot_product):
         mat = self._get_weight_mat()
-        return dot_product @ mat.t()
+        fc1_out = dot_product @ mat.t()
+        fc2_out = self.relu2(self.fc2(fc1_out))
+        fc3_out = self.relu3(self.fc3(fc2_out))
+        return self.fc4(fc3_out)
+
+    # def forward(self, dot_product):
+    #     mat = self._get_weight_mat()
+    #     return dot_product @ mat.t()
