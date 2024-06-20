@@ -6,6 +6,8 @@ import torch.nn.functional as F
 import numpy as np
 from pathlib import Path
 
+from loss.criterion import get_criterion
+
 
 class AssoConcept(pl.LightningModule):
     def init_weight_concept(self, concept2cls):
@@ -78,6 +80,8 @@ class AssoConcept(pl.LightningModule):
         self.all_logit = []
         self.confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=self.cfg.num_cls)
         self.balanced_weights = th.DoubleTensor(cfg.balanced_weights).cuda()
+        self.criterion = get_criterion(cfg)
+        self.criterion.cuda()
         self.save_hyperparameters()
 
 
@@ -108,7 +112,8 @@ class AssoConcept(pl.LightningModule):
 
         # classification accuracy
         # cls_loss = F.cross_entropy(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
-        cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
+        # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
+        cls_loss = self.criterion(pred, F.one_hot(label, num_classes=42).float())
         if th.isnan(cls_loss):
             import pdb; pdb.set_trace() # yapf: disable
 
