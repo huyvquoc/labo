@@ -14,6 +14,8 @@ num_cls = 42
 ## data loader
 bs = 128
 on_gpu = True
+use_txt_norm = True
+use_img_norm = True
 
 # concept select
 num_concept = num_cls * 15

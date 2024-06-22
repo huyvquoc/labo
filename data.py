@@ -121,12 +121,21 @@ class DataModule(pl.LightningDataModule):
                 'train' else 'img_feat_{}_{}_{}{}_{}.pth'.format(clip_model_name, mode, int(self.use_img_norm), int(self.use_txt_norm), clip_model.replace('/', '-')))
             for mode in ['train', 'val', 'test']
         }
-        self.label_save_dir = {
-            mode: self.img_split_path.joinpath(
-                'label_{}_{}_{}.pth'.format(clip_model_name, mode, n_shots) if mode ==
-                'train' else 'label_{}_{}.pth'.format(clip_model_name, mode))
-            for mode in ['train', 'val', 'test']
-        }
+        if self.use_img_norm is True and self.use_txt_norm is True:
+            self.label_save_dir = {
+                mode: self.img_split_path.joinpath(
+                    'label_normalized_{}_{}_{}.pth'.format(clip_model_name, mode, n_shots) if mode ==
+                    'train' else 'label_normalized_{}_{}.pth'.format(clip_model_name, mode))
+                for mode in ['train', 'val', 'test']
+            }
+        else:
+            self.label_save_dir = {
+                mode: self.img_split_path.joinpath(
+                    'label_{}_{}_{}.pth'.format(clip_model_name, mode, n_shots) if mode ==
+                    'train' else 'label_{}_{}.pth'.format(clip_model_name, mode))
+                for mode in ['train', 'val', 'test']
+            }
+
         if self.use_cls_name_init != 'none':
             self.init_weight_save_dir = self.data_root.joinpath('init_weight.pth')
         if self.use_cls_sim_prior != 'none':
@@ -137,8 +146,12 @@ class DataModule(pl.LightningDataModule):
             'concepts_raw_selected.npy')
         self.concept2cls_save_dir = self.data_root.joinpath(
             'concept2cls_selected.npy')
-        self.concept_feat_save_dir = self.data_root.joinpath(
-            'concepts_feat_{}.pth'.format(clip_model.replace('/','-')))
+        if self.use_img_norm is True and self.use_txt_norm is True:
+            self.concept_feat_save_dir = self.data_root.joinpath(
+                'concepts_feat_normalized_{}.pth'.format(clip_model.replace('/','-')))
+        else:
+            self.concept_feat_save_dir = self.data_root.joinpath(
+                'concepts_feat_{}.pth'.format(clip_model.replace('/','-')))
 
         self.clip_model = clip_model
         self.clip_ckpt = clip_ckpt
