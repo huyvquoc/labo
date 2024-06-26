@@ -389,6 +389,26 @@ class APLLoss(nn.Module):
 
         return -loss.sum()
         
+class ANLSLoss(nn.Module):
+    def __init__(self, label_smooth=0.1):
+        super(ANLSLoss, self).__init__()
+
+        self.label_smooth = label_smooth
+
+    def loss_an_ls(self, preds, observed_labels):
+        # input validation: 
+        assert torch.min(observed_labels) >= 0
+        # compute loss:
+        loss_mtx = torch.zeros_like(observed_labels)
+        loss_mtx[observed_labels == 1] = (1.0 - self.label_smooth) * neg_log(preds[observed_labels == 1]) + self.label_smooth * neg_log(1.0 - preds[observed_labels == 1])
+        loss_mtx[observed_labels == 0] = (1.0 - self.label_smooth) * neg_log(1.0 - preds[observed_labels == 0]) + self.label_smooth * neg_log(preds[observed_labels == 0])
+        reg_loss = None
+        return loss_mtx, reg_loss
+
+def neg_log(x):
+    LOG_EPSILON = 1e-5
+    return - torch.log(x + LOG_EPSILON)
+
 def get_criterion(cfg):
     if cfg.main_loss == 'TwoWayLoss':
         return TwoWayLoss(Tp=1., Tn=2.)
@@ -406,5 +426,7 @@ def get_criterion(cfg):
         return FocalLoss(logits=True)
     elif cfg.main_loss == 'APLLoss':
         return APLLoss(gamma_neg=1, gamma_pos=2, clip=0.05, eps=1e-8, disable_torch_grad_focal_loss=True)
+    elif cfg.main_loss == 'ANLSLoss':
+        return ANLSLoss(label_smooth=0.3)
     else:
         raise ValueError(f"Not supported loss {cfg.main_loss}")
