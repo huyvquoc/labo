@@ -44,14 +44,14 @@ class AssoConcept(pl.LightningModule):
             if select_idx is None: self.select_idx = th.load(select_idx_path)[:cfg.num_concept]
             else: self.select_idx = select_idx
 
-            self.concepts = th.load(concept_feat_path)[self.select_idx].cuda()
+            self.concepts = th.load(concept_feat_path)[self.select_idx].cuda() # shape: (630, 512)
             if self.cfg.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
 
-            self.concept_raw = np.load(concept_raw_path)[self.select_idx]
-            self.concept2cls = th.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1)
+            self.concept_raw = np.load(concept_raw_path)[self.select_idx] # shape: (630, )
+            self.concept2cls = th.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1) # shape: (1, 630)
 
         if init_weight is None:
-            self.init_weight_concept(self.concept2cls)
+            self.init_weight_concept(self.concept2cls) # shape: (42, 630)
         else:
             self.init_weight = init_weight
 
@@ -67,7 +67,7 @@ class AssoConcept(pl.LightningModule):
             self.init_weight = th.vstack(new_weights).T
             # self.weight_mask = cls_sim @ self.init_weight
 
-        self.asso_mat = th.nn.Parameter(self.init_weight.clone())
+        self.asso_mat = th.nn.Parameter(self.init_weight.clone()) # shape (42, 630), initialized with 0. and 1.
         self.train_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.valid_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=cfg.top_k) # micro, macro, or weighted
@@ -98,6 +98,9 @@ class AssoConcept(pl.LightningModule):
 
 
     def forward(self, img_feat):
+        '''
+        img_feat.shape: (1024, 512)
+        '''
         mat = self._get_weight_mat()
         cls_feat = mat @ self.concepts
         sim = img_feat @ cls_feat.t()
@@ -113,7 +116,7 @@ class AssoConcept(pl.LightningModule):
         # classification accuracy
         # cls_loss = F.cross_entropy(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
-        # cls_loss = self.criterion(pred, F.one_hot(label, num_classes=42).float())
+        # cls_loss, _ = self.criterion(pred, F.one_hot(label, num_classes=42).float())
         if th.isnan(cls_loss):
             import pdb; pdb.set_trace() # yapf: disable
 

@@ -36,6 +36,9 @@ class DotProductDataset(Dataset):
     """
 
     def __init__(self, img_feat, txt_feat, label, on_gpu):
+        '''
+        img_feat.shape: (2969, 512)
+        '''
         self.dot_product = (img_feat @ txt_feat.t())
         self.dot_product = self.dot_product.cuda(
         ) if on_gpu else self.dot_product

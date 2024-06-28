@@ -395,7 +395,7 @@ class ANLSLoss(nn.Module):
 
         self.label_smooth = label_smooth
 
-    def loss_an_ls(self, preds, observed_labels):
+    def forward(self, preds, observed_labels):
         # input validation: 
         assert torch.min(observed_labels) >= 0
         # compute loss:
