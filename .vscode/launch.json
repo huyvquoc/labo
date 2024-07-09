@@ -14,9 +14,9 @@
             "env": {"CUDA_VISIBLE_DEVICES":"6"},
             "args": [
                 "--cfg",
-                "cfg/asso_opt/GlomCrawl/GlomCrawl_4shot_fac.py",
+                "cfg/asso_opt/GlomCrawl/GlomCrawl_allshot_fac.py",
                 "--work-dir",
-                "exp/asso_opt/GlomCrawl/GlomCrawl_4shot_fac",
+                "exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac",
                 "--func",
                 "asso_opt_main",
             ]
