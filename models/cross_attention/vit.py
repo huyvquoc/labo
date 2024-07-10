@@ -146,17 +146,21 @@ class ConceptTransformerVIT(nn.Module):
         n_unsup_concepts=10,
         n_concepts=10,
         n_spatial_concepts=10,
+        model_name=None,
+        ckpt_path=None,
         *args,
         **kwargs,
     ):
         super().__init__()
 
-        # ----- only for CONCH -----
-        self.tokenizer = get_tokenizer()
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model, self.preprocess = create_model_from_pretrained(self.conch_model, self.ckpt_path, device=device)
-        # _ = model.eval()
-        # ----- only for CONCH -----
+        self.model_name = model_name
+        if self.model_name == 'conch_ViT-B-16':
+            # ----- only for CONCH -----
+            self.tokenizer = get_tokenizer()
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self.model, self.preprocess = create_model_from_pretrained(self.model_name, ckpt_path, device=device)
+            # _ = model.eval()
+            # ----- only for CONCH -----
 
         # Unsupervised concepts
         self.n_unsup_concepts = n_unsup_concepts
@@ -214,12 +218,27 @@ class ConceptTransformerVIT(nn.Module):
         '''
         unsup_concept_attn, concept_attn, spatial_concept_attn = None, None, None
 
-        # Case (2): hard concepts in raw
-        text_tokens = tokenize(texts=prompts, tokenizer=self.tokenizer).to(device)
-        with torch.inference_mode(): # !! do we need to use this when inside forward !!
-            txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
-        txt_feat = txt_feat[None, :, :]
-        # TODO: either set txt_feat to learnable here using nn.Parameter()
+        if self.model_name == 'conch_ViT-B-16':
+            if x_concepts is not None:
+                # --- Hard concept prompts ---
+                if x_concepts.ndim == 1:
+                    # Case (2): hard concepts in raw
+                    text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(device)
+                    with torch.inference_mode(): # !! do we need to use this when inside forward !!
+                        txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
+                    txt_feat = txt_feat[None, :, :]
+                elif x_concepts.ndim == 2:
+                    # Case (3) hard concepts in the form of extracted embeddings
+                    txt_feat = x_concepts[None, :, :]
+            else:
+                # --- Soft prompts ---
+                # Case (2): hard concepts in raw
+                text_tokens = tokenize(texts=self.concepts, tokenizer=self.tokenizer).to(device)
+                with torch.inference_mode(): # !! do we need to use this when inside forward !!
+                    txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
+                txt_feat = txt_feat[None, :, :]
+                # TODO: either set txt_feat to learnable here using nn.Parameter()
+
 
         out = 0.0
         if self.n_unsup_concepts > 0:  # unsupervised stream,  self.n_unsup_concepts = 0
@@ -228,8 +247,8 @@ class ConceptTransformerVIT(nn.Module):
             out = out + out_unsup.squeeze(1)  # squeeze token dimension
 
         if self.n_concepts > 0:  # Non-spatial stream, self.n_concepts = 13 # TODO: global concepts
-            if x_concepts is not None:
-                out_n, concept_attn = self.concept_tranformer(x_cls, x_concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+            if self.model_name == 'conch_ViT-B-16':
+                out_n, concept_attn = self.concept_tranformer(x_cls, txt_feat) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             else:
                 out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             concept_attn = concept_attn.mean(1)  # average over heads, shape: (32, 1, 13)
