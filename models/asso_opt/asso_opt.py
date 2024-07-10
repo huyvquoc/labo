@@ -114,6 +114,7 @@ class AssoConcept(pl.LightningModule):
         pred = 100 * sim  # scaling as standard CLIP does
 
         # classification accuracy
+        # === REMEMBER TO CHANGE LOSS FUNCTION IN `val_step` and `test_step` ===
         # cls_loss = F.cross_entropy(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         # cls_loss, _ = self.criterion(pred, F.one_hot(label, num_classes=42).float())

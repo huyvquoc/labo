@@ -39,39 +39,19 @@ class CTCModel(pl.LightningModule):
         concept_raw_path = self.data_root.joinpath('concepts_raw_selected.npy')
         concept2cls_path = self.data_root.joinpath('concept2cls_selected.npy')
         select_idx_path = self.data_root.joinpath('select_idx.pth')
-        self.init_weight_save_dir = self.data_root.joinpath('init_weight.pth')
-        cls_sim_path = self.data_root.joinpath('cls_sim.pth')
 
         if not concept_feat_path.exists():
             raise RuntimeError('need to call datamodule precompute_txt before using the model')
         else:
-            if select_idx is None: self.select_idx = torch.load(select_idx_path)[:cfg.num_concept]
+            if select_idx is None: self.select_idx = torch.load(select_idx_path)[:cfg.num_concept] # indices of all selected concepts
             else: self.select_idx = select_idx
 
-            self.concepts = torch.load(concept_feat_path)[self.select_idx].cuda()
+            self.concepts = torch.load(concept_feat_path)[self.select_idx].cuda() # extracted text embeddings of all concepts
             if self.cfg.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
 
-            self.concept_raw = np.load(concept_raw_path)[self.select_idx]
-            self.concept2cls = torch.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1)
+            self.concept_raw = np.load(concept_raw_path)[self.select_idx] # all raw concepts (sentences)
+            self.concept2cls = torch.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1) # Mapping from a concept to its corresponding class
 
-        if init_weight is None:
-            self.init_weight_concept(self.concept2cls)
-        else:
-            self.init_weight = init_weight
-
-        if 'cls_sim_prior' in self.cfg and self.cfg.cls_sim_prior and self.cfg.cls_sim_prior != 'none':
-            # class similarity is prior to restrict class-concept association
-            # if class A and B are dissimilar (similarity=0), then the mask location will be 0 
-            print('use cls prior')
-            cls_sim = torch.load(cls_sim_path)
-            new_weights = []
-            for concept_id in range(self.init_weight.shape[1]):
-                target_class = int(torch.where(self.init_weight[:,concept_id] == 1)[0])
-                new_weights.append(cls_sim[target_class] + self.init_weight[:,concept_id])
-            self.init_weight = torch.vstack(new_weights).T
-            # self.weight_mask = cls_sim @ self.init_weight
-
-        self.asso_mat = torch.nn.Parameter(self.init_weight.clone())
         self.train_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.valid_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=cfg.top_k) # micro, macro, or weighted
@@ -96,78 +76,52 @@ class CTCModel(pl.LightningModule):
         # ctc_model='mnist_ctc' for MNIST odd/even
         # ==================== ConceptTransformer ends here ====================
 
-    def forward(self, img_feat):
+    def forward(self, x):
+        '''
+        Inputs:
+        - x: can either be original images with shape (train_batch_size, #channels, width, height)
+        OR extrated embeddings with shape (train_batch_size, embedding_dim)
+        '''
         # ==================== LaBo starts here ====================
-        self.concepts # (630, 512)
-        img_feat # (1024, 512)
-        return sim
+        self.concepts # (#selected_concepts, embedding_dim) = (630, 512)
         # ==================== LaBo ends here ====================
         # ==================== ConceptTransformer starts here ====================
         '''
-        TODO: we do not have x here. x is a original image, not image embedding. Because we extracted image embeddings using a separate process and save them into a pth file
+        TODO: we do not have x here. x is an original image, not image embedding. Because we extracted image embeddings using a separate process and save them into a pth file
         x: torch.Tensor (batch, 1, img_width, img_height), (32, 1, 28, 28) for MNIST odd/even, (32, 3, 224, 224) for CUB200
         TODO: Maybe we can just feed the features directly to the network, not need the original image (see forward of CVIT, original x is not used anymore after the feature extraction step).
         But one problem is 512 vs 1024, ConceptTransformer also has predefined cls_token from the pretrained feature extractor
+        TODO: We should feed original image because later we will need to implement soft prompting, which means we will not have a fix collection of input
         '''
-        outputs, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x) # self.model is CTC
+        outputs, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x) # self.model is CTC for MNIST odd/even, and CVIT for CUB
         logits = F.log_softmax(outputs, dim=-1)
         return logits, unsup_concept_attn, concept_attn, spatial_concept_attn
         # ==================== ConceptTransformer ends here ====================
 
 
     def training_step(self, train_batch, batch_idx):
-        # ==================== LaBo starts here ====================
-        image, label = train_batch
-
-        sim = self.forward(image)
-        pred = 100 * sim  # scaling as standard CLIP does
-
-        # classification accuracy
-        # cls_loss = F.cross_entropy(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
-        cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
-        # cls_loss, _ = self.criterion(pred, F.one_hot(label, num_classes=42).float())
-        if torch.isnan(cls_loss):
-            import pdb; pdb.set_trace() # yapf: disable
-
-        # diverse response
-        div = -torch.var(sim, dim=0).mean()
-        
-        if self.cfg.asso_act == 'softmax':
-            row_l1_norm = torch.linalg.vector_norm(F.softmax(self.asso_mat,
-                                                          dim=-1),
-                                                ord=1,
-                                                dim=-1).mean()
-        else:
-            # asso_mat sparse regulation
-            row_l1_norm = torch.linalg.vector_norm(self.asso_mat, ord=1,
-                                                dim=-1).max() #.mean()
-        self.log('training_loss', cls_loss)
-        self.log('mean l1 norm', row_l1_norm)
-        self.log('div', div)
-
-        self.train_acc(pred, label)
-        self.log('train_acc', self.train_acc, on_step=False, on_epoch=True)
-        final_loss = cls_loss
-        if self.cfg.use_l1_loss:
-            final_loss += self.cfg.lambda_l1 * row_l1_norm
-        if self.cfg.use_div_loss:
-            final_loss += self.cfg.lambda_div * div
-        return final_loss
-        # ==================== LaBo ends here ====================
         # ==================== ConceptTransformer starts here ====================
         '''
+        - For CUB200
+        len(batch): 4
+        batch[0].shape (original images): (32, 3, 224, 224)
+        batch[1].shape (global contexts attn matrix): (32, 13)
+        batch[2].shape (local contexts attn matrix of patches and contexts): (32, 196, 95)
+        batch[3].shape (labels): (32)
+
         TODO: will keep mostly the ConceptTransformer code
         need to check if the required `batch` below matches with the argument `train_batch`
         '''
-        logits, preds, ce_loss, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(batch)
+        logits, preds, ce_loss, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(train_batch, stage='train')
         # logits.shape: (32, 200)
         # preds.shape: (32)
         loss = ce_loss
-        if self.hparams.expl_lambda > 0:
-            loss = loss + self.hparams.expl_lambda * expl_loss
-        if self.hparams.attention_sparsity > 0:
-            loss = loss + self.hparams.attention_sparsity * l1_loss
+        if self.cfg.expl_lambda > 0:
+            loss = loss + self.cfg.expl_lambda * expl_loss
+        if self.cfg.attention_sparsity > 0:
+            loss = loss + self.cfg.attention_sparsity * l1_losss
 
+        self.log('train_acc', self.train_acc, on_step=False, on_epoch=True)
         self.log_dict(
             {
                 "train_loss": loss,
@@ -182,7 +136,7 @@ class CTCModel(pl.LightningModule):
         return loss
         # ==================== ConceptTransformer ends here ====================
     
-    def shared_step(self, batch):
+    def shared_step(self, batch, stage):
         '''
         `shared_step` only exists in ConceptTransformer -> No need to modify it
         '''
@@ -195,8 +149,32 @@ class CTCModel(pl.LightningModule):
         logits, unsup_concept_attn, concept_attn, spatial_concept_attn = self(x)
         preds = torch.argmax(logits, dim=1) # shape: (32)
 
+        # ----- loss functions from LaBo -----
+        # cls_loss = F.cross_entropy(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
+        # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
+        # cls_loss, _ = self.criterion(pred, F.one_hot(label, num_classes=42).float())
+        # ----- loss functions from ConceptTransformer -----
         ce_loss = F.nll_loss(logits, y) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
-        acc = accuracy(preds, y)
+        # acc = accuracy(preds, y) # from ConceptTransformer
+        if stage == 'train':
+            self.train_acc(logits, y)
+            self.log('train_acc', self.train_acc, on_step=False, on_epoch=True)
+        elif stage == 'val':
+            self.val_acc(logits, y)
+            self.log('val_acc', self.val_acc, on_step=False, on_epoch=True)
+        elif stage == 'test':
+            self.log('test_loss', ce_loss)
+            self.test_acc(logits, y)
+            self.log('test_acc', self.test_acc, on_step=False, on_epoch=True)
+            self.test_f1(logits, y)
+            self.log('test_macro_f1', self.test_f1, on_step=False, on_epoch=True)
+            self.test_ap(logits, y)
+            self.log('test_ap', self.test_ap, on_step=False, on_epoch=True)
+            self.confmat(preds, y)
+            self.all_y.append(y)
+            self.all_pred.append(preds)
+            self.all_logit.append(logits)
+
 
         expl_loss = concepts_cost(concept_attn, expl) + spatial_concepts_cost( # PRED concept_attn.shape: (32, 1, 13), TARGET expl.shape: (32, 13)
             spatial_concept_attn, spatial_expl # PRED spatial_concept_attn.shape: (32, 196, 95), TARGET spatial_expl.shpae: (32, 196, 95)
@@ -218,9 +196,8 @@ class CTCModel(pl.LightningModule):
 
     def configure_optimizers(self):
         # ==================== LaBo starts here ====================
-        opt = torch.optim.Adam(self.parameters(), lr=self.cfg.lr, weight_decay=0.0000001)
         # opt = th.optim.Adam(self.parameters(), lr=self.cfg.lr)
-        return opt
+        # return opt
         # ==================== LaBo ends here ====================
         # ==================== ConceptTransformer starts here ====================
         '''
@@ -229,15 +206,15 @@ class CTCModel(pl.LightningModule):
         '''
         optimizer = torch.optim.AdamW(
             filter(lambda p: p.requires_grad, self.parameters()),
-            lr=self.hparams.learning_rate,
-            weight_decay=self.hparams.weight_decay,
+            lr=self.cfg.lr,
+            weight_decay=self.cfg.weight_decay,
         )
 
-        if self.hparams.disable_lr_scheduler:
+        if self.cfg.disable_lr_scheduler:
             return [optimizer]
         else:
             scheduler = LinearWarmupCosineAnnealingLR(
-                optimizer, warmup_epochs=self.hparams.warmup, max_epochs=self.hparams.max_epochs
+                optimizer, warmup_epochs=self.cfg.warmup, max_epochs=self.cfg.max_epochs
             )
         return [optimizer], [scheduler]
         # ==================== ConceptTransformer ends here ====================
@@ -248,21 +225,13 @@ class CTCModel(pl.LightningModule):
         if not self.cfg.DEBUG:
             if self.global_step == 0 and not self.cfg.DEBUG:
                 wandb.define_metric('val_acc', summary='max')
-        image, y = batch
-        sim = self.forward(image)
-        pred = 100 * sim
-        loss = F.cross_entropy(pred, y)
-        self.log('val_loss', loss)
-        self.valid_acc(pred, y)
-        self.log('val_acc', self.valid_acc, on_step=False, on_epoch=True)
-        return loss
         # ==================== LaBo ends here ====================
         # ==================== ConceptTransformer starts here ====================
         '''
         TODO: Both `validation_step` have the same arguments `batch` and `batch_idx`. Both do not use batch_idx
         Need to check if the required `batch` is actually the argument `batch`
         '''
-        logits, preds, ce_loss, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(batch)
+        logits, preds, ce_loss, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
         self.log_dict(
             {
                 "val_ce_loss": ce_loss,
@@ -274,34 +243,16 @@ class CTCModel(pl.LightningModule):
             on_epoch=True,
         )
         return acc
+        # return ce_loss # LaBo
         # ==================== ConceptTransformer ends here ====================
 
 
     def test_step(self, batch, batch_idx):
-        # ==================== LaBo starts here ====================
-        image, y = batch
-        sim = self.forward(image)
-        pred = 100 * sim
-        loss = F.cross_entropy(pred, y)
-        y_pred = pred.argmax(dim=-1)
-        self.confmat(y_pred, y)
-        self.all_y.append(y)
-        self.all_pred.append(y_pred)
-        self.all_logit.append(pred)
-        self.log('test_loss', loss)
-        self.test_acc(pred, y)
-        self.log('test_acc', self.test_acc, on_step=False, on_epoch=True)
-        self.test_f1(pred, y)
-        self.log('test_macro_f1', self.test_f1, on_step=False, on_epoch=True)
-        self.test_ap(pred, y)
-        self.log('test_ap', self.test_ap, on_step=False, on_epoch=True)
-        return loss
-        # ==================== LaBo ends here ====================
         # ==================== ConceptTransformer starts here ====================
         '''
         TODO: do we need to append y and pred into overall lists?
         '''
-        logits, preds, ce_loss, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(batch)
+        logits, preds, ce_loss, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='test')
         self.log_dict(
             {
                 "test_ce_loss": ce_loss,
@@ -311,6 +262,7 @@ class CTCModel(pl.LightningModule):
             }
         )
         return acc
+        # return loss # LaBo
         # ==================== ConceptTransformer ends here ====================
 
 

@@ -11,3 +11,10 @@ use_mi = False
 group_select = True
 submodular_weights = [1e7, 1]
 # submodular_weights = [1e9, 0.7]
+
+# ----- only for ConceptTransformer -----
+weight_decay
+disable_lr_scheduler
+warmup
+expl_lambda
+attention_sparsity

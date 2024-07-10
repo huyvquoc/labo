@@ -6,6 +6,7 @@ from timm.models.vision_transformer import VisionTransformer
 from torch import nn
 
 from .ctc import CrossAttention
+from conch.open_clip_custom import create_model_from_pretrained, tokenize, get_tokenizer
 
 
 def cub_cvit(backbone_name="vit_large_patch16_224", baseline=False, *args, **kwargs):
@@ -56,13 +57,22 @@ class CVIT(nn.Module):
         num_heads=12,
         attention_dropout=0.1,
         projection_dropout=0.1,
+        ckpt_path=None, # only for loading conch model
         *args,
         **kwargs,
     ):
         super().__init__()
 
-        self.feature_extractor = timm.create_model(model_name, pretrained=True, num_classes=num_classes) # CoCa model.visual
-        del self.feature_extractor.head
+        self_model_name = model_name
+
+        if self.model_name == 'vit_base_patch16_224':
+            self.feature_extractor = timm.create_model(self.model_name, pretrained=True, num_classes=num_classes) # CoCa model.visual
+            del self.feature_extractor.head
+        elif self.model_name == 'conch_ViT-B-16':
+            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self.feature_extractor, self.preprocess = create_model_from_pretrained(self.model_name, ckpt_path, device=device)
+            self.feature_extractor = self.feature_extractor.visual.trunk
+            # _ = self.feature_extractor.eval()
 
         self.classifier = ConceptTransformerVIT(
             embedding_dim=self.feature_extractor.embed_dim, # 1024
@@ -79,9 +89,15 @@ class CVIT(nn.Module):
     def forward(self, x):
         '''
         Inputs:
-        - x.shape: (32, 3, 224, 224)
+        - Original images - x.shape: (batch_size, 3, 224, 224)
+        OR
+        - Extracted embeds - x.shape: (batch_size, 512)
         '''
-        x = self.feature_extractor.patch_embed(x) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16))
+        if x.ndim == 4:
+            x = self.feature_extractor.patch_embed(x) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16))
+        elif x.ndim == 2: # Use extracted embeddings
+            x = x[:, None, :]
+
         cls_token = self.feature_extractor.cls_token.expand( # self.feature_extractor.cls_token.shape: (1, 1, 1024)
             x.shape[0], -1, -1
         )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (1, 1, 768)
@@ -113,6 +129,12 @@ class ConceptTransformerVIT(nn.Module):
     """Processes spatial and non-spatial concepts in parallel and aggregates the log-probabilities at the end.
     The difference with the version in ctc.py is that instead of using sequence pooling for global concepts it
     uses the embedding of the cls token of the VIT
+
+    3 cases:
+    (1) soft concepts by default of ConceptTransformer
+    (2) hard concepts in raw
+    (3) hard concepts in the form of extracted embeddings
+    (4) soft concepts feeding into CONCH
     """
     def __init__(
         self,
@@ -128,6 +150,13 @@ class ConceptTransformerVIT(nn.Module):
         **kwargs,
     ):
         super().__init__()
+
+        # ----- only for CONCH -----
+        self.tokenizer = get_tokenizer()
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model, self.preprocess = create_model_from_pretrained(self.conch_model, self.ckpt_path, device=device)
+        # _ = model.eval()
+        # ----- only for CONCH -----
 
         # Unsupervised concepts
         self.n_unsup_concepts = n_unsup_concepts
@@ -176,13 +205,21 @@ class ConceptTransformerVIT(nn.Module):
                 projection_dropout=projection_dropout,
             )
 
-    def forward(self, x_cls, x):
+    def forward(self, x_cls, x, x_concepts=None):
         '''
         - Inputs:
           cls token (category feature): x_cls.shape: (32, 1, 1024)
           remaining tokens (image feature): x.shape: (32, 196, 1024)
+          x_concepts: can be original raw concepts `self.concept_raw` (630,) OR extracted embeddings `self.concepts` (630, 512)
         '''
         unsup_concept_attn, concept_attn, spatial_concept_attn = None, None, None
+
+        # Case (2): hard concepts in raw
+        text_tokens = tokenize(texts=prompts, tokenizer=self.tokenizer).to(device)
+        with torch.inference_mode(): # !! do we need to use this when inside forward !!
+            txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
+        txt_feat = txt_feat[None, :, :]
+        # TODO: either set txt_feat to learnable here using nn.Parameter()
 
         out = 0.0
         if self.n_unsup_concepts > 0:  # unsupervised stream,  self.n_unsup_concepts = 0
@@ -190,8 +227,11 @@ class ConceptTransformerVIT(nn.Module):
             unsup_concept_attn = unsup_concept_attn.mean(1)  # average over heads
             out = out + out_unsup.squeeze(1)  # squeeze token dimension
 
-        if self.n_concepts > 0:  # Non-spatial stream, self.n_concepts = 13
-            out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+        if self.n_concepts > 0:  # Non-spatial stream, self.n_concepts = 13 # TODO: global concepts
+            if x_concepts is not None:
+                out_n, concept_attn = self.concept_tranformer(x_cls, x_concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+            else:
+                out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             concept_attn = concept_attn.mean(1)  # average over heads, shape: (32, 1, 13)
             out = out + out_n.squeeze(1)  # squeeze token dimension, shape: (32, 200)
 
