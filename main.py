@@ -308,19 +308,109 @@ def asso_opt_main(cfg):
                 dirpath=cfg.work_dir,
                 filename='{epoch}-{step}-{val_acc:.4f}',
                 every_n_epochs=check_interval)
-
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            dirpath=cfg.work_dir,
-            filename='{epoch}-{step}-{val_acc:.4f}',
-            monitor='val_acc',
-            mode='max',
-            save_top_k=1,
-            every_n_epochs=50)
+        else:
+            checkpoint_callback = pl.callbacks.ModelCheckpoint(
+                dirpath=cfg.work_dir,
+                filename='{epoch}-{step}-{val_acc:.4f}',
+                monitor='val_acc',
+                mode='max',
+                save_top_k=1,
+                every_n_epochs=50)
         # device_stats = pl.callbacks.DeviceStatsMonitor()
         trainer = pl.Trainer(gpus=1, max_epochs=1000, \
             callbacks=[checkpoint_callback, ], check_val_every_n_epoch=50, default_root_dir=cfg.work_dir)
     trainer.fit(model, data_module)
 
+
+def concept_trans_main(cfg):
+    from models.cross_attention.concept_transformer import CTCModel
+    from data.concepttrans_datamodule import ImgExplDataModule
+    import random
+    proj_name = cfg.proj_name
+
+    if not os.path.isfile(cfg.cls_name_path):
+        class2concepts = json.load(open(cfg.concept_root + "class2concepts.json", "r"))
+        save_npy_files(class2concepts, cfg.concept_root)
+     
+    random.seed(1) # seed matches first run of linear probe
+
+    data_module = ImgExplDataModule(
+        data_root=cfg.data_root, 
+        img_root=cfg.img_path, 
+        img_split_path=cfg.img_split_path, 
+        cls_name_path=cfg.cls_name_path, 
+        img_ext=cfg.img_ext if 'img_ext' in cfg else '.jpg',
+        num_concept=cfg.num_concept, 
+        batch_size=cfg.bs, 
+        num_workers=cfg.num_workers if 'num_workers' in cfg else 0,
+        on_gpu=cfg.on_gpu, 
+        model_name=cfg.clip_model
+        )
+    
+
+    if cfg.test:
+        ckpt_path = cfg.ckpt_path
+        print('load ckpt: {}'.format(ckpt_path))
+        model = CTCModel.load_from_checkpoint(str(ckpt_path))
+        trainer = pl.Trainer(gpus=1)
+        trainer.test(model, data_module)
+        test_acc = round(100 * float(model.total_test_acc), 2)
+        dataset = cfg.ckpt_path.split("/")[-3]
+        exp = cfg.ckpt_path.split("/")[-2]
+        with open("output/concept_trans/{}.txt".format(dataset), "a") as f:
+            f.write("{}\t{}\n".format(exp, test_acc))
+        return
+
+    print("use concept trans")
+    model = CTCModel(cfg, init_weight=th.load(cfg.init_weight_path) if 'init_weight_path' in cfg else None)
+
+    check_interval = 10
+
+    print("check interval = {}".format(check_interval))
+
+    if not cfg.DEBUG:
+        if 'use_last_ckpt' in cfg and cfg['use_last_ckpt']:
+            checkpoint_callback = pl.callbacks.ModelCheckpoint(
+                dirpath=cfg.work_dir,
+                filename='{epoch}-{step}-{val_acc:.4f}',
+                every_n_epochs=check_interval)
+        else:
+            checkpoint_callback = pl.callbacks.ModelCheckpoint(
+                dirpath=cfg.work_dir,
+                filename='{epoch}-{step}-{val_acc:.4f}',
+                monitor='val_acc',
+                mode='max',
+                save_top_k=1,
+                every_n_epochs=check_interval)
+
+        wandb_logger = pl.loggers.WandbLogger(name='{}shot_{}_{}_{}'\
+                       .format(cfg.n_shots, cfg.concept_type, cfg.num_concept, cfg.submodular_weights[1]),
+                       project=proj_name,
+                       config=cfg._cfg_dict)
+
+        trainer = pl.Trainer(gpus=1,
+                             callbacks=[checkpoint_callback],
+                             logger=wandb_logger,
+                             check_val_every_n_epoch=check_interval,
+                             max_epochs=cfg.max_epochs if 'max_epochs' in cfg else 1000)
+    else:
+        if 'use_last_ckpt' in cfg and cfg['use_last_ckpt']:
+            checkpoint_callback = pl.callbacks.ModelCheckpoint(
+                dirpath=cfg.work_dir,
+                filename='{epoch}-{step}-{val_acc:.4f}',
+                every_n_epochs=check_interval)
+        else:
+            checkpoint_callback = pl.callbacks.ModelCheckpoint(
+                dirpath=cfg.work_dir,
+                filename='{epoch}-{step}-{val_acc:.4f}',
+                monitor='val_acc',
+                mode='max',
+                save_top_k=1,
+                every_n_epochs=10)
+        # device_stats = pl.callbacks.DeviceStatsMonitor()
+        trainer = pl.Trainer(gpus=1, max_epochs=1000, \
+            callbacks=[checkpoint_callback, ], check_val_every_n_epoch=10, default_root_dir=cfg.work_dir)
+    trainer.fit(model, data_module)
 
 if __name__ == "__main__":
     from mmcv import DictAction
