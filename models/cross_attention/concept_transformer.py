@@ -1,6 +1,7 @@
 import numpy as np
 from pathlib import Path
 import pytorch_lightning as pl
+from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 import torch
 import torch.nn.functional as F
 import torchmetrics
@@ -119,7 +120,7 @@ class CTCModel(pl.LightningModule):
         if self.cfg.expl_lambda > 0:
             loss = loss + self.cfg.expl_lambda * expl_loss
         if self.cfg.attention_sparsity > 0:
-            loss = loss + self.cfg.attention_sparsity * l1_losss
+            loss = loss + self.cfg.attention_sparsity * l1_loss
 
         self.log('train_acc', self.train_acc, on_step=False, on_epoch=True)
         self.log_dict(
@@ -146,7 +147,7 @@ class CTCModel(pl.LightningModule):
         x, expl, spatial_expl, y = batch
         # MNIST:
         # CUB: logits.shape: (32, 200), unsup_concept_attn.shape: None, concept_attn.shape: (32, 1, 13), spatial_concept_attn.shape: (32, 196, 95)
-        logits, unsup_concept_attn, concept_attn, spatial_concept_attn = self(x)
+        logits, unsup_concept_attn, concept_attn, spatial_concept_attn = self(x, self.concepts)
         preds = torch.argmax(logits, dim=1) # shape: (32)
 
         # ----- loss functions from LaBo -----
@@ -157,14 +158,14 @@ class CTCModel(pl.LightningModule):
         ce_loss = F.nll_loss(logits, y) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
         # acc = accuracy(preds, y) # from ConceptTransformer
         if stage == 'train':
-            self.train_acc(logits, y)
+            acc = self.train_acc(logits, y)
             self.log('train_acc', self.train_acc, on_step=False, on_epoch=True)
         elif stage == 'val':
-            self.val_acc(logits, y)
+            acc = self.val_acc(logits, y)
             self.log('val_acc', self.val_acc, on_step=False, on_epoch=True)
         elif stage == 'test':
             self.log('test_loss', ce_loss)
-            self.test_acc(logits, y)
+            acc = self.test_acc(logits, y)
             self.log('test_acc', self.test_acc, on_step=False, on_epoch=True)
             self.test_f1(logits, y)
             self.log('test_macro_f1', self.test_f1, on_step=False, on_epoch=True)

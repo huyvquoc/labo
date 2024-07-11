@@ -15,7 +15,7 @@ def linear_probe_sklearn_main(cfg):
     "Adapted from: https://github.com/KaiyangZhou/CoOp/blob/main/lpclip/linear_probe.py"
     from sklearn.linear_model import LogisticRegression
     from models.linear_probe.linear_probe import get_features
-    from data_lp import LinearProbeDataModule
+    from data.lp_datamodule import LinearProbeDataModule
 
     val_acc_step_list = np.zeros([cfg.n_runs, cfg.steps])
     best_c_weights_list = []
@@ -162,7 +162,7 @@ def save_npy_files(class2concepts, save_dir):
 def asso_opt_main(cfg):
     from models.asso_opt.asso_opt import AssoConcept, AssoConceptFast
     from models.select_concept.select_algo import mi_select, clip_score_select, group_mi_select, group_clip_select, submodular_select, random_select
-    from data import DataModule, DotProductDataModule
+    from data.labo_datamodule import DataModule, DotProductDataModule
     import random
     proj_name = cfg.proj_name
 

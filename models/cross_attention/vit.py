@@ -86,10 +86,11 @@ class CVIT(nn.Module):
             **kwargs, # {'batch_size': 32, 'debug': False, 'data_dir': '/data/hqvo3/data/cub2011', 'finetune_unfreeze_epoch': 0, 'num_workers': 8, 'seed': 42, 'data_name': 'CUB2011Parts'}
         )
 
-    def forward(self, x):
+    def forward(self, x, x_concepts):
         '''
         Inputs:
         - Original images - x.shape: (batch_size, 3, 224, 224)
+        - x_concepts: can be original raw concepts `self.concept_raw` (630,) OR extracted embeddings `self.concepts` (630, 512)
         OR
         - Extracted embeds - x.shape: (batch_size, 512)
         '''
@@ -116,7 +117,7 @@ class CVIT(nn.Module):
         x = self.feature_extractor.norm(x) # shape: (32, 197, 1024)
 
         out, unsup_concept_attn, concept_attn, spatial_concept_attn = self.classifier(
-            x[:, 0].unsqueeze(1), x[:, 1:] # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
+            x[:, 0].unsqueeze(1), x[:, 1:], x_concepts # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
         )
         # out.shape: (32, 200)
         # unsup_concept_attn: None
