@@ -26,3 +26,4 @@ num_heads = 12
 attention_dropout = 0.1
 projection_dropout = 0.1
 ckpt_path = '/data/hqvo3/weights/CONCH/pytorch_model.bin' # for CONCH
+num_workers = 1

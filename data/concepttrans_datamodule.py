@@ -15,19 +15,22 @@ from .labo_datamodule import DataModule
 import utils
 
 
-class ImgExplDataset(VisionDataset):
+class ImgExplDataset(Dataset):
     def __init__(self,  \
                  list_of_img_names=[], \
                  list_of_labels=[], \
+                 num_concept=-1,
                  concept2cls=None,
                  transform=None):
-        super().__init__(transform=transform)
+        super().__init__()
 
         self.loader = default_loader
 
         self.img_names = list_of_img_names # train, val, or test. read pickle file in pl.DataModule
         self.labels = list_of_labels
-        self.concept2cls = concept2cls
+        self.num_concept = num_concept
+        self.concept2cls = concept2cls.tolist()[0]
+        self.transform = transform
 
         # Mapping class label to selected concepts'new indices. These new indices are not the indices in `self.select_idx`, but are the new indices have been assigned to the selected indices (0 -> 629)
         self.cls2indices = {}
@@ -37,7 +40,7 @@ class ImgExplDataset(VisionDataset):
             self.cls2indices[cls].append(idx)
 
     def __len__(self):
-        return len(self.image_names)
+        return len(self.img_names)
 
     def __getitem__(self, idx):
         """
@@ -46,7 +49,7 @@ class ImgExplDataset(VisionDataset):
         Returns:
             tuple: (PIL image, target) where target is index of the target class.
         """
-        img_path = self.img_path.joinpath(self.img_names[idx]) # Absolute path to a specific image
+        img_path = self.img_names[idx] # Absolute path to a specific image
         target = self.labels[idx]
 
         img = self.loader(img_path)
@@ -59,14 +62,14 @@ class ImgExplDataset(VisionDataset):
         expl = self._get_explanations(target)
 
         # spatial concepts are always set to None
-        return (img, expl, None, target)
+        return (img, expl, np.nan, target)
     
     def _get_explanations(self, cls):
         '''
         target: is label, int or str?
         '''
         # Global explanations
-        expl = torch.FloatTensor(self.num_concepts).fill_(0) # self.num_non_spatial_attributes = 13, initialize all elements with nan, expl.shape = (13)
+        expl = torch.FloatTensor(self.num_concept).fill_(0) # self.num_non_spatial_attributes = 13, initialize all elements with nan, expl.shape = (13)
 
         for index in self.cls2indices[cls]:
             expl[index] = 1
@@ -143,7 +146,8 @@ class ImgExplDataModule(pl.LightningDataModule):
         self.datasets = {
             mode: ImgExplDataset(list_of_img_names=self.dict_of_img_paths[mode], \
                                  list_of_labels=self.dict_of_labels[mode], \
-                                 concept2cls=self.concept2cls,
+                                 num_concept=self.num_concept, \
+                                 concept2cls=self.concept2cls, \
                                  transform=self.transform[mode])
             for mode in ['train', 'val', 'test']
         }

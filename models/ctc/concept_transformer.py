@@ -76,7 +76,7 @@ class CTCModel(pl.LightningModule):
         OR extrated embeddings with shape (train_batch_size, embedding_dim)
         '''
         # ==================== LaBo starts here ====================
-        self.concepts # (#selected_concepts, embedding_dim) = (630, 512)
+        # self.concepts # (#selected_concepts, embedding_dim) = (630, 512)
         # ==================== LaBo ends here ====================
         # ==================== ConceptTransformer starts here ====================
         '''
@@ -86,7 +86,7 @@ class CTCModel(pl.LightningModule):
         But one problem is 512 vs 1024, ConceptTransformer also has predefined cls_token from the pretrained feature extractor
         TODO: We should feed original image because later we will need to implement soft prompting, which means we will not have a fix collection of input
         '''
-        outputs, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x) # self.model is CTC for MNIST odd/even, and CVIT for CUB
+        outputs, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x, self.concepts) # self.model is CTC for MNIST odd/even, and CVIT for CUB
         logits = F.log_softmax(outputs, dim=-1)
         return logits, unsup_concept_attn, concept_attn, spatial_concept_attn
         # ==================== ConceptTransformer ends here ====================
@@ -139,7 +139,7 @@ class CTCModel(pl.LightningModule):
         x, expl, spatial_expl, y = batch
         # MNIST:
         # CUB: logits.shape: (32, 200), unsup_concept_attn.shape: None, concept_attn.shape: (32, 1, 13), spatial_concept_attn.shape: (32, 196, 95)
-        logits, unsup_concept_attn, concept_attn, spatial_concept_attn = self(x, self.concepts)
+        logits, unsup_concept_attn, concept_attn, spatial_concept_attn = self(x)
         preds = torch.argmax(logits, dim=1) # shape: (32)
 
         # ----- loss functions from LaBo -----

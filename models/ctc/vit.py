@@ -105,7 +105,7 @@ class CVIT(nn.Module):
         )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (1, 1, 768)
 
         # self.feature_extractor.dist_token.shape: (1, 1, 1024)
-        if self.feature_extractor.dist_token is None: # yes, dist token is None, TODO: CoCa has no dist_token too: model.visual.trunk.dist_token
+        if not hasattr(self.feature_extractor, 'dist_token') or self.feature_extractor.dist_token is None: # yes, dist token is None, TODO: CoCa has no dist_token too: model.visual.trunk.dist_token
             x = torch.cat((cls_token, x), dim=1) # x.shape: (32, 197, 1024)
         else:
             x = torch.cat((cls_token, self.feature_extractor.dist_token.expand(x.shape[0], -1, -1), x), dim=1)
