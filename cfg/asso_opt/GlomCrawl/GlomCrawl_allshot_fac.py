@@ -18,3 +18,11 @@ disable_lr_scheduler = True
 warmup = 10
 expl_lambda = 5.0
 attention_sparsity = 0.0
+ctc_model = 'cub_cvit'
+
+num_unsup_concept = 0
+num_spatial_concept = 0
+num_heads = 12
+attention_dropout = 0.1
+projection_dropout = 0.1
+ckpt_path = '/data/hqvo3/weights/CONCH/pytorch_model.bin' # for CONCH

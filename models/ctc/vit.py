@@ -9,26 +9,27 @@ from .ctc import CrossAttention
 from conch.open_clip_custom import create_model_from_pretrained, tokenize, get_tokenizer
 
 
-def cub_cvit(backbone_name="vit_large_patch16_224", baseline=False, *args, **kwargs):
+def cub_cvit(cfg, baseline=False, *args, **kwargs):
     """
     Args:
         baseline (bool): If true it returns the baseline model, which in this case it just the vit backbone without concept transformer
     """
     if not baseline:
         return CVIT(
-            model_name=backbone_name,
-            num_classes=200,
-            n_unsup_concepts=0,
-            n_concepts=13,
-            n_spatial_concepts=95,
-            num_heads=12,
-            attention_dropout=0.1,
-            projection_dropout=0.1,
+            model_name=cfg.clip_model,
+            num_classes=cfg.num_cls,
+            n_unsup_concepts=cfg.num_unsup_concept,
+            n_concepts=cfg.num_concept,
+            n_spatial_concepts=cfg.num_spatial_concept,
+            num_heads=cfg.num_heads,
+            attention_dropout=cfg.attention_dropout,
+            projection_dropout=cfg.projection_dropout,
+            ckpt_path=cfg.ckpt_path,
             *args,
             **kwargs,
         )
     else:
-        return ExplVIT(model_name=backbone_name, num_classes=200)
+        return ExplVIT(model_name=cfg.clip_model, num_classes=200)
 
 
 class ExplVIT(VisionTransformer):
@@ -63,7 +64,7 @@ class CVIT(nn.Module):
     ):
         super().__init__()
 
-        self_model_name = model_name
+        self.model_name = model_name
 
         if self.model_name == 'vit_base_patch16_224':
             self.feature_extractor = timm.create_model(self.model_name, pretrained=True, num_classes=num_classes) # CoCa model.visual

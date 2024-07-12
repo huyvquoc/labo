@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Train LaBo",
+            "name": "Train LaBo asso opt",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
@@ -19,6 +19,24 @@
                 "exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac",
                 "--func",
                 "asso_opt_main",
+            ]
+        },
+        {
+            "name": "Train LaBo concept trans",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "justMyCode": true,
+            "cwd": "/data/hqvo3/codes/LaBo",
+            "env": {"CUDA_VISIBLE_DEVICES":"6",
+                    "PYTHONPATH":"${PYTHONPATH}:/data/hqvo3/codes/CONCH"},
+            "args": [
+                "--cfg",
+                "cfg/asso_opt/GlomCrawl/GlomCrawl_allshot_fac.py",
+                "--work-dir",
+                "exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac",
+                "--func",
+                "concept_trans_main",
             ]
         }
     ]

@@ -323,7 +323,7 @@ def asso_opt_main(cfg):
 
 
 def concept_trans_main(cfg):
-    from models.cross_attention.concept_transformer import CTCModel
+    from models.ctc.concept_transformer import CTCModel
     from data.concepttrans_datamodule import ImgExplDataModule
     import random
     proj_name = cfg.proj_name

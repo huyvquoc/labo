@@ -12,24 +12,15 @@ import wandb
 # from pytorch_lightning.pytorch.demos import Transformer
 from loss.criterion import get_criterion
 
-from . import ctc
-from .ctc import concepts_cost, concepts_sparsity_cost, spatial_concepts_cost
+import models.ctc
+from models.ctc import concepts_cost, concepts_sparsity_cost, spatial_concepts_cost
 
 
 class CTCModel(pl.LightningModule):
 
     def __init__(
         self, 
-        ctc_model, # ----- ConceptTransformer from here -----
-        expl_lambda,
-        learning_rate,
-        weight_decay,
-        warmup,
-        disable_lr_scheduler,
-        max_epochs,
-        attention_sparsity,
         cfg, # ----- LaBo from here -----
-        init_weight=None, 
         select_idx=None,
         **kwargs, # ----- ConceptTransformer -----
     ) -> None:
@@ -74,7 +65,7 @@ class CTCModel(pl.LightningModule):
         # self.save_hyperparameters() # comment this because it has already been at the last line of LaBo
 
         # Instantiate CTC model
-        self.model = getattr(ctc, ctc_model)(**kwargs) # self.model is CTC
+        self.model = getattr(models.ctc, self.cfg.ctc_model)(self.cfg) # self.model is CTC
         # ctc_model='mnist_ctc' for MNIST odd/even
         # ==================== ConceptTransformer ends here ====================
 
