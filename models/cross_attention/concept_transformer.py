@@ -1,7 +1,8 @@
 import numpy as np
 from pathlib import Path
 import pytorch_lightning as pl
-from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+# from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 import torch
 import torch.nn.functional as F
 import torchmetrics
@@ -11,8 +12,8 @@ import wandb
 # from pytorch_lightning.pytorch.demos import Transformer
 from loss.criterion import get_criterion
 
-import ctc
-from ctc import concepts_cost, concepts_sparsity_cost, spatial_concepts_cost
+from . import ctc
+from .ctc import concepts_cost, concepts_sparsity_cost, spatial_concepts_cost
 
 
 class CTCModel(pl.LightningModule):
@@ -214,8 +215,11 @@ class CTCModel(pl.LightningModule):
         if self.cfg.disable_lr_scheduler:
             return [optimizer]
         else:
-            scheduler = LinearWarmupCosineAnnealingLR(
-                optimizer, warmup_epochs=self.cfg.warmup, max_epochs=self.cfg.max_epochs
+            # scheduler = LinearWarmupCosineAnnealingLR(
+            #     optimizer, warmup_epochs=self.cfg.warmup, max_epochs=self.cfg.max_epochs
+            # )
+            scheduler = CosineAnnealingWarmRestarts(
+                optimizer, T_0=50, T_mult=1, eta_min=1e-10, last_epoch=-1
             )
         return [optimizer], [scheduler]
         # ==================== ConceptTransformer ends here ====================

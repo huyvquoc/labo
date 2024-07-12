@@ -22,7 +22,7 @@ num_concept = num_cls * 15
 
 # weight matrix fitting
 lr = 5e-6
-max_epochs = 50000
+max_epochs = 100
 
 # weight matrix
 use_rand_init = False

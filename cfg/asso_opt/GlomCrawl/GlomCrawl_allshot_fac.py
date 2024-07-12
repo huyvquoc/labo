@@ -13,8 +13,8 @@ submodular_weights = [1e7, 1]
 # submodular_weights = [1e9, 0.7]
 
 # ----- only for ConceptTransformer -----
-weight_decay
-disable_lr_scheduler
-warmup
-expl_lambda
-attention_sparsity
+weight_decay = 1e-4
+disable_lr_scheduler = True
+warmup = 10
+expl_lambda = 5.0
+attention_sparsity = 0.0

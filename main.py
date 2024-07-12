@@ -344,7 +344,8 @@ def concept_trans_main(cfg):
         batch_size=cfg.bs, 
         num_workers=cfg.num_workers if 'num_workers' in cfg else 0,
         on_gpu=cfg.on_gpu, 
-        model_name=cfg.clip_model
+        model_name=cfg.clip_model,
+        use_txt_norm=cfg.use_txt_norm
         )
     
 
@@ -362,7 +363,7 @@ def concept_trans_main(cfg):
         return
 
     print("use concept trans")
-    model = CTCModel(cfg, init_weight=th.load(cfg.init_weight_path) if 'init_weight_path' in cfg else None)
+    model = CTCModel(cfg)
 
     check_interval = 10
 

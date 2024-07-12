@@ -2,6 +2,7 @@ import os
 import pickle
 
 import albumentations as A
+from albumentations.pytorch import ToTensorV2
 import numpy as np
 import pytorch_lightning as pl
 from pathlib import Path
@@ -74,7 +75,7 @@ class ImgExplDataset(VisionDataset):
     
 class ImgExplDataModule(pl.LightningDataModule):
 
-    def __init__(self, data_root, img_root, img_split_path, cls_name_path, img_ext, num_concept, batch_size, num_workers, on_gpu=False, model_name='conch_ViT-B-16'):
+    def __init__(self, data_root, img_root, img_split_path, cls_name_path, img_ext, num_concept, batch_size, num_workers, on_gpu=False, model_name='conch_ViT-B-16', use_txt_norm=False):
         super().__init__()
 
         self.data_root = Path(data_root)
@@ -85,6 +86,7 @@ class ImgExplDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.on_gpu = on_gpu
+        self.use_txt_norm = use_txt_norm
 
         self.cls_names = np.load(cls_name_path).tolist() # for reference, the mapping between indices and names
 
@@ -107,12 +109,12 @@ class ImgExplDataModule(pl.LightningDataModule):
         self.concept_raw_path = self.data_root.joinpath('concepts_raw_selected.npy')
         self.concept2cls_path = self.data_root.joinpath('concept2cls_selected.npy')
         self.select_idx_path = self.data_root.joinpath('select_idx.pth')
-
+            
+        self.select_idx = torch.load(self.select_idx_path)[:self.num_concept] # (630, )
         self.concepts = torch.load(self.concept_feat_path)[self.select_idx].cuda() # shape: (630, 512)
-        if self.cfg.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
+        if self.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
         self.concept_raw = np.load(self.concept_raw_path)[self.select_idx] # shape: (630, )
         self.concept2cls = torch.from_numpy(np.load(self.concept2cls_path)[self.select_idx]).long().view(1, -1) # shape: (1, 630)
-        self.select_idx = torch.load(self.select_idx_path)[self.num_concept] # (630, )
 
         self.img_names = {}
         self.labels = {}
@@ -121,13 +123,13 @@ class ImgExplDataModule(pl.LightningDataModule):
                                               A.HorizontalFlip(p=0.5),
                                               A.Rotate(limit=(-30,30),p=1.0),
                                               A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                              A.ToTensorV2()]),
+                                              ToTensorV2()]),
                           'val': A.Compose([A.Resize(224, 224),
                                             A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                            A.ToTensorV2()]),
+                                            ToTensorV2()]),
                           'test': A.Compose([A.Resize(224, 224),
                                              A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                             A.ToTensorV2()])
+                                             ToTensorV2()])
         }
  
     def setup(self, stage=None):
