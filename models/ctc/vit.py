@@ -96,13 +96,15 @@ class CVIT(nn.Module):
         - Extracted embeds - x.shape: (batch_size, 512)
         '''
         if x.ndim == 4:
-            x = self.feature_extractor.patch_embed(x) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16))
+            x = self.feature_extractor.patch_embed(x) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16)) shape (128, 14, 14, 768)
+            if self.model_name == 'conch_ViT-B-16':
+                x = torch.flatten(x, start_dim=1, end_dim=2) # (128, 196, 768)
         elif x.ndim == 2: # Use extracted embeddings
             x = x[:, None, :]
 
         cls_token = self.feature_extractor.cls_token.expand( # self.feature_extractor.cls_token.shape: (1, 1, 1024)
             x.shape[0], -1, -1
-        )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (1, 1, 768)
+        )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (990, 1, 768)
 
         # self.feature_extractor.dist_token.shape: (1, 1, 1024)
         if not hasattr(self.feature_extractor, 'dist_token') or self.feature_extractor.dist_token is None: # yes, dist token is None, TODO: CoCa has no dist_token too: model.visual.trunk.dist_token

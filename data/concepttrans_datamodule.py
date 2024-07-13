@@ -122,15 +122,18 @@ class ImgExplDataModule(pl.LightningDataModule):
         self.img_names = {}
         self.labels = {}
 
-        self.transform = {'train': A.Compose([A.Resize(224, 224),
+        resized_img_dim = 224
+        if model_name == 'conch_ViT-B-16':
+            resized_img_dim = 448
+        self.transform = {'train': A.Compose([A.Resize(resized_img_dim, resized_img_dim),
                                               A.HorizontalFlip(p=0.5),
                                               A.Rotate(limit=(-30,30),p=1.0),
                                               A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
                                               ToTensorV2()]),
-                          'val': A.Compose([A.Resize(224, 224),
+                          'val': A.Compose([A.Resize(resized_img_dim, resized_img_dim),
                                             A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
                                             ToTensorV2()]),
-                          'test': A.Compose([A.Resize(224, 224),
+                          'test': A.Compose([A.Resize(resized_img_dim, resized_img_dim),
                                              A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
                                              ToTensorV2()])
         }

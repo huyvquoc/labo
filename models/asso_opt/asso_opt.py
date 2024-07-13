@@ -69,7 +69,7 @@ class AssoConcept(pl.LightningModule):
 
         self.asso_mat = th.nn.Parameter(self.init_weight.clone()) # shape (42, 630), initialized with 0. and 1.
         self.train_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        self.valid_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
+        self.val_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=cfg.top_k) # micro, macro, or weighted
         # self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.test_f1 = torchmetrics.F1Score(num_classes=cfg.num_cls, average='macro', task='multiclass')
@@ -162,8 +162,8 @@ class AssoConcept(pl.LightningModule):
         pred = 100 * sim
         loss = F.cross_entropy(pred, y)
         self.log('val_loss', loss)
-        self.valid_acc(pred, y)
-        self.log('val_acc', self.valid_acc, on_step=False, on_epoch=True)
+        self.val_acc(pred, y)
+        self.log('val_acc', self.val_acc, on_step=False, on_epoch=True)
         return loss
 
 

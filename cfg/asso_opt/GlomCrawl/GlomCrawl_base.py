@@ -12,7 +12,7 @@ cls_name_path = concept_root + 'cls_names.npy'
 num_cls = 42
 
 ## data loader
-bs = 128
+bs = 64
 on_gpu = True
 use_txt_norm = True
 use_img_norm = True

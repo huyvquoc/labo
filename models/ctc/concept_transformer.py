@@ -46,7 +46,7 @@ class CTCModel(pl.LightningModule):
             self.concept2cls = torch.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1) # Mapping from a concept to its corresponding class
 
         self.train_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        self.valid_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
+        self.val_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=cfg.top_k) # micro, macro, or weighted
         # self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
         self.test_f1 = torchmetrics.F1Score(num_classes=cfg.num_cls, average='macro', task='multiclass')
@@ -114,7 +114,6 @@ class CTCModel(pl.LightningModule):
         if self.cfg.attention_sparsity > 0:
             loss = loss + self.cfg.attention_sparsity * l1_loss
 
-        self.log('train_acc', self.train_acc, on_step=False, on_epoch=True)
         self.log_dict(
             {
                 "train_loss": loss,
@@ -151,19 +150,19 @@ class CTCModel(pl.LightningModule):
         # acc = accuracy(preds, y) # from ConceptTransformer
         if stage == 'train':
             acc = self.train_acc(logits, y)
-            self.log('train_acc', self.train_acc, on_step=False, on_epoch=True)
+            # self.log('train_acc', self.train_acc, on_step=False, on_epoch=True)
         elif stage == 'val':
             acc = self.val_acc(logits, y)
-            self.log('val_acc', self.val_acc, on_step=False, on_epoch=True)
+            # self.log('val_acc', self.val_acc, on_step=False, on_epoch=True)
         elif stage == 'test':
-            self.log('test_loss', ce_loss)
+            # self.log('test_loss', ce_loss)
             acc = self.test_acc(logits, y)
-            self.log('test_acc', self.test_acc, on_step=False, on_epoch=True)
+            # self.log('test_acc', self.test_acc, on_step=False, on_epoch=True)
             self.test_f1(logits, y)
             self.log('test_macro_f1', self.test_f1, on_step=False, on_epoch=True)
             self.test_ap(logits, y)
             self.log('test_ap', self.test_ap, on_step=False, on_epoch=True)
-            self.confmat(preds, y)
+            # self.confmat(preds, y)
             self.all_y.append(y)
             self.all_pred.append(preds)
             self.all_logit.append(logits)
