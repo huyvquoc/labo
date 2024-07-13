@@ -1,8 +1,8 @@
 _base_ = 'GlomCrawl_base.py'
 n_shots = "all"
 data_root = 'exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac'
-lr = 1e-4
-bs = 64
+lr = 1e-7
+bs = 512
 
 concept_type = "all_submodular"
 # concept_select_fn = "submodular"
@@ -26,4 +26,4 @@ num_heads = 12
 attention_dropout = 0.1
 projection_dropout = 0.1
 ckpt_path = '/data/hqvo3/weights/CONCH/pytorch_model.bin' # for CONCH
-num_workers = 1
+num_workers = 4

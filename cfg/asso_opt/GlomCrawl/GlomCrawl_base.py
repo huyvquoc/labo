@@ -12,7 +12,7 @@ cls_name_path = concept_root + 'cls_names.npy'
 num_cls = 42
 
 ## data loader
-bs = 64
+bs = 512
 on_gpu = True
 use_txt_norm = True
 use_img_norm = True
@@ -21,7 +21,7 @@ use_img_norm = True
 num_concept = num_cls * 15
 
 # weight matrix fitting
-lr = 5e-6
+lr = 1e-7
 max_epochs = 100
 
 # weight matrix

@@ -50,7 +50,9 @@ class ImgExplDataset(Dataset):
             tuple: (PIL image, target) where target is index of the target class.
         """
         img_path = self.img_names[idx] # Absolute path to a specific image
-        target = self.labels[idx]
+        int_target = self.labels[idx]
+        target = torch.tensor(int_target, dtype=torch.int8)
+        target = target.cuda()
 
         img = self.loader(img_path)
 
@@ -58,8 +60,11 @@ class ImgExplDataset(Dataset):
             image_np = np.array(img) # img is a PIL with (153, 264); image_np.shape: (264, 153, 3)
             transformed = self.transform(image=image_np)
             img = transformed['image'] # shape: (3, 224, 224)
+        # img = torch.from_numpy(img)
+        img = img.cuda()
 
-        expl = self._get_explanations(target)
+        expl = self._get_explanations(int_target)
+        expl = expl.cuda()
 
         # spatial concepts are always set to None
         return (img, expl, np.nan, target)

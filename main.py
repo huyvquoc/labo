@@ -366,6 +366,22 @@ def concept_trans_main(cfg):
     print("use concept trans")
     model = CTCModel(cfg)
 
+    # for param in model.parameters():
+    #     print('[param] ', param)
+    #     param.requires_grad = False
+    # model.CVIT.VisionTransformer.requires_grad_(False)
+    # model.CVIT.ConceptTransformerVIT.CoCa.requires_grad_(False)
+    model.model.feature_extractor.requires_grad_(False)
+    model.model.classifier.model.requires_grad_(False)
+    # for name, module in model.model.named_children():
+    #     print('[name]', name)
+    #     if name == 'feature_extractor':
+    #         module.requires_grad = False
+    #     elif name == 'classifier':
+    #         for name2, module2 in module.named_children():
+    #             if name2 == 'model':
+    #                 module2.requires_grad = False
+
     summary(model, input_size=(1, 3, 448, 448), col_names=("input_size",
                                                            "output_size",
                                                            "num_params",
