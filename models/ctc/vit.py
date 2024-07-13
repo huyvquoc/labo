@@ -4,6 +4,7 @@ import timm
 import torch
 from timm.models.vision_transformer import VisionTransformer
 from torch import nn
+from torch.nn import functional as F
 
 from .ctc import CrossAttention
 from conch.open_clip_custom import create_model_from_pretrained, tokenize, get_tokenizer
@@ -215,6 +216,51 @@ class ConceptTransformerVIT(nn.Module):
                 projection_dropout=projection_dropout,
             )
 
+    def _encode_text(self, text, normalize=True, embed_cls=True):
+        '''
+        Copy from `conch/open_clip_custom/coca_model.py`
+
+        By default, do normalize (True) and embed_cls (True)
+
+        Input:
+        - text: is text tokens
+        '''
+        text = text[:, :-1] if embed_cls else text # make space for CLS token
+        text_latent, token_emb = self._get_text_feat(text)
+        text_latent = F.normalize(text_latent, dim=-1) if normalize else text_latent
+
+        return text_latent, token_emb
+
+    def _get_text_feat(self, text):
+        '''
+        All of conch COCA text branch
+        '''
+        cast_dtype = self.model.text.transformer.get_cast_dtype()
+        seq_len = text.shape[1]
+        x = self.model.text.token_embedding(text).to(cast_dtype)  # [batch_size, n_ctx, d_model]
+        attn_mask = self.model.text.attn_mask
+        if self.model.text.cls_emb is not None:
+            seq_len += 1
+            x = torch.cat([x, self.model.text._repeat(self.model.text.cls_emb, x.shape[0])], dim=1)
+            cls_mask = self.model.text.build_cls_mask(text, cast_dtype)
+            attn_mask = attn_mask[None, :seq_len, :seq_len] + cls_mask[:, :seq_len, :seq_len]
+
+        x = x + self.model.text.positional_embedding[:seq_len].to(cast_dtype)
+        x = x.permute(1, 0, 2)  # NLD -> LND
+        x = self.model.text.transformer(x, attn_mask=attn_mask)
+        x = x.permute(1, 0, 2)  # LND -> NLD
+
+        # x.shape = [batch_size, n_ctx, transformer.width]
+        # take features from the eot embedding (eot_token is the highest number in each sequence)
+        if self.model.text.cls_emb is not None:
+            pooled, tokens = x[:, -1], x[:, :-1]
+            pooled = self.model.text.ln_final(pooled)
+        else:
+            x = self.model.text.ln_final(x)
+            pooled, tokens = x[torch.arange(x.shape[0]), text.argmax(dim=-1)], x
+
+        return pooled, tokens
+
     def forward(self, x_cls, x, x_concepts=None):
         '''
         - Inputs:
@@ -231,7 +277,9 @@ class ConceptTransformerVIT(nn.Module):
                     # Case (2): hard concepts in raw
                     text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device)
                     # with torch.inference_mode(): # !! do we need to use this when inside forward !!
-                    txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
+                    # txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
+                    txt_feat, _ = self._encode_text(text_tokens)
+
                     txt_feat = txt_feat[None, :, :]
                 elif x_concepts.ndim == 2:
                     # Case (3) hard concepts in the form of extracted embeddings
