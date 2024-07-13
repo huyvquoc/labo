@@ -43,6 +43,7 @@ class CTCModel(pl.LightningModule):
             if self.cfg.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
 
             self.concept_raw = np.load(concept_raw_path)[self.select_idx] # all raw concepts (sentences)
+            self.concept_raw = self.concept_raw.tolist()
             self.concept2cls = torch.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1) # Mapping from a concept to its corresponding class
 
         self.train_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
@@ -86,7 +87,7 @@ class CTCModel(pl.LightningModule):
         But one problem is 512 vs 1024, ConceptTransformer also has predefined cls_token from the pretrained feature extractor
         TODO: We should feed original image because later we will need to implement soft prompting, which means we will not have a fix collection of input
         '''
-        outputs, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x, self.concepts) # self.model is CTC for MNIST odd/even, and CVIT for CUB
+        outputs, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x, self.concept_raw) # self.model is CTC for MNIST odd/even, and CVIT for CUB
         logits = F.log_softmax(outputs, dim=-1)
         return logits, unsup_concept_attn, concept_attn, spatial_concept_attn
         # ==================== ConceptTransformer ends here ====================

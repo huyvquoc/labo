@@ -83,6 +83,8 @@ class CVIT(nn.Module):
             n_unsup_concepts=n_unsup_concepts, # 0
             n_concepts=n_concepts, # 13
             n_spatial_concepts=n_spatial_concepts, # 95
+            model_name=self.model_name,
+            ckpt_path=ckpt_path,
             *args,
             **kwargs, # {'batch_size': 32, 'debug': False, 'data_dir': '/data/hqvo3/data/cub2011', 'finetune_unfreeze_epoch': 0, 'num_workers': 8, 'seed': 42, 'data_name': 'CUB2011Parts'}
         )
@@ -161,9 +163,9 @@ class ConceptTransformerVIT(nn.Module):
         if self.model_name == 'conch_ViT-B-16':
             # ----- only for CONCH -----
             self.tokenizer = get_tokenizer()
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            self.model, self.preprocess = create_model_from_pretrained(self.model_name, ckpt_path, device=device)
-            # _ = model.eval()
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self.model, self.preprocess = create_model_from_pretrained(self.model_name, ckpt_path, device=self.device)
+            # _ = self.model.eval()
             # ----- only for CONCH -----
 
         # Unsupervised concepts
@@ -225,11 +227,11 @@ class ConceptTransformerVIT(nn.Module):
         if self.model_name == 'conch_ViT-B-16':
             if x_concepts is not None:
                 # --- Hard concept prompts ---
-                if x_concepts.ndim == 1:
+                if type(x_concepts) is list:
                     # Case (2): hard concepts in raw
-                    text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(device)
-                    with torch.inference_mode(): # !! do we need to use this when inside forward !!
-                        txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
+                    text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device)
+                    # with torch.inference_mode(): # !! do we need to use this when inside forward !!
+                    txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
                     txt_feat = txt_feat[None, :, :]
                 elif x_concepts.ndim == 2:
                     # Case (3) hard concepts in the form of extracted embeddings
@@ -237,7 +239,7 @@ class ConceptTransformerVIT(nn.Module):
             else:
                 # --- Soft prompts ---
                 # Case (2): hard concepts in raw
-                text_tokens = tokenize(texts=self.concepts, tokenizer=self.tokenizer).to(device)
+                text_tokens = tokenize(texts=self.concepts, tokenizer=self.tokenizer).to(self.device)
                 with torch.inference_mode(): # !! do we need to use this when inside forward !!
                     txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
                 txt_feat = txt_feat[None, :, :]

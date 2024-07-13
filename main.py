@@ -4,6 +4,7 @@ import json
 import argparse
 import pytorch_lightning as pl
 import torch as th
+from torchinfo import summary
 import numpy as np
 from sklearn.metrics import confusion_matrix
 import random
@@ -364,6 +365,14 @@ def concept_trans_main(cfg):
 
     print("use concept trans")
     model = CTCModel(cfg)
+
+    summary(model, input_size=(1, 3, 448, 448), col_names=("input_size",
+                                                           "output_size",
+                                                           "num_params",
+                                                           "params_percent",
+                                                           "kernel_size",
+                                                           "mult_adds",
+                                                           "trainable"))
 
     check_interval = 10
 
