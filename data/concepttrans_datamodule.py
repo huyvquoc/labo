@@ -53,7 +53,6 @@ class ImgExplDataset(Dataset):
         img_path = self.img_names[idx] # Absolute path to a specific image
         int_target = self.labels[idx]
         target = torch.tensor(int_target, dtype=torch.long)
-        target = target.cuda()
 
         img = self.loader(img_path)
 
@@ -61,13 +60,11 @@ class ImgExplDataset(Dataset):
             image_np = np.array(img) # img is a PIL with (153, 264); image_np.shape: (264, 153, 3)
             transformed = self.transform(image=image_np)
             img = transformed['image'] # shape: (3, 224, 224)
-        img = img.cuda()
 
         expl = self._get_explanations(int_target)
-        expl = expl.cuda()
 
         # spatial concepts are always set to None
-        return (img, expl, np.nan, target)
+        return (img, expl, torch.tensor(float('nan')), target)
     
     def _get_explanations(self, cls):
         '''
@@ -142,6 +139,24 @@ class ImgExplDataModule(pl.LightningDataModule):
                                              A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
                                              ToTensorV2()])
         }
+
+    def transfer_batch_to_device(self, batch, device, dataloader_idx):
+        '''
+        A correct way to transfer batch to device when you return list, tuple, dict, ... in Dataset `getitem`
+
+        Ref:
+        [1] https://github.com/Lightning-AI/pytorch-lightning/discussions/14616#discussioncomment-3605304
+        [2] https://lightning.ai/docs/pytorch/latest/data/datamodule.html#transfer-batch-to-device
+        [3] https://github.com/Lightning-AI/pytorch-lightning/issues/18124
+        '''
+        if isinstance(batch, list):
+            batch[0] = batch[0].to(device)
+            batch[1] = batch[1].to(device)
+            batch[2] = batch[2].to(device)
+            batch[3] = batch[3].to(device)
+            return batch
+        else:
+            return super().transfer_batch_to_device(batch, device, dataloader_idx)
  
     def setup(self, stage=None):
         """
@@ -190,4 +205,4 @@ class ImgExplDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers if not self.on_gpu else 0,
-            pin_memory=True if not self.on_gpu else False)
+            pin_memory=True if not self.on_gpu else False) 
