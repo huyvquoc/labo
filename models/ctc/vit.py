@@ -48,7 +48,7 @@ class ExplVIT(VisionTransformer):
         out = super().forward(x)
         return out, None, None, None
 
-def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin'):
+def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, only_visual_trunk=False, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin'):
     '''
     This function is mostly used in the data module file
 
@@ -58,36 +58,43 @@ def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, ckpt_path='/dat
     print('- Start extract img embeddings...')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     feature_extractor, preprocess = create_model_from_pretrained('conch_ViT-B-16', ckpt_path, device=device)
-    feature_extractor = feature_extractor.visual.trunk
+    if only_visual_trunk:
+        feature_extractor = feature_extractor.visual.trunk
 
     list_of_img_embs = []
     for img_path in list_of_img_paths:
         preprocessed_img = preprocess(Image.open(img_path)).unsqueeze(0).to(device)
-        with torch.inference_mode():
-            x = feature_extractor.patch_embed(preprocessed_img) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16)) shape (128, 14, 14, 768)
-            x = torch.flatten(x, start_dim=1, end_dim=2) # (128, 196, 768)
+        if only_visual_trunk:
+            with torch.inference_mode():
+                x = feature_extractor.patch_embed(preprocessed_img) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16)) shape (128, 14, 14, 768)
+                x = torch.flatten(x, start_dim=1, end_dim=2) # (128, 196, 768)
 
-            cls_token = feature_extractor.cls_token.expand( # self.feature_extractor.cls_token.shape: (1, 1, 1024)
-                x.shape[0], -1, -1
-            )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (990, 1, 768)
+                cls_token = feature_extractor.cls_token.expand( # self.feature_extractor.cls_token.shape: (1, 1, 1024)
+                    x.shape[0], -1, -1
+                )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (990, 1, 768)
 
-            # self.feature_extractor.dist_token.shape: (1, 1, 1024)
-            if not hasattr(feature_extractor, 'dist_token') or feature_extractor.dist_token is None: # yes, dist token is None, TODO: CoCa has no dist_token too: model.visual.trunk.dist_token
-                x = torch.cat((cls_token, x), dim=1) # x.shape: (32, 197, 1024)
-            else:
-                x = torch.cat((cls_token, feature_extractor.dist_token.expand(x.shape[0], -1, -1), x), dim=1)
-                
-            # TODO: CoCa model.visual.trunk.pos_embed.shape: (1, 785, 768), model.visual.trunk.pos_drop: Dropout(p=0.0, inplace=False)
-            x = feature_extractor.pos_drop(x + feature_extractor.pos_embed) # self.feature_extractor.pos_embed.shape: (1, 197, 1024), x.shape: (32, 197, 1024)
-            # TODO: CoCa model.visual.trunk.blocks: 12 blocks (id 0 -> 11)
-            x = feature_extractor.blocks(x) # shape: (32, 197, 1024)
-            # TODO: CoCa model.visual.trunk.norm: LayerNorm((768,), eps=1e-06, elementwise_affine=True)
-            x = feature_extractor.norm(x) # shape: (32, 197, 1024)
-            list_of_img_embs.append(x)
+                # self.feature_extractor.dist_token.shape: (1, 1, 1024)
+                if not hasattr(feature_extractor, 'dist_token') or feature_extractor.dist_token is None: # yes, dist token is None, TODO: CoCa has no dist_token too: model.visual.trunk.dist_token
+                    x = torch.cat((cls_token, x), dim=1) # x.shape: (32, 197, 1024)
+                else:
+                    x = torch.cat((cls_token, feature_extractor.dist_token.expand(x.shape[0], -1, -1), x), dim=1)
+                    
+                # TODO: CoCa model.visual.trunk.pos_embed.shape: (1, 785, 768), model.visual.trunk.pos_drop: Dropout(p=0.0, inplace=False)
+                x = feature_extractor.pos_drop(x + feature_extractor.pos_embed) # self.feature_extractor.pos_embed.shape: (1, 197, 1024), x.shape: (32, 197, 1024)
+                # TODO: CoCa model.visual.trunk.blocks: 12 blocks (id 0 -> 11)
+                x = feature_extractor.blocks(x) # shape: (32, 197, 1024)
+                # TODO: CoCa model.visual.trunk.norm: LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+                x = feature_extractor.norm(x) # shape: (32, 197, 1024)
+                list_of_img_embs.append(x)
+        else:
+            with torch.inference_mode():
+                x = feature_extractor.encode_image(preprocessed_img)
+                list_of_img_embs.append(x)
 
     print('- Complete extract img embeddings!')
     
     ret = torch.cat(list_of_img_embs)
+    ret = ret[:, None, :]
     return ret
 
 # def conch_coca_text_tower():
@@ -108,6 +115,7 @@ class CVIT(nn.Module):
         ckpt_path=None, # only for loading conch model
         concept_embeddings_save_dir=None,
         use_extracted_img_embs=True,
+        only_visual_trunk=False,
         *args,
         **kwargs,
     ):
@@ -121,7 +129,8 @@ class CVIT(nn.Module):
         elif self.model_name == 'conch_ViT-B-16':
             device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             self.feature_extractor, self.preprocess = create_model_from_pretrained(self.model_name, ckpt_path, device=device)
-            self.feature_extractor = self.feature_extractor.visual.trunk
+            if only_visual_trunk:
+                self.feature_extractor = self.feature_extractor.visual.trunk
             # _ = self.feature_extractor.eval()
 
         self.classifier = ConceptTransformerVIT(
@@ -331,9 +340,9 @@ class ConceptTransformerVIT(nn.Module):
                 if self.concept_embeddings is None:
                     # Case (2): hard concepts in raw
                     text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device)
-                    # with torch.inference_mode(): # !! do we need to use this when inside forward !!
-                    # txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
-                    concept_embeddings, _ = self._encode_text(text_tokens)
+                    with torch.inference_mode(): # !! do we need to use this when inside forward !!
+                        concept_embeddings = self.model.encode_text(text_tokens) # shape: (630, 512)
+                    # concept_embeddings, _ = self._encode_text(text_tokens)
 
                     self.concept_embeddings = concept_embeddings[None, :, :]
                     torch.save(self.concept_embeddings, self.concept_embeddings_save_dir)

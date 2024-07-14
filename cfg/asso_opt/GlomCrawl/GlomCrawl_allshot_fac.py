@@ -15,17 +15,17 @@ submodular_weights = [1e7, 1]
 # ----- only for ConceptTransformer -----
 weight_decay = 1e-4
 disable_lr_scheduler = True
-warmup = 10
+warmup = 100
 expl_lambda = 5.0
 attention_sparsity = 0.0
 ctc_model = 'cub_cvit'
 
 num_unsup_concept = 0
 num_spatial_concept = 0
-num_heads = 12
-attention_dropout = 0.1
-projection_dropout = 0.1
+num_heads = 8
+attention_dropout = 0.2
+projection_dropout = 0.2
 ckpt_path = '/data/hqvo3/weights/CONCH/pytorch_model.bin' # for CONCH
 num_workers = 4
-concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_768.pth'
-img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_768_{}.pth'
+concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512.pth'
+img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_{}.pth'

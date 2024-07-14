@@ -210,7 +210,7 @@ class CTCModel(pl.LightningModule):
             #     optimizer, warmup_epochs=self.cfg.warmup, max_epochs=self.cfg.max_epochs
             # )
             scheduler = CosineAnnealingWarmRestarts(
-                optimizer, T_0=50, T_mult=1, eta_min=1e-10, last_epoch=-1
+                optimizer, T_0=self.cfg.warmup, T_mult=1, eta_min=1e-7, last_epoch=-1
             )
         return [optimizer], [scheduler]
         # ==================== ConceptTransformer ends here ====================
