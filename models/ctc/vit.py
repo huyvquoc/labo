@@ -29,6 +29,8 @@ def cub_cvit(cfg, baseline=False, *args, **kwargs):
             projection_dropout=cfg.projection_dropout,
             ckpt_path=cfg.ckpt_path,
             concept_embeddings_save_dir=cfg.concept_embeddings_save_dir,
+            use_extracted_img_embs=cfg.use_extracted_img_embs,
+            only_visual_trunk=cfg.only_visual_trunk,
             *args,
             **kwargs,
         )
@@ -119,6 +121,10 @@ class CVIT(nn.Module):
         *args,
         **kwargs,
     ):
+        '''
+        Inputs:
+        - only_visual_trunk: whether to only use embedding from visual trunk of CONCH, or use the one from attn_contrast
+        '''
         super().__init__()
 
         self.model_name = model_name
@@ -214,12 +220,14 @@ class ConceptTransformerVIT(nn.Module):
         model_name=None,
         ckpt_path=None,
         concept_embeddings_save_dir=None,
+        only_visual_trunk=False,
         *args,
         **kwargs,
     ):
         super().__init__()
 
         self.model_name = model_name
+        self.only_visual_trunk = only_visual_trunk
         if self.model_name == 'conch_ViT-B-16':
             # ----- only for CONCH -----
             self.tokenizer = get_tokenizer()
@@ -340,9 +348,12 @@ class ConceptTransformerVIT(nn.Module):
                 if self.concept_embeddings is None:
                     # Case (2): hard concepts in raw
                     text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device)
-                    with torch.inference_mode(): # !! do we need to use this when inside forward !!
-                        concept_embeddings = self.model.encode_text(text_tokens) # shape: (630, 512)
-                    # concept_embeddings, _ = self._encode_text(text_tokens)
+                    if self.only_visual_trunk:
+                        with torch.inference_mode():
+                            concept_embeddings, _ = self._encode_text(text_tokens)
+                    else:
+                        with torch.inference_mode(): # !! do we need to use this when inside forward !!
+                            concept_embeddings = self.model.encode_text(text_tokens) # shape: (630, 512)
 
                     self.concept_embeddings = concept_embeddings[None, :, :]
                     torch.save(self.concept_embeddings, self.concept_embeddings_save_dir)

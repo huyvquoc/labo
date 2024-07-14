@@ -21,7 +21,7 @@ use_img_norm = True
 num_concept = num_cls * 15
 
 # weight matrix fitting
-lr = 1e-4
+lr = 1e-3
 max_epochs = 1000
 
 # weight matrix

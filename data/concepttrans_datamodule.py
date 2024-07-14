@@ -26,6 +26,7 @@ class ImgExplDataset(Dataset):
                  split_name='train',
                  img_embeddings_save_dir=None,
                  use_extracted_embs=True,
+                 only_visual_trunk=False,
                  transform=None):
         super().__init__()
 
@@ -45,10 +46,13 @@ class ImgExplDataset(Dataset):
             self.cls2indices[cls].append(idx)
 
         # ----- pre-extraction of image embeddings -----
+        print('- Use img_embeddings_save_dir: ', img_embeddings_save_dir)
         if Path(img_embeddings_save_dir.format(split_name)).exists():
+            print('Exist! Just load to use')
             self.img_embs = torch.load(img_embeddings_save_dir.format(split_name))
         else:
-            self.img_embs = extract_img_embs_using_conch_visual_trunk(self.img_names)
+            print('Not exist! Jump into a function to start the extraction')
+            self.img_embs = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, only_visual_trunk=only_visual_trunk)
             torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
         
         self.use_extracted_embs = use_extracted_embs
@@ -190,6 +194,8 @@ class ImgExplDataModule(pl.LightningDataModule):
                                  concept2cls=self.concept2cls, \
                                  split_name=mode, \
                                  img_embeddings_save_dir=self.cfg.img_embeddings_save_dir,
+                                 use_extracted_embs=self.cfg.use_extracted_img_embs,
+                                 only_visual_trunk=self.cfg.only_visual_trunk,
                                  transform=self.transform[mode])
             for mode in ['train', 'val', 'test']
         }
