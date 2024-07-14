@@ -13,6 +13,7 @@ from torchvision.datasets.folder import default_loader
 from torch.utils.data import Dataset, DataLoader
 
 from .labo_datamodule import DataModule
+from models.ctc.vit import extract_img_embs_using_conch_visual_trunk
 import utils
 
 
@@ -21,7 +22,10 @@ class ImgExplDataset(Dataset):
                  list_of_img_names=[], \
                  list_of_labels=[], \
                  num_concept=-1,
-                 concept2cls=None,
+                 concept2cls=None, 
+                 split_name='train',
+                 img_embeddings_save_dir=None,
+                 use_extracted_embs=True,
                  transform=None):
         super().__init__()
 
@@ -40,6 +44,15 @@ class ImgExplDataset(Dataset):
                 self.cls2indices[cls] = []
             self.cls2indices[cls].append(idx)
 
+        # ----- pre-extraction of image embeddings -----
+        if Path(img_embeddings_save_dir.format(split_name)).exists():
+            self.img_embs = torch.load(img_embeddings_save_dir.format(split_name))
+        else:
+            self.img_embs = extract_img_embs_using_conch_visual_trunk(self.img_names)
+            torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
+        
+        self.use_extracted_embs = use_extracted_embs
+
     def __len__(self):
         return len(self.img_names)
 
@@ -50,16 +63,19 @@ class ImgExplDataset(Dataset):
         Returns:
             tuple: (PIL image, target) where target is index of the target class.
         """
-        img_path = self.img_names[idx] # Absolute path to a specific image
         int_target = self.labels[idx]
         target = torch.tensor(int_target, dtype=torch.long)
 
-        img = self.loader(img_path)
+        if self.use_extracted_embs:
+            img = self.img_embs[idx]
+        else:
+            img_path = self.img_names[idx] # Absolute path to a specific image
+            img = self.loader(img_path)
 
-        if self.transform is not None: # self.transform is passed through the datamodule in the file 'cub2011parts_datamodule'
-            image_np = np.array(img) # img is a PIL with (153, 264); image_np.shape: (264, 153, 3)
-            transformed = self.transform(image=image_np)
-            img = transformed['image'] # shape: (3, 224, 224)
+            if self.transform is not None: # self.transform is passed through the datamodule in the file 'cub2011parts_datamodule'
+                image_np = np.array(img) # img is a PIL with (153, 264); image_np.shape: (264, 153, 3)
+                transformed = self.transform(image=image_np)
+                img = transformed['image'] # shape: (3, 224, 224)
 
         expl = self._get_explanations(int_target)
 
@@ -80,9 +96,10 @@ class ImgExplDataset(Dataset):
     
 class ImgExplDataModule(pl.LightningDataModule):
 
-    def __init__(self, data_root, img_root, img_split_path, cls_name_path, img_ext, num_concept, batch_size, num_workers, on_gpu=False, model_name='conch_ViT-B-16', use_txt_norm=False):
+    def __init__(self, cfg, data_root, img_root, img_split_path, cls_name_path, img_ext, num_concept, batch_size, num_workers, on_gpu=False, model_name='conch_ViT-B-16', use_txt_norm=False):
         super().__init__()
 
+        self.cfg = cfg
         self.data_root = Path(data_root)
         self.img_root = Path(img_root)
         self.img_split_path = Path(img_split_path)
@@ -171,6 +188,8 @@ class ImgExplDataModule(pl.LightningDataModule):
                                  list_of_labels=self.dict_of_labels[mode], \
                                  num_concept=self.num_concept, \
                                  concept2cls=self.concept2cls, \
+                                 split_name=mode, \
+                                 img_embeddings_save_dir=self.cfg.img_embeddings_save_dir,
                                  transform=self.transform[mode])
             for mode in ['train', 'val', 'test']
         }

@@ -27,3 +27,5 @@ attention_dropout = 0.1
 projection_dropout = 0.1
 ckpt_path = '/data/hqvo3/weights/CONCH/pytorch_model.bin' # for CONCH
 num_workers = 4
+concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_768.pth'
+img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_768_{}.pth'

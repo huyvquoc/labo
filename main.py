@@ -336,6 +336,7 @@ def concept_trans_main(cfg):
     random.seed(1) # seed matches first run of linear probe
 
     data_module = ImgExplDataModule(
+        cfg,
         data_root=cfg.data_root, 
         img_root=cfg.img_path, 
         img_split_path=cfg.img_split_path, 
@@ -382,13 +383,13 @@ def concept_trans_main(cfg):
     #             if name2 == 'model':
     #                 module2.requires_grad = False
 
-    summary(model, input_size=(1, 3, 448, 448), col_names=("input_size",
-                                                           "output_size",
-                                                           "num_params",
-                                                           "params_percent",
-                                                           "kernel_size",
-                                                           "mult_adds",
-                                                           "trainable"))
+    # summary(model, input_size=(1, 3, 448, 448), col_names=("input_size",
+    #                                                        "output_size",
+    #                                                        "num_params",
+    #                                                        "params_percent",
+    #                                                        "kernel_size",
+    #                                                        "mult_adds",
+    #                                                        "trainable"))
 
     check_interval = 10
 
@@ -414,11 +415,14 @@ def concept_trans_main(cfg):
                        project=proj_name,
                        config=cfg._cfg_dict)
 
+        from pytorch_lightning.profiler import Profiler, PassThroughProfiler, AdvancedProfiler
+        profiler = AdvancedProfiler(dirpath='./debug', filename='advanced_profiler.txt')
         trainer = pl.Trainer(gpus=1,
                              callbacks=[checkpoint_callback],
                              logger=wandb_logger,
                              check_val_every_n_epoch=check_interval,
-                             max_epochs=cfg.max_epochs if 'max_epochs' in cfg else 1000)
+                             max_epochs=cfg.max_epochs if 'max_epochs' in cfg else 1000,
+                             profiler=profiler)
     else:
         if 'use_last_ckpt' in cfg and cfg['use_last_ckpt']:
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
