@@ -3,6 +3,7 @@ import pickle
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+import cv2
 import numpy as np
 import pytorch_lightning as pl
 from pathlib import Path
@@ -16,6 +17,124 @@ from .labo_datamodule import DataModule
 from models.ctc.vit import extract_img_embs_using_conch_visual_trunk
 import utils
 
+
+def build_transform_dict_glomcrawl(input_size=224, 
+                                   norm_mean=[0.485, 0.456, 0.406], 
+                                   norm_std=[0.229, 0.224, 0.225],
+                                   level=1):
+    '''
+    https://albumentations.ai/docs/examples/pytorch_classification/
+
+    Inputs:
+    - level(int): 1, 2, or 3. 
+    1: fewest augmentations, 
+    2: more augmentations,
+    3: most augmentations, 
+    '''
+    if level == 1:
+        # from ConceptTransformer code
+        transform_dict = {'train': A.Compose([A.Resize(input_size, input_size),
+                                              A.HorizontalFlip(p=0.5),
+                                              A.Rotate(limit=(-30,30),p=1.0),
+                                              A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                              ToTensorV2()]),
+                          'val': A.Compose([A.Resize(input_size, input_size),
+                                            A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                            ToTensorV2()]),
+                          'test': A.Compose([A.Resize(input_size, input_size),
+                                             A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                             ToTensorV2()])
+        }
+
+    elif level == 2:
+        transform_dict = {
+            'train': A.Compose([
+                A.Flip(p=0.4), # 1
+                A.Transpose(p=0.4),
+                A.RandomRotate90(p=0.4),
+                A.Rotate(limit=30, border_mode=cv2.BORDER_REPLICATE, p=0.4), # Rotate the input by an angle selected randomly from the uniform distribution
+                A.Affine(scale=[0.65, 0.85], rotate=[-20,  20], shear=20, interpolation=3, fit_output=True, p=0.8),
+                A.ShiftScaleRotate(p=0.2), # Randomly apply translate, scale and rotate the input
+                # A.ElasticTransform(p=0.3),
+                # A.GridDistortion(p=0.1),
+                A.ColorJitter(p=0.3), # 2 color
+                A.HueSaturationValue(p=0.3), # Randomly change hue, saturation and value of the inpunt image
+                A.RGBShift(p=0.2), # Randomly shift values for each channel of the input RGB image
+                A.RandomGamma(p=0.2),
+                # A.GaussianBlur(p=0.3),
+                # A.GlassBlur(p=0.3),
+                # A.Sharpen(p=0.3),
+                A.Downscale(p=0.2),
+                A.RandomBrightnessContrast(p=0.2),
+                # A.CLAHE(p=0.2),
+                # A.Equalize(p=0.2),
+                # A.RandomToneCurve(p=0.1),
+                # A.GaussNoise(p=0.1), # Apply gausssssian noise to the input image. Don't see clear
+                A.Resize(height=input_size, width=input_size, p=1),
+                A.Normalize(mean=norm_mean, std=norm_std, p=1),
+                ToTensorV2()
+            ]),
+            'val': A.Compose([
+                A.Resize(height=input_size, width=input_size, p=1),
+                # transforms.Resize(int(input_size/7*8)),
+                # transforms.CenterCrop(input_size),
+                A.Normalize(mean=norm_mean, std=norm_std, p=1),
+                ToTensorV2()
+            ]),
+            'test': A.Compose([
+                A.Resize(height=input_size, width=input_size, p=1),
+                # transforms.Resize(int(input_size/7*8)),
+                # transforms.CenterCrop(input_size),
+                A.Normalize(mean=norm_mean, std=norm_std, p=1),
+                ToTensorV2()
+            ]),
+        }
+
+    elif level == 3:
+        transform_dict = {
+            'train': A.Compose([
+                A.Flip(p=0.4), # 1
+                A.Transpose(p=0.4),
+                A.RandomRotate90(p=0.4),
+                A.Rotate(limit=30, border_mode=cv2.BORDER_REPLICATE, p=0.4), # Rotate the input by an angle selected randomly from the uniform distribution
+                A.Affine(scale=[0.65, 0.85], rotate=[-20,  20], shear=20, interpolation=3, fit_output=True, p=0.8),
+                A.ShiftScaleRotate(p=0.2), # Randomly apply translate, scale and rotate the input
+                # A.ElasticTransform(p=0.3),
+                # A.GridDistortion(p=0.1),
+                A.ColorJitter(p=0.3), # 2 color
+                A.HueSaturationValue(p=0.3), # Randomly change hue, saturation and value of the inpunt image
+                A.RGBShift(p=0.2), # Randomly shift values for each channel of the input RGB image
+                A.RandomGamma(p=0.2),
+                A.GaussianBlur(p=0.3),
+                # A.GlassBlur(p=0.3),
+                A.Sharpen(p=0.3),
+                A.Downscale(p=0.2),
+                A.RandomBrightnessContrast(p=0.2),
+                A.CLAHE(p=0.2),
+                # A.Equalize(p=0.2),
+                # A.RandomToneCurve(p=0.1),
+                A.GaussNoise(p=0.1), # Apply gausssssian noise to the input image. Don't see clear
+                A.Resize(height=input_size, width=input_size, p=1),
+                A.Normalize(mean=norm_mean, std=norm_std, p=1),
+                ToTensorV2()
+            ]),
+            'val': A.Compose([
+                A.Resize(height=input_size, width=input_size, p=1),
+                # transforms.Resize(int(input_size/7*8)),
+                # transforms.CenterCrop(input_size),
+                A.Normalize(mean=norm_mean, std=norm_std, p=1),
+                ToTensorV2()
+            ]),
+            'test': A.Compose([
+                A.Resize(height=input_size, width=input_size, p=1),
+                # transforms.Resize(int(input_size/7*8)),
+                # transforms.CenterCrop(input_size),
+                A.Normalize(mean=norm_mean, std=norm_std, p=1),
+                ToTensorV2()
+            ]),
+        }
+
+    return transform_dict
 
 class ImgExplDataset(Dataset):
     def __init__(self,  \
@@ -148,18 +267,10 @@ class ImgExplDataModule(pl.LightningDataModule):
         resized_img_dim = 224
         if model_name == 'conch_ViT-B-16':
             resized_img_dim = 448
-        self.transform = {'train': A.Compose([A.Resize(resized_img_dim, resized_img_dim),
-                                              A.HorizontalFlip(p=0.5),
-                                              A.Rotate(limit=(-30,30),p=1.0),
-                                              A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                              ToTensorV2()]),
-                          'val': A.Compose([A.Resize(resized_img_dim, resized_img_dim),
-                                            A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                            ToTensorV2()]),
-                          'test': A.Compose([A.Resize(resized_img_dim, resized_img_dim),
-                                             A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                                             ToTensorV2()])
-        }
+        self.transform = build_transform_dict_glomcrawl(input_size=resized_img_dim, 
+                                                        norm_mean=(0.48145466, 0.4578275, 0.40821073), # these numbers are taken from CONCH's preprocess
+                                                        norm_std=(0.26862954, 0.26130258, 0.27577711), # these numbers are taken from CONCH's preprocess
+                                                        level=self.cfg.aug_level)
 
     def transfer_batch_to_device(self, batch, device, dataloader_idx):
         '''

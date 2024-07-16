@@ -31,3 +31,4 @@ concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs
 img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_{}.pth' # TODO
 use_extracted_img_embs = True # TODO
 only_visual_trunk = False # TODO
+aug_level = 3
