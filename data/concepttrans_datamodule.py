@@ -203,7 +203,12 @@ class ImgExplDataset(Dataset):
             self.img_embs = torch.load(img_embeddings_save_dir.format(split_name))
         else:
             print('Not exist! Jump into a function to start the extraction')
-            self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
+            if split_name == 'train':
+                self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                                                                                       transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
+            else:
+                self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                                                                                       transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=False, n_iters=self.n_iters)
             torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
         
         self.use_extracted_embs = use_extracted_embs
