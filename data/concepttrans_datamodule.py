@@ -18,10 +18,10 @@ from models.ctc.vit import extract_img_embs_using_conch_visual_trunk
 import utils
 
 
-def build_transform_dict_glomcrawl(input_size=224, 
-                                   norm_mean=[0.485, 0.456, 0.406], 
-                                   norm_std=[0.229, 0.224, 0.225],
-                                   level=1):
+def build_transform_dict(input_size=224, 
+                         norm_mean=[0.485, 0.456, 0.406], 
+                         norm_std=[0.229, 0.224, 0.225],
+                         level=1):
     '''
     https://albumentations.ai/docs/examples/pytorch_classification/
 
@@ -136,6 +136,34 @@ def build_transform_dict_glomcrawl(input_size=224,
 
     return transform_dict
 
+class ImgPreExtEmbsDataset(Dataset):
+    '''
+    Only for pre extraction of image embeddings
+    '''
+    def __init__(self, img_filepaths, labels, transform=None):
+        super().__init__()
+
+        self.loader = default_loader
+
+        self.img_filepaths = img_filepaths
+        self.labels = labels
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.img_filepaths)
+
+    def __getitem__(self, idx):
+        img_filepath = self.img_filepaths[idx]
+        img = self.loader(img_filepath)
+
+        if self.transform is not None: # self.transform is passed through the datamodule in the file 'cub2011parts_datamodule'
+            img_np = np.array(img) # img is a PIL with (153, 264); image_np.shape: (264, 153, 3)
+            img = self.transform(image=img_np)["image"]
+
+        label = self.labels[idx]
+
+        return img, label
+
 class ImgExplDataset(Dataset):
     def __init__(self,  \
                  list_of_img_names=[], \
@@ -146,6 +174,8 @@ class ImgExplDataset(Dataset):
                  img_embeddings_save_dir=None,
                  use_extracted_embs=True,
                  only_visual_trunk=False,
+                 do_aug=False,
+                 n_iters=10,
                  transform=None):
         super().__init__()
 
@@ -155,6 +185,8 @@ class ImgExplDataset(Dataset):
         self.labels = list_of_labels
         self.num_concept = num_concept
         self.concept2cls = concept2cls.tolist()[0]
+        self.do_aug = do_aug
+        self.n_iters = n_iters
         self.transform = transform
 
         # Mapping class label to selected concepts'new indices. These new indices are not the indices in `self.select_idx`, but are the new indices have been assigned to the selected indices (0 -> 629)
@@ -171,7 +203,7 @@ class ImgExplDataset(Dataset):
             self.img_embs = torch.load(img_embeddings_save_dir.format(split_name))
         else:
             print('Not exist! Jump into a function to start the extraction')
-            self.img_embs = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, only_visual_trunk=only_visual_trunk)
+            self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
             torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
         
         self.use_extracted_embs = use_extracted_embs
@@ -261,16 +293,13 @@ class ImgExplDataModule(pl.LightningDataModule):
         self.concept_raw = np.load(self.concept_raw_path)[self.select_idx] # shape: (630, )
         self.concept2cls = torch.from_numpy(np.load(self.concept2cls_path)[self.select_idx]).long().view(1, -1) # shape: (1, 630)
 
-        self.img_names = {}
-        self.labels = {}
-
         resized_img_dim = 224
         if model_name == 'conch_ViT-B-16':
             resized_img_dim = 448
-        self.transform = build_transform_dict_glomcrawl(input_size=resized_img_dim, 
-                                                        norm_mean=(0.48145466, 0.4578275, 0.40821073), # these numbers are taken from CONCH's preprocess
-                                                        norm_std=(0.26862954, 0.26130258, 0.27577711), # these numbers are taken from CONCH's preprocess
-                                                        level=self.cfg.aug_level)
+        self.transform = build_transform_dict(input_size=resized_img_dim, 
+                                              norm_mean=(0.48145466, 0.4578275, 0.40821073), # these numbers are taken from CONCH's preprocess
+                                              norm_std=(0.26862954, 0.26130258, 0.27577711), # these numbers are taken from CONCH's preprocess
+                                              level=self.cfg.aug_level)
 
     def transfer_batch_to_device(self, batch, device, dataloader_idx):
         '''
@@ -307,6 +336,8 @@ class ImgExplDataModule(pl.LightningDataModule):
                                  img_embeddings_save_dir=self.cfg.img_embeddings_save_dir,
                                  use_extracted_embs=self.cfg.use_extracted_img_embs,
                                  only_visual_trunk=self.cfg.only_visual_trunk,
+                                 do_aug=self.cfg.do_aug,
+                                 n_iters=self.cfg.n_iters,
                                  transform=self.transform[mode])
             for mode in ['train', 'val', 'test']
         }

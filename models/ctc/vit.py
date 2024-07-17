@@ -7,9 +7,12 @@ import torch
 from timm.models.vision_transformer import VisionTransformer
 from torch import nn
 from torch.nn import functional as F
+from torch.utils.data import DataLoader
+import tqdm
 
 from .ctc import CrossAttention
 from conch.open_clip_custom import create_model_from_pretrained, tokenize, get_tokenizer
+from data.concepttrans_datamodule import ImgPreExtEmbsDataset
 
 
 def cub_cvit(cfg, baseline=False, *args, **kwargs):
@@ -50,13 +53,49 @@ class ExplVIT(VisionTransformer):
         out = super().forward(x)
         return out, None, None, None
 
-def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, only_visual_trunk=False, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin'):
+def one_forward_of_vlm_foundation_img_branch(feature_extractor, preprocessed_img, only_visual_trunk=False):
+    if only_visual_trunk:
+        with torch.inference_mode():
+            x = feature_extractor.patch_embed(preprocessed_img) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16)) shape (128, 14, 14, 768)
+            x = torch.flatten(x, start_dim=1, end_dim=2) # (128, 196, 768)
+
+            cls_token = feature_extractor.cls_token.expand( # self.feature_extractor.cls_token.shape: (1, 1, 1024)
+                x.shape[0], -1, -1
+            )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (990, 1, 768)
+
+            # self.feature_extractor.dist_token.shape: (1, 1, 1024)
+            if not hasattr(feature_extractor, 'dist_token') or feature_extractor.dist_token is None: # yes, dist token is None, TODO: CoCa has no dist_token too: model.visual.trunk.dist_token
+                x = torch.cat((cls_token, x), dim=1) # x.shape: (32, 197, 1024)
+            else:
+                x = torch.cat((cls_token, feature_extractor.dist_token.expand(x.shape[0], -1, -1), x), dim=1)
+                
+            # TODO: CoCa model.visual.trunk.pos_embed.shape: (1, 785, 768), model.visual.trunk.pos_drop: Dropout(p=0.0, inplace=False)
+            x = feature_extractor.pos_drop(x + feature_extractor.pos_embed) # self.feature_extractor.pos_embed.shape: (1, 197, 1024), x.shape: (32, 197, 1024)
+            # TODO: CoCa model.visual.trunk.blocks: 12 blocks (id 0 -> 11)
+            x = feature_extractor.blocks(x) # shape: (32, 197, 1024)
+            # TODO: CoCa model.visual.trunk.norm: LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+            x = feature_extractor.norm(x) # shape: (32, 197, 1024)
+            # list_of_img_embs.append(x)
+    else:
+        with torch.inference_mode():
+            x = feature_extractor.encode_image(preprocessed_img)
+            # list_of_img_embs.append(x)
+
+    return x
+
+def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, list_of_labels, transform_compose, only_visual_trunk=False, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin', do_aug=True, n_iters=10):
     '''
     This function is mostly used in the data module file
 
     Inputs:
     - list_of_img_paths (list): list of absolute image paths
+    - do_aug (bool): whether using augmentation or not
+    - n_iters (int): if do augmentation, how many iters to simulate epochs? For each original sample, we will have n_iters augmented versions of it
     '''
+    if do_aug:
+        predict_dataset = ImgPreExtEmbsDataset(img_filepaths=list_of_img_paths, labels=list_of_labels, transform=transform_compose)
+        predict_loader = DataLoader(predict_dataset, batch_size=1, shuffle=False, num_workers=4, pin_memory=True) # TODO: change batch size
+
     print('- Start extract img embeddings...')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     feature_extractor, preprocess = create_model_from_pretrained('conch_ViT-B-16', ckpt_path, device=device)
@@ -64,40 +103,26 @@ def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, only_visual_tru
         feature_extractor = feature_extractor.visual.trunk
 
     list_of_img_embs = []
-    for img_path in list_of_img_paths:
-        preprocessed_img = preprocess(Image.open(img_path)).unsqueeze(0).to(device)
-        if only_visual_trunk:
-            with torch.inference_mode():
-                x = feature_extractor.patch_embed(preprocessed_img) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16)) shape (128, 14, 14, 768)
-                x = torch.flatten(x, start_dim=1, end_dim=2) # (128, 196, 768)
-
-                cls_token = feature_extractor.cls_token.expand( # self.feature_extractor.cls_token.shape: (1, 1, 1024)
-                    x.shape[0], -1, -1
-                )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (990, 1, 768)
-
-                # self.feature_extractor.dist_token.shape: (1, 1, 1024)
-                if not hasattr(feature_extractor, 'dist_token') or feature_extractor.dist_token is None: # yes, dist token is None, TODO: CoCa has no dist_token too: model.visual.trunk.dist_token
-                    x = torch.cat((cls_token, x), dim=1) # x.shape: (32, 197, 1024)
-                else:
-                    x = torch.cat((cls_token, feature_extractor.dist_token.expand(x.shape[0], -1, -1), x), dim=1)
-                    
-                # TODO: CoCa model.visual.trunk.pos_embed.shape: (1, 785, 768), model.visual.trunk.pos_drop: Dropout(p=0.0, inplace=False)
-                x = feature_extractor.pos_drop(x + feature_extractor.pos_embed) # self.feature_extractor.pos_embed.shape: (1, 197, 1024), x.shape: (32, 197, 1024)
-                # TODO: CoCa model.visual.trunk.blocks: 12 blocks (id 0 -> 11)
-                x = feature_extractor.blocks(x) # shape: (32, 197, 1024)
-                # TODO: CoCa model.visual.trunk.norm: LayerNorm((768,), eps=1e-06, elementwise_affine=True)
-                x = feature_extractor.norm(x) # shape: (32, 197, 1024)
-                list_of_img_embs.append(x)
-        else:
-            with torch.inference_mode():
-                x = feature_extractor.encode_image(preprocessed_img)
-                list_of_img_embs.append(x)
+    list_of_new_labels = [] # only change when there are augmentations
+    if do_aug:
+      stream = tqdm(predict_loader)
+      for idx in range(n_iters):
+          for jdx, (images, labels) in enumerate(stream, start=1):
+              images = images.to(device, non_blocking=True)
+              labels = labels.to(device, non_blocking=True)
+              list_of_img_embs.append(one_forward_of_vlm_foundation_img_branch(feature_extractor, images, only_visual_trunk)) # TODO: when batch size is greater than 1, do we need to change from append to extend
+              list_of_new_labels.append(labels)
+    else:
+      for img_path in list_of_img_paths:
+          preprocessed_img = preprocess(Image.open(img_path)).unsqueeze(0).to(device)
+          list_of_img_embs.append(one_forward_of_vlm_foundation_img_branch(feature_extractor, preprocessed_img, only_visual_trunk))
+      list_of_new_labels = list_of_labels.copy()
 
     print('- Complete extract img embeddings!')
     
     ret = torch.cat(list_of_img_embs)
     ret = ret[:, None, :]
-    return ret
+    return ret, list_of_new_labels
 
 # def conch_coca_text_tower():
 
