@@ -110,8 +110,9 @@ def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, list_of_labels,
           for jdx, (images, labels) in enumerate(stream, start=1):
               images = images.to(device, non_blocking=True)
               # labels = labels.to(device, non_blocking=True)
-              list_of_img_embs.append(one_forward_of_vlm_foundation_img_branch(feature_extractor, images, only_visual_trunk)) # TODO: when batch size is greater than 1, do we need to change from append to extend
-              list_of_new_labels.append(labels)
+              img_embs = one_forward_of_vlm_foundation_img_branch(feature_extractor, images, only_visual_trunk)
+              list_of_img_embs.append(img_embs.to("cpu")) # TODO: when batch size is greater than 1, do we need to change from append to extend
+              list_of_new_labels.append(labels.item())
     else:
       for img_path in list_of_img_paths:
           preprocessed_img = preprocess(Image.open(img_path)).unsqueeze(0).to(device)
@@ -121,7 +122,8 @@ def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, list_of_labels,
     print('- Complete extract img embeddings!')
     
     ret = torch.cat(list_of_img_embs)
-    ret = ret[:, None, :]
+    if ret.ndim == 2:
+        ret = ret[:, None, :]
     return ret, list_of_new_labels
 
 # def conch_coca_text_tower():

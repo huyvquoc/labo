@@ -172,6 +172,7 @@ class ImgExplDataset(Dataset):
                  concept2cls=None, 
                  split_name='train',
                  img_embeddings_save_dir=None,
+                 labels_save_dir=None,
                  use_extracted_embs=True,
                  only_visual_trunk=False,
                  do_aug=False,
@@ -201,6 +202,7 @@ class ImgExplDataset(Dataset):
         if Path(img_embeddings_save_dir.format(split_name)).exists():
             print('Exist! Just load to use')
             self.img_embs = torch.load(img_embeddings_save_dir.format(split_name))
+            self.labels = torch.load(labels_save_dir.format(split_name))
         else:
             print('Not exist! Jump into a function to start the extraction')
             if split_name == 'train':
@@ -210,11 +212,15 @@ class ImgExplDataset(Dataset):
                 self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
                                                                                        transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=False, n_iters=self.n_iters)
             torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
+            torch.save(self.labels, labels_save_dir.format(split_name))
         
         self.use_extracted_embs = use_extracted_embs
 
     def __len__(self):
-        return len(self.img_names)
+        if self.use_extracted_embs:
+            return len(self.img_embs)
+        else:
+            return len(self.img_names)
 
     def __getitem__(self, idx):
         """
@@ -339,6 +345,7 @@ class ImgExplDataModule(pl.LightningDataModule):
                                  concept2cls=self.concept2cls, \
                                  split_name=mode, \
                                  img_embeddings_save_dir=self.cfg.img_embeddings_save_dir,
+                                 labels_save_dir=self.cfg.labels_save_dir,
                                  use_extracted_embs=self.cfg.use_extracted_img_embs,
                                  only_visual_trunk=self.cfg.only_visual_trunk,
                                  do_aug=self.cfg.do_aug,
