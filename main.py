@@ -391,7 +391,7 @@ def concept_trans_main(cfg):
     #                                                        "mult_adds",
     #                                                        "trainable"))
 
-    check_interval = 100
+    check_interval = 10
 
     print("check interval = {}".format(check_interval))
 
@@ -415,14 +415,13 @@ def concept_trans_main(cfg):
                        project=proj_name,
                        config=cfg._cfg_dict)
 
-        from pytorch_lightning.profiler import Profiler, PassThroughProfiler, AdvancedProfiler
-        profiler = AdvancedProfiler(dirpath='./debug', filename='advanced_profiler.txt')
+        # from pytorch_lightning import Profiler, PassThroughProfiler, AdvancedProfiler
+        # profiler = AdvancedProfiler(dirpath='./debug', filename='advanced_profiler.txt')
         trainer = pl.Trainer(gpus=1,
                              callbacks=[checkpoint_callback],
                              logger=wandb_logger,
                              check_val_every_n_epoch=check_interval,
-                             max_epochs=cfg.max_epochs if 'max_epochs' in cfg else 1000,
-                             profiler=profiler)
+                             max_epochs=cfg.max_epochs if 'max_epochs' in cfg else 1000)
     else:
         if 'use_last_ckpt' in cfg and cfg['use_last_ckpt']:
             checkpoint_callback = pl.callbacks.ModelCheckpoint(

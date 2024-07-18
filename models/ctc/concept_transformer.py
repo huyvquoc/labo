@@ -7,6 +7,7 @@ import torch
 import torch.nn.functional as F
 import torchmetrics
 from torchmetrics.functional.classification.accuracy import accuracy
+from transformers import get_cosine_schedule_with_warmup
 import wandb
 
 # from pytorch_lightning.pytorch.demos import Transformer
@@ -140,6 +141,7 @@ class CTCModel(pl.LightningModule):
         # MNIST:
         # CUB: logits.shape: (32, 200), unsup_concept_attn.shape: None, concept_attn.shape: (32, 1, 13), spatial_concept_attn.shape: (32, 196, 95)
         logits, unsup_concept_attn, concept_attn, spatial_concept_attn = self(x)
+        logits = F.softmax(logits)
         preds = torch.argmax(logits, dim=1) # shape: (32)
 
         # ----- loss functions from LaBo -----
@@ -147,7 +149,13 @@ class CTCModel(pl.LightningModule):
         # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         # cls_loss, _ = self.criterion(pred, F.one_hot(label, num_classes=42).float())
         # ----- loss functions from ConceptTransformer -----
-        ce_loss = F.nll_loss(logits, y) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
+        # cls_loss = F.nll_loss(logits, y) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
+        # cls_loss = F.cross_entropy(logits, F.one_hot(y, num_classes=42).float())
+        # cls_loss = F.binary_cross_entropy_with_logits(logits, F.one_hot(y, num_classes=42).float())
+        # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
+        cls_loss, reg_loss = self.criterion(logits, F.one_hot(y, num_classes=42).float())
+        cls_loss = torch.mean(cls_loss)
+
         # acc = accuracy(preds, y) # from ConceptTransformer
         if stage == 'train':
             acc = self.train_acc(logits, y)
@@ -156,7 +164,7 @@ class CTCModel(pl.LightningModule):
             acc = self.val_acc(logits, y)
             # self.log('val_acc', self.val_acc, on_step=False, on_epoch=True)
         elif stage == 'test':
-            # self.log('test_loss', ce_loss)
+            # self.log('test_loss', cls_loss)
             acc = self.test_acc(logits, y)
             # self.log('test_acc', self.test_acc, on_step=False, on_epoch=True)
             self.test_f1(logits, y)
@@ -177,7 +185,7 @@ class CTCModel(pl.LightningModule):
         return (
             logits,
             preds,
-            ce_loss,
+            cls_loss,
             acc,
             expl_loss,
             l1_loss,
@@ -210,8 +218,11 @@ class CTCModel(pl.LightningModule):
             #     optimizer, warmup_epochs=self.cfg.warmup, max_epochs=self.cfg.max_epochs
             # )
             scheduler = CosineAnnealingWarmRestarts(
-                optimizer, T_0=self.cfg.warmup, T_mult=1, eta_min=1e-7, last_epoch=-1
+                optimizer, T_0=self.cfg.warmup, T_mult=1, eta_min=1e-8, last_epoch=-1
             )
+            # scheduler = get_cosine_schedule_with_warmup(
+            #     optimizer, num_warmup_steps=200, num_training_steps=10000
+            # )
         return [optimizer], [scheduler]
         # ==================== ConceptTransformer ends here ====================
 

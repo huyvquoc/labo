@@ -169,6 +169,7 @@ class CVIT(nn.Module):
         self.classifier = ConceptTransformerVIT(
             embedding_dim=self.feature_extractor.embed_dim, # 1024
             num_classes=num_classes, # 200
+            num_heads=num_heads,
             attention_dropout=attention_dropout, # 0.1
             projection_dropout=projection_dropout, # 0.1
             n_unsup_concepts=n_unsup_concepts, # 0
