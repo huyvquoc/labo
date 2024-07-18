@@ -1,7 +1,7 @@
 _base_ = 'GlomCrawl_base.py'
 n_shots = "all"
 data_root = 'exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac'
-lr = 1e-3
+lr = 3e-3
 bs = 2048
 
 concept_type = "all_submodular"

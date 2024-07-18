@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
 
 nINF = -100
 
@@ -396,14 +398,39 @@ class ANLSLoss(nn.Module):
         self.label_smooth = label_smooth
 
     def forward(self, preds, observed_labels):
+        preds = F.softmax(preds)
+
         # input validation: 
+        assert torch.max(preds) <= 1
         assert torch.min(observed_labels) >= 0
         # compute loss:
         loss_mtx = torch.zeros_like(observed_labels)
         loss_mtx[observed_labels == 1] = (1.0 - self.label_smooth) * neg_log(preds[observed_labels == 1]) + self.label_smooth * neg_log(1.0 - preds[observed_labels == 1])
-        loss_mtx[observed_labels == 0] = (1.0 - self.label_smooth) * neg_log(1.0 - preds[observed_labels == 0]) + self.label_smooth * neg_log(preds[observed_labels == 0])
+        loss_mtx[observed_labels == 0] = (1.0 - self.label_smooth) * neg_log(1.0 - preds[observed_labels == 0]) + self.label_smooth * neg_log(preds[observed_labels == 0]) # shape (batch size, num classes)
         reg_loss = None
-        return loss_mtx, reg_loss
+
+        # --- compute an overall batch loss ---
+        assert preds.dim() == 2
+        batch_size = int(preds.size(0))
+        num_classes = int(preds.size(1))
+    
+        loss_denom_mtx = (num_classes * batch_size) * torch.ones_like(preds)
+        assert preds.size() == observed_labels.size()
+        # validate predictions:
+        assert torch.max(preds) <= 1
+        assert torch.min(preds) >= 0
+
+        main_loss = (loss_mtx / loss_denom_mtx).sum()
+
+        if reg_loss is not None:
+            loss_tensor = main_loss + reg_loss
+            reg_loss_np = reg_loss.clone().detach().cpu().numpy()
+        else:
+            loss_tensor = main_loss
+            reg_loss_np = 0.0
+        loss_np = loss_tensor.clone().detach().cpu().numpy()
+
+        return loss_tensor, reg_loss_np
 
 def neg_log(x):
     LOG_EPSILON = 1e-5

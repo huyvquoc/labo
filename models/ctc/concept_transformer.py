@@ -149,11 +149,11 @@ class CTCModel(pl.LightningModule):
         # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         # cls_loss, _ = self.criterion(pred, F.one_hot(label, num_classes=42).float())
         # ----- loss functions from ConceptTransformer -----
-        cls_loss = F.nll_loss(logits, y) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
-        # cls_loss = F.cross_entropy(logits, F.one_hot(y, num_classes=42).float())
+        # cls_loss = F.nll_loss(logits, y) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
+        # cls_loss = F.cross_entropy(logits, F.one_hot(y, num_classes=42).float(), weight=self.balanced_weights)
         # cls_loss = F.binary_cross_entropy_with_logits(logits, F.one_hot(y, num_classes=42).float())
         # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
-        # cls_loss, reg_loss = self.criterion(logits, F.one_hot(y, num_classes=42).float())
+        cls_loss, reg_loss = self.criterion(logits, F.one_hot(y, num_classes=42).float())
         # cls_loss = torch.mean(cls_loss)
 
         # acc = accuracy(preds, y) # from ConceptTransformer
