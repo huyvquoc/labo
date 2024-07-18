@@ -53,21 +53,21 @@ def build_transform_dict(input_size=224,
                 A.Transpose(p=0.4),
                 A.RandomRotate90(p=0.4),
                 A.Rotate(limit=30, border_mode=cv2.BORDER_REPLICATE, p=0.4), # Rotate the input by an angle selected randomly from the uniform distribution
-                A.Affine(scale=[0.65, 0.85], rotate=[-20,  20], shear=20, interpolation=3, fit_output=True, p=0.8),
+                A.Affine(scale=[0.65, 0.85], rotate=[-20,  20], shear=20, interpolation=3, fit_output=True, p=0.2),
                 A.ShiftScaleRotate(p=0.2), # Randomly apply translate, scale and rotate the input
                 # A.ElasticTransform(p=0.3),
                 # A.GridDistortion(p=0.1),
-                A.ColorJitter(p=0.3), # 2 color
-                A.HueSaturationValue(p=0.3), # Randomly change hue, saturation and value of the inpunt image
-                A.RGBShift(p=0.2), # Randomly shift values for each channel of the input RGB image
-                A.RandomGamma(p=0.2),
+                A.ColorJitter(p=0.15), # 2 color
+                A.HueSaturationValue(p=0.15), # Randomly change hue, saturation and value of the inpunt image
+                A.RGBShift(p=0.15), # Randomly shift values for each channel of the input RGB image
+                A.RandomGamma(p=0.15),
                 # A.GaussianBlur(p=0.3),
                 # A.GlassBlur(p=0.3),
-                # A.Sharpen(p=0.3),
+                A.Sharpen(p=0.2),
                 A.Downscale(p=0.2),
                 A.RandomBrightnessContrast(p=0.2),
                 # A.CLAHE(p=0.2),
-                # A.Equalize(p=0.2),
+                A.Equalize(p=0.2),
                 # A.RandomToneCurve(p=0.1),
                 # A.GaussNoise(p=0.1), # Apply gausssssian noise to the input image. Don't see clear
                 A.Resize(height=input_size, width=input_size, p=1),

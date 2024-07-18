@@ -141,7 +141,7 @@ class CTCModel(pl.LightningModule):
         # MNIST:
         # CUB: logits.shape: (32, 200), unsup_concept_attn.shape: None, concept_attn.shape: (32, 1, 13), spatial_concept_attn.shape: (32, 196, 95)
         logits, unsup_concept_attn, concept_attn, spatial_concept_attn = self(x)
-        logits = F.softmax(logits)
+        # logits = F.softmax(logits)
         preds = torch.argmax(logits, dim=1) # shape: (32)
 
         # ----- loss functions from LaBo -----
@@ -149,12 +149,12 @@ class CTCModel(pl.LightningModule):
         # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         # cls_loss, _ = self.criterion(pred, F.one_hot(label, num_classes=42).float())
         # ----- loss functions from ConceptTransformer -----
-        # cls_loss = F.nll_loss(logits, y) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
+        cls_loss = F.nll_loss(logits, y) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
         # cls_loss = F.cross_entropy(logits, F.one_hot(y, num_classes=42).float())
         # cls_loss = F.binary_cross_entropy_with_logits(logits, F.one_hot(y, num_classes=42).float())
         # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
-        cls_loss, reg_loss = self.criterion(logits, F.one_hot(y, num_classes=42).float())
-        cls_loss = torch.mean(cls_loss)
+        # cls_loss, reg_loss = self.criterion(logits, F.one_hot(y, num_classes=42).float())
+        # cls_loss = torch.mean(cls_loss)
 
         # acc = accuracy(preds, y) # from ConceptTransformer
         if stage == 'train':
@@ -205,7 +205,7 @@ class CTCModel(pl.LightningModule):
         TODO: in LaBo has only optimizer, in ConceptTransformer has both optimizer and scheduler.
         Check if keeping only ConceptTransformer will work normally
         '''
-        optimizer = torch.optim.AdamW(
+        optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, self.parameters()),
             lr=self.cfg.lr,
             weight_decay=self.cfg.weight_decay,
@@ -221,7 +221,7 @@ class CTCModel(pl.LightningModule):
                 optimizer, T_0=self.cfg.warmup, T_mult=1, eta_min=1e-8, last_epoch=-1
             )
             # scheduler = get_cosine_schedule_with_warmup(
-            #     optimizer, num_warmup_steps=200, num_training_steps=10000
+            #     optimizer, num_warmup_steps=self.cfg.warmup, num_training_steps=20000
             # )
         return [optimizer], [scheduler]
         # ==================== ConceptTransformer ends here ====================
