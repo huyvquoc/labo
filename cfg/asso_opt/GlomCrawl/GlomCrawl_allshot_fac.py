@@ -15,7 +15,7 @@ submodular_weights = [1e7, 1]
 # ----- only for ConceptTransformer -----
 weight_decay = 1e-7
 disable_lr_scheduler = False
-warmup = 100
+warmup = 500
 expl_lambda = 2.0
 attention_sparsity = 0
 ctc_model = 'cub_cvit'
@@ -30,6 +30,8 @@ num_workers = 4
 concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512.pth' # TODO
 img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_aug2_iters20_{}.pth' # TODO
 labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_labels_512_aug2_iters20_{}.pth'
+# img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_noaug_{}.pth' # TODO
+# labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_labels_512_noaug_{}.pth'
 use_extracted_img_embs = True # TODO
 only_visual_trunk = False # TODO
 do_aug = False
