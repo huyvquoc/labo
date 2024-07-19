@@ -454,6 +454,6 @@ def get_criterion(cfg):
     elif cfg.main_loss == 'APLLoss':
         return APLLoss(gamma_neg=1, gamma_pos=2, clip=0.05, eps=1e-8, disable_torch_grad_focal_loss=True)
     elif cfg.main_loss == 'ANLSLoss':
-        return ANLSLoss(label_smooth=0.3)
+        return ANLSLoss(label_smooth=0.2)
     else:
         raise ValueError(f"Not supported loss {cfg.main_loss}")

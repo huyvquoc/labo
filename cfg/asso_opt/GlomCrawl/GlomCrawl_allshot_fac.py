@@ -13,9 +13,9 @@ submodular_weights = [1e7, 1]
 # submodular_weights = [1e9, 0.7]
 
 # ----- only for ConceptTransformer -----
-weight_decay = 1e-7
+weight_decay = 1e-10
 disable_lr_scheduler = False
-warmup = 500
+warmup = 1000
 expl_lambda = 2.0
 attention_sparsity = 0
 ctc_model = 'cub_cvit'

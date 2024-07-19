@@ -213,7 +213,8 @@ class CVIT(nn.Module):
             x = self.feature_extractor.blocks(x) # shape: (32, 197, 1024)
             # TODO: CoCa model.visual.trunk.norm: LayerNorm((768,), eps=1e-06, elementwise_affine=True)
             x = self.feature_extractor.norm(x) # shape: (32, 197, 1024)
-
+ 
+        x /= x.norm(dim=-1, keepdim=True)
         out, unsup_concept_attn, concept_attn, spatial_concept_attn = self.classifier(
             x[:, 0].unsqueeze(1), x[:, 1:], x_concepts # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
         )
@@ -407,6 +408,7 @@ class ConceptTransformerVIT(nn.Module):
 
         if self.n_concepts > 0:  # Non-spatial stream, self.n_concepts = 13 # TODO: global concepts
             if self.model_name == 'conch_ViT-B-16':
+                self.concept_embeddings /= self.concept_embeddings.norm(dim=-1, keepdim=True)
                 out_n, concept_attn = self.concept_tranformer(x_cls, self.concept_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             else:
                 out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)

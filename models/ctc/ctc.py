@@ -121,11 +121,17 @@ class CrossAttention(nn.Module):
         head_dim = dim // self.num_heads # 64
         self.scale = head_dim ** -0.5 # 0.125
 
-        self.q = nn.Linear(dim, dim, bias=False)
-        self.kv = nn.Linear(dim, dim * 2, bias=False)
+        self.q = nn.Linear(dim, dim, bias=False) # Linear(in_features=512, out_features=512, bias=False)
+        self.kv = nn.Linear(dim, dim * 2, bias=False) # Linear(in_features=512, out_features=1024, bias=False)
+        # nn.init.xavier_uniform_(self.q.weight)
+        # nn.init.xavier_uniform_(self.kv.weight)
         self.attn_drop = nn.Dropout(attention_dropout)
 
-        self.proj = nn.Linear(dim, n_outputs)
+        # self.fc1 = nn.Linear(dim, 256)
+        # self.relu1 = nn.LeakyReLU(0.1)
+        # nn.init.kaiming_normal_(self.fc1.weight)
+        self.proj = nn.Linear(dim, n_outputs) # Linear(in_features=512, out_features=42, bias=True)
+        # nn.init.xavier_uniform_(self.proj.weight)
         self.proj_drop = nn.Dropout(projection_dropout)
 
     def forward(self, x, y):
@@ -134,8 +140,8 @@ class CrossAttention(nn.Module):
         - x (or x_pooled): image features, MNIST shape (32, 1, 128), CUB no spatial shape (32, 1, 1024), CUB spatial shape (32, 196, 1024)
         - y (or self.concepts): concepts, MNIST shape (1, 10, 128), CUB no spatial shape (1, 13, 1024), CUB spatial shape (1, 95, 1024)
         '''
-        B, Nx, C = x.shape # MNIST: 32, 1, 128; CUB no spatial: 32, 1, 1024; CUB spatial: 32, 196, 1024
-        By, Ny, Cy = y.shape # MNIST: 1, 10, 128; CUB no spatial: 1, 13, 1024; CUB spatial: 1, 95, 1024
+        B, Nx, C = x.shape # MNIST: 32, 1, 128; CUB no spatial: 32, 1, 1024; CUB spatial: 32, 196, 1024, GlomCrawl - one emb for an entire image: (990, 1, 512)
+        By, Ny, Cy = y.shape # MNIST: 1, 10, 128; CUB no spatial: 1, 13, 1024; CUB spatial: 1, 95, 1024, GlomCrawl - one emb for an entire image: (1, 630, 512)
 
         assert C == Cy, "Feature size of x and y must be the same"
 
@@ -151,6 +157,11 @@ class CrossAttention(nn.Module):
         # self.q(x).shape: (32, 196, 1024)
         # self.q(x).reshape(B, Nx, 1, self.num_heads, C // self.num_heads).shape: (32, 196, 1, 2, 512)
         # self.q(x).reshape(B, Nx, 1, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4).shape: (1, 32, 2, 196, 512)
+        # --- GlomCrawl - one emb for an entire image ---
+        # self.q(x).shape: (990, 1, 512)
+        # self.q(x).reshape(B, Nx, 1, self.num_heads, C // self.num_heads).shape: (990, 1, 1, 8, 64)
+        # self.q(x).reshape(B, Nx, 1, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4).shape: (1, 990, 8, 1, 64)
+        # --- GlomCrawl - multiple patch embs for an entire image ---
         q = self.q(x).reshape(B, Nx, 1, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         kv = (
             self.kv(y) # shape: mnist: (1, 10, 256); cub no spatial: (1, 13, 2048)
@@ -171,6 +182,8 @@ class CrossAttention(nn.Module):
         # MNIST: (attn @ v).transpose(1, 2).shape: (32, 1, 2, 64); CUB no spatial: (32, 1, 2, 512); CUB spatial: (32, 196, 2, 512)
         # MNIST: (attn @ v).transpose(1, 2).reshape(B, Nx, C).shape: (32, 1, 128); CUB no spatial: (32, 1, 1024); CUB spatial: (32, 196, 1024)
         x = (attn @ v).transpose(1, 2).reshape(B, Nx, C) # MNIST: (attn @ v).transpose(1, 2).reshape(B, Nx, C).shape: (32, 1, 128); CUB no spatial: (32, 1, 1024); CUB spatial: (32, 196, 1024)
+
+        # x = self.relu1(self.fc1(x))
         x = self.proj(x) # shape: mnist (32, 1, 2); cub no spatial: (32, 1, 200); cub spatial: (32, 196, 200)
         x = self.proj_drop(x) # shape: (32, 1, 2); cub no spatial:  (32, 1, 200); cub spatial: (32, 196, 200)
         return x, attn # x: (32, 1, 2), attn: (32, 2, 1, 10)
