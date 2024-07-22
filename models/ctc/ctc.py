@@ -169,23 +169,23 @@ class CrossAttention(nn.Module):
             .permute(2, 0, 3, 1, 4) # shape: mnist: (2, 1, 2, 10, 64); cub no spatial: (2, 1, 2, 13, 512) (key and value, placeholder 2, 2 heads, #contexts, embedding dim)
         )
 
-        q = q[0] # mnist: (32, 2, 1, 64); cub no spatial: (32, 2, 1, 512); cub spatial: (32, 2, 196, 512)
+        q = q[0] # mnist: (32, 2, 1, 64); cub no spatial: (32, 2, 1, 512); cub spatial: (32, 2, 196, 512), glomcrawl: (990, 8, 1, 64)
         k, v = kv[0], kv[1] 
-        # k: mnist: (1, 2, 10, 64); cub no spatial: (1, 2, 13, 512); cub spatial: (1, 2, 95, 512) 
-        # v: mnist: (1, 2, 10, 64); cub no spatial: (1, 2, 13, 512); cub spatial: (1, 2, 95, 512)
+        # k: mnist: (1, 2, 10, 64); cub no spatial: (1, 2, 13, 512); cub spatial: (1, 2, 95, 512), glomcrawl: (1, 8, 630, 64)
+        # v: mnist: (1, 2, 10, 64); cub no spatial: (1, 2, 13, 512); cub spatial: (1, 2, 95, 512), glomcrawl: (1, 8, 630, 64)
 
-        attn = (q @ k.transpose(-2, -1)) * self.scale # mnist: (32, 2, 1, 10); cub no spatial: (32, 2, 1, 13); cub spatial: (32, 2, 196, 95) (batch size, num heads, number of patches, #concepts)
-        attn = attn.softmax(dim=-1) # mnist: (32, 2, 1, 10); cub no spatial: (32, 2, 1, 13); cub spatial: (32, 2, 196, 95), pairwise score between each patch and each concept
-        attn = self.attn_drop(attn) # mnist: (32, 2, 1, 10); cub no spatial: (32, 2, 1, 13); cub spatial: (32, 2, 196, 95)
+        attn = (q @ k.transpose(-2, -1)) * self.scale # mnist: (32, 2, 1, 10); cub no spatial: (32, 2, 1, 13); cub spatial: (32, 2, 196, 95); glomcrawl: (990, 8, 1, 630) (batch size, num heads, number of patches, #concepts)
+        attn = attn.softmax(dim=-1) # mnist: (32, 2, 1, 10); cub no spatial: (32, 2, 1, 13); cub spatial: (32, 2, 196, 95); glomcrawl: (990, 8, 1, 630), pairwise score between each patch and each concept
+        attn = self.attn_drop(attn) # mnist: (32, 2, 1, 10); cub no spatial: (32, 2, 1, 13); cub spatial: (32, 2, 196, 95); glomcrawl: (990, 8, 1, 630)
 
-        # MNIST: (attn @ v).shape: (32, 2, 1, 64); CUB no spatial: (32, 2, 1, 512); CUB spatial: (32, 2, 196, 512)
-        # MNIST: (attn @ v).transpose(1, 2).shape: (32, 1, 2, 64); CUB no spatial: (32, 1, 2, 512); CUB spatial: (32, 196, 2, 512)
-        # MNIST: (attn @ v).transpose(1, 2).reshape(B, Nx, C).shape: (32, 1, 128); CUB no spatial: (32, 1, 1024); CUB spatial: (32, 196, 1024)
+        # MNIST: (attn @ v).shape: (32, 2, 1, 64); CUB no spatial: (32, 2, 1, 512); CUB spatial: (32, 2, 196, 512); glomcrawl: (990, 8, 1, 64)
+        # MNIST: (attn @ v).transpose(1, 2).shape: (32, 1, 2, 64); CUB no spatial: (32, 1, 2, 512); CUB spatial: (32, 196, 2, 512); glomcrawl: (990, 1, 8, 64)
+        # MNIST: (attn @ v).transpose(1, 2).reshape(B, Nx, C).shape: (32, 1, 128); CUB no spatial: (32, 1, 1024); CUB spatial: (32, 196, 1024); glomcrawl: (990, 1, 512)
         x = (attn @ v).transpose(1, 2).reshape(B, Nx, C) # MNIST: (attn @ v).transpose(1, 2).reshape(B, Nx, C).shape: (32, 1, 128); CUB no spatial: (32, 1, 1024); CUB spatial: (32, 196, 1024)
 
         # x = self.relu1(self.fc1(x))
-        x = self.proj(x) # shape: mnist (32, 1, 2); cub no spatial: (32, 1, 200); cub spatial: (32, 196, 200)
-        x = self.proj_drop(x) # shape: (32, 1, 2); cub no spatial:  (32, 1, 200); cub spatial: (32, 196, 200)
+        x = self.proj(x) # shape: mnist (32, 1, 2); cub no spatial: (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
+        x = self.proj_drop(x) # shape: (32, 1, 2); cub no spatial:  (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
         return x, attn # x: (32, 1, 2), attn: (32, 2, 1, 10)
 
 

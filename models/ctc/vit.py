@@ -374,7 +374,7 @@ class ConceptTransformerVIT(nn.Module):
         if self.model_name == 'conch_ViT-B-16':
             if x_concepts is not None:
                 # --- Hard concept prompts ---
-                if self.concept_embeddings is None:
+                if self.concept_embeddings is None: # (1, 630, 512)
                     # Case (2): hard concepts in raw
                     text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device)
                     if self.only_visual_trunk:
@@ -414,6 +414,7 @@ class ConceptTransformerVIT(nn.Module):
                 out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             concept_attn = concept_attn.mean(1)  # average over heads, shape: (32, 1, 13)
             out = out + out_n.squeeze(1)  # squeeze token dimension, shape: (32, 200)
+            # out = out + out_n.mean(1)  # pool tokens sequence, shape: (32, 200)
 
         if self.n_spatial_concepts > 0:  # Spatial stream, self.n_spatial_concepts = 95
             out_s, spatial_concept_attn = self.spatial_concept_tranformer(x, self.spatial_concepts) # out_s.shape: (32, 196, 200), spatial_concept_attn.shape: (32, 2, 196, 95)
