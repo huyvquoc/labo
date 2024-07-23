@@ -178,6 +178,7 @@ class CVIT(nn.Module):
             model_name=self.model_name,
             ckpt_path=ckpt_path,
             concept_embeddings_save_dir=concept_embeddings_save_dir,
+            only_visual_trunk=only_visual_trunk,
             *args,
             **kwargs, # {'batch_size': 32, 'debug': False, 'data_dir': '/data/hqvo3/data/cub2011', 'finetune_unfreeze_epoch': 0, 'num_workers': 8, 'seed': 42, 'data_name': 'CUB2011Parts'}
         )
@@ -324,9 +325,9 @@ class ConceptTransformerVIT(nn.Module):
         By default, do normalize (True) and embed_cls (True)
 
         Input:
-        - text: is text tokens
+        - text: is text tokens (630, 128)
         '''
-        text = text[:, :-1] if embed_cls else text # make space for CLS token
+        text = text[:, :-1] if embed_cls else text # make space for CLS token, shape (630, 127)
         text_latent, token_emb = self._get_text_feat(text)
         text_latent = F.normalize(text_latent, dim=-1) if normalize else text_latent
 
@@ -334,33 +335,38 @@ class ConceptTransformerVIT(nn.Module):
 
     def _get_text_feat(self, text):
         '''
-        All of conch COCA text branch
-        '''
-        cast_dtype = self.model.text.transformer.get_cast_dtype()
-        seq_len = text.shape[1]
-        x = self.model.text.token_embedding(text).to(cast_dtype)  # [batch_size, n_ctx, d_model]
-        attn_mask = self.model.text.attn_mask
-        if self.model.text.cls_emb is not None:
-            seq_len += 1
-            x = torch.cat([x, self.model.text._repeat(self.model.text.cls_emb, x.shape[0])], dim=1)
-            cls_mask = self.model.text.build_cls_mask(text, cast_dtype)
-            attn_mask = attn_mask[None, :seq_len, :seq_len] + cls_mask[:, :seq_len, :seq_len]
+        Code from the `forward` function of `conch/open_clip_custom/transformer.py`
 
-        x = x + self.model.text.positional_embedding[:seq_len].to(cast_dtype)
-        x = x.permute(1, 0, 2)  # NLD -> LND
-        x = self.model.text.transformer(x, attn_mask=attn_mask)
-        x = x.permute(1, 0, 2)  # LND -> NLD
+        All of conch COCA text branch
+
+        Inputs:
+        - text: shape (630, 127)
+        '''
+        cast_dtype = self.model.text.transformer.get_cast_dtype() # torch.float32
+        seq_len = text.shape[1] # 127
+        x = self.model.text.token_embedding(text).to(cast_dtype)  # (630, 127, 768) [batch_size, n_ctx, d_model]
+        attn_mask = self.model.text.attn_mask # shape (128, 128)
+        if self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
+            seq_len += 1 # 128
+            x = torch.cat([x, self.model.text._repeat(self.model.text.cls_emb, x.shape[0])], dim=1) # self.model.text._repeat(self.model.text.cls_emb, x.shape[0]).shape = (630, 1, 768) -> x.shape: (630, 128, 768)
+            cls_mask = self.model.text.build_cls_mask(text, cast_dtype) # shape (7560, 128, 128)
+            attn_mask = attn_mask[None, :seq_len, :seq_len] + cls_mask[:, :seq_len, :seq_len] # attn_mask[None, :seq_len, :seq_len].shape (1, 128, 128) and cls_mask[:, :seq_len, :seq_len].shape (7560, 128, 128) -> attn_mask.shape (7560, 128, 128)
+
+        x = x + self.model.text.positional_embedding[:seq_len].to(cast_dtype) # x.shape = (630, 128, 768) and self.model.text.positional_embedding[:seq_len].shape = (128, 768) -> x.shape (630, 128, 768)
+        x = x.permute(1, 0, 2)  # NLD -> LND, shape (128, 630, 768)
+        x = self.model.text.transformer(x, attn_mask=attn_mask) # shape (128, 630, 768)
+        x = x.permute(1, 0, 2)  # LND -> NLD, shape (630, 128, 768)
 
         # x.shape = [batch_size, n_ctx, transformer.width]
         # take features from the eot embedding (eot_token is the highest number in each sequence)
-        if self.model.text.cls_emb is not None:
-            pooled, tokens = x[:, -1], x[:, :-1]
-            pooled = self.model.text.ln_final(pooled)
+        if self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
+            pooled, tokens = x[:, -1], x[:, :-1] # pooled.shape = (630, 768), tokens.shape = (630, 127, 768)
+            pooled = self.model.text.ln_final(pooled) # `ln_final` is `LayerNorm((768,), eps=1e-05, elementwise_affine=True)`, shape (630, 768)
         else:
             x = self.model.text.ln_final(x)
             pooled, tokens = x[torch.arange(x.shape[0]), text.argmax(dim=-1)], x
 
-        return pooled, tokens
+        return pooled, tokens # pooled.shape (630, 768) and tokens.shape (630, 127, 768)
 
     def forward(self, x_cls, x, x_concepts=None):
         '''
@@ -376,7 +382,7 @@ class ConceptTransformerVIT(nn.Module):
                 # --- Hard concept prompts ---
                 if self.concept_embeddings is None: # (1, 630, 512)
                     # Case (2): hard concepts in raw
-                    text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device)
+                    text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device) # (630, 128)
                     if self.only_visual_trunk:
                         with torch.inference_mode():
                             concept_embeddings, _ = self._encode_text(text_tokens)
