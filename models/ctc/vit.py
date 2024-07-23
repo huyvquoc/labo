@@ -13,17 +13,20 @@ import tqdm
 from .ctc import CrossAttention
 from conch.open_clip_custom import create_model_from_pretrained, tokenize, get_tokenizer
 # from data.pre_ext_dataset import ImgPreExtEmbsDataset
+from models.ctc.prompts import HierarchyAwarePromptLearner
 
 
-def cub_cvit(cfg, baseline=False, *args, **kwargs):
+def cub_cvit(cfg, class_names, baseline=False, *args, **kwargs):
     """
     Args:
         baseline (bool): If true it returns the baseline model, which in this case it just the vit backbone without concept transformer
     """
     if not baseline:
         return CVIT(
+            cfg,
             model_name=cfg.clip_model,
             num_classes=cfg.num_cls,
+            class_names=class_names,
             n_unsup_concepts=cfg.num_unsup_concept,
             n_concepts=cfg.num_concept,
             n_spatial_concepts=cfg.num_spatial_concept,
@@ -132,7 +135,9 @@ class CVIT(nn.Module):
     """Concept Vision Transformer"""
     def __init__(
         self,
+        cfg,
         num_classes=200,
+        class_names=None,
         model_name="vit_base_patch16_224",
         pretrained=True,
         n_unsup_concepts=50,
@@ -167,8 +172,10 @@ class CVIT(nn.Module):
             # _ = self.feature_extractor.eval()
 
         self.classifier = ConceptTransformerVIT(
+            cfg,
             embedding_dim=self.feature_extractor.embed_dim, # 1024
             num_classes=num_classes, # 200
+            class_names=class_names,
             num_heads=num_heads,
             attention_dropout=attention_dropout, # 0.1
             projection_dropout=projection_dropout, # 0.1
@@ -239,8 +246,10 @@ class ConceptTransformerVIT(nn.Module):
     """
     def __init__(
         self,
+        cfg,
         embedding_dim=768,
         num_classes=10,
+        class_names=None,
         num_heads=2,
         attention_dropout=0.1,
         projection_dropout=0.1,
@@ -258,6 +267,9 @@ class ConceptTransformerVIT(nn.Module):
 
         self.model_name = model_name
         self.only_visual_trunk = only_visual_trunk
+
+        self.model = None
+        self.tokenizer = None
         if self.model_name == 'conch_ViT-B-16':
             # ----- only for CONCH -----
             self.tokenizer = get_tokenizer()
@@ -300,6 +312,7 @@ class ConceptTransformerVIT(nn.Module):
                 attention_dropout=attention_dropout,
                 projection_dropout=projection_dropout,
             )
+        self.prompt_learner = HierarchyAwarePromptLearner(cfg, class_names, self.model, self.tokenizer)
 
         # Spatial Concepts
         self.n_spatial_concepts = n_spatial_concepts
@@ -333,7 +346,7 @@ class ConceptTransformerVIT(nn.Module):
 
         return text_latent, token_emb
 
-    def _get_text_feat(self, text):
+    def _get_text_feat(self, text, use_cls_emb=True):
         '''
         Code from the `forward` function of `conch/open_clip_custom/transformer.py`
 
@@ -346,7 +359,7 @@ class ConceptTransformerVIT(nn.Module):
         seq_len = text.shape[1] # 127
         x = self.model.text.token_embedding(text).to(cast_dtype)  # (630, 127, 768) [batch_size, n_ctx, d_model]
         attn_mask = self.model.text.attn_mask # shape (128, 128)
-        if self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
+        if use_cls_emb and self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
             seq_len += 1 # 128
             x = torch.cat([x, self.model.text._repeat(self.model.text.cls_emb, x.shape[0])], dim=1) # self.model.text._repeat(self.model.text.cls_emb, x.shape[0]).shape = (630, 1, 768) -> x.shape: (630, 128, 768)
             cls_mask = self.model.text.build_cls_mask(text, cast_dtype) # shape (7560, 128, 128)
@@ -359,7 +372,7 @@ class ConceptTransformerVIT(nn.Module):
 
         # x.shape = [batch_size, n_ctx, transformer.width]
         # take features from the eot embedding (eot_token is the highest number in each sequence)
-        if self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
+        if use_cls_emb and self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
             pooled, tokens = x[:, -1], x[:, :-1] # pooled.shape = (630, 768), tokens.shape = (630, 127, 768)
             pooled = self.model.text.ln_final(pooled) # `ln_final` is `LayerNorm((768,), eps=1e-05, elementwise_affine=True)`, shape (630, 768)
         else:

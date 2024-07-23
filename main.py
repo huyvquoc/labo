@@ -350,6 +350,7 @@ def concept_trans_main(cfg):
         use_txt_norm=cfg.use_txt_norm
         )
     
+    class_names = data_module.get_cls_names()
 
     if cfg.test:
         ckpt_path = cfg.ckpt_path
@@ -365,7 +366,7 @@ def concept_trans_main(cfg):
         return
 
     print("use concept trans")
-    model = CTCModel(cfg)
+    model = CTCModel(cfg, class_names)
 
     # for param in model.parameters():
     #     print('[param] ', param)

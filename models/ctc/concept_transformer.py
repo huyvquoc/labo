@@ -22,6 +22,7 @@ class CTCModel(pl.LightningModule):
     def __init__(
         self, 
         cfg, # ----- LaBo from here -----
+        class_names,
         select_idx=None,
         **kwargs, # ----- ConceptTransformer -----
     ) -> None:
@@ -67,7 +68,7 @@ class CTCModel(pl.LightningModule):
         # self.save_hyperparameters() # comment this because it has already been at the last line of LaBo
 
         # Instantiate CTC model
-        self.model = getattr(models.ctc, self.cfg.ctc_model)(self.cfg) # self.model is CTC
+        self.model = getattr(models.ctc, self.cfg.ctc_model)(self.cfg, class_names) # self.model is CTC
         # ctc_model='mnist_ctc' for MNIST odd/even
         # ==================== ConceptTransformer ends here ====================
 

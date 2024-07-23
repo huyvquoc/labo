@@ -216,15 +216,21 @@ class TextEncoder(nn.Module):
         self.transformer = clip_model.transformer
         self.positional_embedding = clip_model.positional_embedding # shape: (77, 512)
         self.ln_final = clip_model.ln_final
-        self.text_projection = clip_model.text_projection # (512, 512)
+        self.text_projection = clip_model.text_projection # torch.nn.Parameter, shape (512, 512)
         self.dtype = clip_model.dtype
 
     def forward(self, prompts, tokenized_prompts):
         '''
         prompts.shape: (84, 77, 512)
         tokenized_prompts: (84, 77)
+
+        Inputs:
+        - prompts: shape (batch size, #tokens, text embedding dim) = (84, 77, 512)
+
+        Outputs:
+        - x: shape (batch size, text embedding dim) = (84, 512)
         '''
-        x = prompts + self.positional_embedding.type(self.dtype) # (84, 77, 512)
+        x = prompts + self.positional_embedding.type(self.dtype) # (84, 77, 512) = (2*42, 77, 512)
         x = x.permute(1, 0, 2)  # NLD -> LND, shape: (77, 84, 512)
         x = self.transformer(x) # (77, 84, 512)
         x = x.permute(1, 0, 2)  # LND -> NLD, (84, 77, 512)
@@ -234,7 +240,8 @@ class TextEncoder(nn.Module):
         # take features from the eot embedding (eot_token is the highest number in each sequence)
         # torch.arange(x.shape[0]): tensor list from 0 -> 83
         # tokenized_prompts.argmax(dim=-1): list of different 2x numbers, have the same length as torch.arange, shape (84)
+        # x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)].shape: (84, 512)
         # self.text_projection: tensor, shape (512, 512)
         x = x[torch.arange(x.shape[0]), tokenized_prompts.argmax(dim=-1)] @ self.text_projection
 
-        return x # (84, 512)
+        return x # (84, 512) = (2*42, 512)

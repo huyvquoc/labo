@@ -277,6 +277,7 @@ class ImgExplDataModule(pl.LightningDataModule):
         self.use_txt_norm = use_txt_norm
 
         self.cls_names = np.load(cls_name_path).tolist() # for reference, the mapping between indices and names
+        self.cls_names.sort()
 
         self.splits = {
             split: utils.pickle_load(
@@ -329,6 +330,9 @@ class ImgExplDataModule(pl.LightningDataModule):
             return batch
         else:
             return super().transfer_batch_to_device(batch, device, dataloader_idx)
+        
+    def get_cls_names(self):
+        return self.cls_names
  
     def setup(self, stage=None):
         """
