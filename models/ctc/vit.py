@@ -312,7 +312,9 @@ class ConceptTransformerVIT(nn.Module):
                 attention_dropout=attention_dropout,
                 projection_dropout=projection_dropout,
             )
-        self.prompt_learner = HierarchyAwarePromptLearner(cfg, class_names, self.model, self.tokenizer)
+        self.prompt_learner = HierarchyAwarePromptLearner(cfg, classnames=class_names, groupname2clsname=cfg.groupname2clsname, 
+                                                          clip_model=self.model, tokenizer=self.tokenizer, 
+                                                          use_group=True, multilabel_on=False)
 
         # Spatial Concepts
         self.n_spatial_concepts = n_spatial_concepts
@@ -346,7 +348,7 @@ class ConceptTransformerVIT(nn.Module):
 
         return text_latent, token_emb
 
-    def _get_text_feat(self, text_after_token_emb=None, text_after_tokenize=None, use_cls_emb=True):
+    def _get_text_feat(self, text_after_token_emb=None, text_after_tokenize=None, use_cls_emb=True, use_text_projection=False):
         '''
         Code from the `forward` function of `conch/open_clip_custom/transformer.py`
 
@@ -382,6 +384,9 @@ class ConceptTransformerVIT(nn.Module):
         else:
             x = self.model.text.ln_final(x)
             pooled, tokens = x[torch.arange(x.shape[0]), text_after_tokenize.argmax(dim=-1)], x
+
+        if use_text_projection:
+            pooled = pooled @ self.model.text.text_projection
 
         return pooled, tokens # pooled.shape (630, 768) and tokens.shape (630, 127, 768)
 

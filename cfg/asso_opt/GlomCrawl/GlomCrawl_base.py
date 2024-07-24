@@ -53,3 +53,50 @@ balanced_weights = [0.6863153028201572, 2.8276190476190477, 0.9301378446115288, 
 # main_loss = 'FocalLoss'
 # main_loss = 'APLLoss'
 main_loss = 'ANLSLoss'
+
+groupname2clsname = {"Tuft Sclerosis and Collapse": ['glomerular adhesion',
+                                                     'glomerular collapse', # subgroup: capillary collapse
+                                                     'glomerular foam cell',
+                                                     'glomerular hyalinosis',
+                                                     'glomerular obsolesce',
+                                                     'glomerular segmental sclerosis', # subgroup: segmental sclerosis
+                                                     'ischemic glomerular collapse', # subgroup: capillary collapse
+                                                     'nodular sclerosis glomerulus', # subgroup: sclerosis
+                                                     'periglomerular fibrosis',
+                                                     'solidified glomerular sclerosis global'], # subgroup: sclerosis ,
+
+                     "Glomerular Basement Membrane (GBM), Bowman's Capsule, Epithelial Cells": ['glomerular basement membrane duplication splitting',
+                                                                                                'glomerular basement membrane thickening',
+                                                                                                'hyalin drop diabetic glomerulus',
+                                                                                                'membranous nephropathy holes',
+                                                                                                'membranous nephropathy spikes',
+                                                                                                'podocyte hyperplasia',
+                                                                                                'podocyte hypertrophy',
+                                                                                                'podocyte reabsorption droplet',
+                                                                                                'spikes glomerular amyoidosis',
+                                                                                                'visceral epithelial cell capping',
+                                                                                                'wire loop glomerulus'],
+
+                     "Mesangial and Endocapillary Lesions": ['endocapillary hypercellularity',
+                                                             'exudative glomerulus',
+                                                             'glomerul lipoprotein thrombus',
+                                                             'glomerular congestion',
+                                                             'glomerular hyaline pseudothrombus',
+                                                             'glomerular thrombus',
+                                                             'glomerulonephritis hyaline thrombus',
+                                                             'glomerulus endotheliosis',
+                                                             'mesangial hypercellularity',
+                                                             'mesangial matrix expansion',
+                                                             'mesangiolysis'],
+
+                     "Necrotizing and Crescentic Lesions": ['fibrinoid necrosis glomerulus',
+                                                            'fibrocellular crescent', # subgroup: crescents
+                                                            'fibrous crescent', # subgroup: crescents
+                                                            'karyorrhexis glomerulonephritis',
+                                                            'pseudocrescent'],
+
+                     "Miscellaneous Lesions and Key Normal Structures": ['glomerulomegaly',
+                                                                         'immature glomerulus',
+                                                                         'parietal cell glomerulus',
+                                                                         'podocyte',
+                                                                         'visceral epithelial cell']}
