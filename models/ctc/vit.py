@@ -341,12 +341,12 @@ class ConceptTransformerVIT(nn.Module):
         - text: is text tokens (630, 128)
         '''
         text = text[:, :-1] if embed_cls else text # make space for CLS token, shape (630, 127)
-        text_latent, token_emb = self._get_text_feat(text)
+        text_latent, token_emb = self._get_text_feat(text_after_tokenize=text)
         text_latent = F.normalize(text_latent, dim=-1) if normalize else text_latent
 
         return text_latent, token_emb
 
-    def _get_text_feat(self, text, use_cls_emb=True):
+    def _get_text_feat(self, text_after_token_emb=None, text_after_tokenize=None, use_cls_emb=True):
         '''
         Code from the `forward` function of `conch/open_clip_custom/transformer.py`
 
@@ -355,14 +355,18 @@ class ConceptTransformerVIT(nn.Module):
         Inputs:
         - text: shape (630, 127)
         '''
-        cast_dtype = self.model.text.transformer.get_cast_dtype() # torch.float32
-        seq_len = text.shape[1] # 127
-        x = self.model.text.token_embedding(text).to(cast_dtype)  # (630, 127, 768) [batch_size, n_ctx, d_model]
+        if text_after_token_emb is None:
+            cast_dtype = self.model.text.transformer.get_cast_dtype() # torch.float32
+            seq_len = text_after_tokenize.shape[1] # 127
+            x = self.model.text.token_embedding(text_after_tokenize).to(cast_dtype)  # (630, 127, 768) [batch_size, n_ctx, d_model]
+        else:
+            x = text_after_token_emb
+
         attn_mask = self.model.text.attn_mask # shape (128, 128)
         if use_cls_emb and self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
             seq_len += 1 # 128
             x = torch.cat([x, self.model.text._repeat(self.model.text.cls_emb, x.shape[0])], dim=1) # self.model.text._repeat(self.model.text.cls_emb, x.shape[0]).shape = (630, 1, 768) -> x.shape: (630, 128, 768)
-            cls_mask = self.model.text.build_cls_mask(text, cast_dtype) # shape (7560, 128, 128)
+            cls_mask = self.model.text.build_cls_mask(text_after_tokenize, cast_dtype) # shape (7560, 128, 128)
             attn_mask = attn_mask[None, :seq_len, :seq_len] + cls_mask[:, :seq_len, :seq_len] # attn_mask[None, :seq_len, :seq_len].shape (1, 128, 128) and cls_mask[:, :seq_len, :seq_len].shape (7560, 128, 128) -> attn_mask.shape (7560, 128, 128)
 
         x = x + self.model.text.positional_embedding[:seq_len].to(cast_dtype) # x.shape = (630, 128, 768) and self.model.text.positional_embedding[:seq_len].shape = (128, 768) -> x.shape (630, 128, 768)
@@ -377,7 +381,7 @@ class ConceptTransformerVIT(nn.Module):
             pooled = self.model.text.ln_final(pooled) # `ln_final` is `LayerNorm((768,), eps=1e-05, elementwise_affine=True)`, shape (630, 768)
         else:
             x = self.model.text.ln_final(x)
-            pooled, tokens = x[torch.arange(x.shape[0]), text.argmax(dim=-1)], x
+            pooled, tokens = x[torch.arange(x.shape[0]), text_after_tokenize.argmax(dim=-1)], x
 
         return pooled, tokens # pooled.shape (630, 768) and tokens.shape (630, 127, 768)
 

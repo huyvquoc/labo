@@ -18,7 +18,7 @@ class HierarchyAwarePromptLearner(nn.Module):
       - G4: Necrotizing and Crescentic Lesions
       - G5: Miscellaneous Lesions and Key Normal Structures
     '''
-    def __init__(self, cfg, classnames, clip_model, tokenizer):
+    def __init__(self, cfg, classnames, groupnames, clip_model, tokenizer):
         '''
         Initialize learnable prompts in ConceptTransformerVIT
 
@@ -122,7 +122,7 @@ class HierarchyAwarePromptLearner(nn.Module):
         # These token vectors will be saved when in save_model(),
         # but they should be ignored in load_model() as we want to use
         # those computed using the current class names
-        self.register_buffer("token_prefix_pos", embedding_pos[:, :1, :] ) # (42, 1, 512)
+        self.register_buffer("token_prefix_pos", embedding_pos[:, :1, :]) # (42, 1, 512)
         self.register_buffer("token_suffix_pos", embedding_pos[:, 1 + n_ctx_pos:, :]) # (42, 60, 512)
         self.register_buffer("token_prefix_neg", embedding_neg[:, :1, :]) # (42, 1, 512)
         self.register_buffer("token_suffix_neg", embedding_neg[:, 1 + n_ctx_neg:, :]) # (42, 60, 512)
@@ -178,9 +178,9 @@ class HierarchyAwarePromptLearner(nn.Module):
 
         prompts_pos = torch.cat(
             [
-                prefix_pos,  # (n_cls, 1, dim) = (42, 1, 512), text embeddings of 'X X X ... cls name', why split into prefix and suffix
+                prefix_pos,  # (n_cls, 1, dim) = (42, 1, 512), text token embeddings of 'X X X ... cls name', why split into prefix and suffix
                 ctx_pos,  # (n_cls, n_ctx, dim) = (42, 16, 512), soft prompt
-                suffix_pos,  # (n_cls, *, dim) = (42, 60, 512), text embeddings of 'X X X ... cls name'
+                suffix_pos,  # (n_cls, *, dim) = (42, 60, 512), text token embeddings of 'X X X ... cls name'
             ],
             dim=1,
         ) # (42, 77, 512): 77 is sum of second dim of the 3 tensor above
@@ -204,7 +204,7 @@ class HierarchyAwarePromptLearner(nn.Module):
             tokenized_prompts = self.tokenized_prompts # still "X X X ... {cls name}", token after clip.tokenize step (not do token embedding), (84, 77)
 
 
-        return prompts, tokenized_prompts # hard-soft-hard (84, 77, 512) and after clip.tokenize (84, 77)
+        return prompts, tokenized_prompts # after text token embeddings hard-soft-hard (84, 77, 512) and after clip.tokenize (84, 77)
 
 
 class TextEncoder(nn.Module):
