@@ -41,3 +41,11 @@ only_visual_trunk = True # TODO
 do_aug = True
 n_iters = 20
 aug_level = 2
+
+# ----- only for learnable prompts -----
+set_learnable_prompts = True
+csc = True # whether to use class-specific contexts or a general context
+n_ctx_pos = 16
+n_ctx_neg = 16
+positive_prompt_init = ''
+negative_prompt_init = ''

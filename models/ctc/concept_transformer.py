@@ -89,7 +89,7 @@ class CTCModel(pl.LightningModule):
         But one problem is 512 vs 1024, ConceptTransformer also has predefined cls_token from the pretrained feature extractor
         TODO: We should feed original image because later we will need to implement soft prompting, which means we will not have a fix collection of input
         '''
-        outputs, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x, self.concept_raw) # self.model is CTC for MNIST odd/even, and CVIT for CUB
+        outputs, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x, self.concept_raw, self.concept2cls) # self.model is CTC for MNIST odd/even, and CVIT for CUB
         logits = F.log_softmax(outputs, dim=-1)
         return logits, unsup_concept_attn, concept_attn, spatial_concept_attn
         # ==================== ConceptTransformer ends here ====================

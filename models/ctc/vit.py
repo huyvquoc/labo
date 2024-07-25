@@ -37,6 +37,7 @@ def cub_cvit(cfg, class_names, baseline=False, *args, **kwargs):
             concept_embeddings_save_dir=cfg.concept_embeddings_save_dir,
             use_extracted_img_embs=cfg.use_extracted_img_embs,
             only_visual_trunk=cfg.only_visual_trunk,
+            set_learnable_prompts=cfg.set_learnable_prompts,
             *args,
             **kwargs,
         )
@@ -150,6 +151,7 @@ class CVIT(nn.Module):
         concept_embeddings_save_dir=None,
         use_extracted_img_embs=True,
         only_visual_trunk=False,
+        set_learnable_prompts=False,
         *args,
         **kwargs,
     ):
@@ -186,6 +188,7 @@ class CVIT(nn.Module):
             ckpt_path=ckpt_path,
             concept_embeddings_save_dir=concept_embeddings_save_dir,
             only_visual_trunk=only_visual_trunk,
+            set_learnable_prompts=set_learnable_prompts,
             *args,
             **kwargs, # {'batch_size': 32, 'debug': False, 'data_dir': '/data/hqvo3/data/cub2011', 'finetune_unfreeze_epoch': 0, 'num_workers': 8, 'seed': 42, 'data_name': 'CUB2011Parts'}
         )
@@ -260,6 +263,7 @@ class ConceptTransformerVIT(nn.Module):
         ckpt_path=None,
         concept_embeddings_save_dir=None,
         only_visual_trunk=False,
+        set_learnable_prompts=False,
         *args,
         **kwargs,
     ):
@@ -267,6 +271,7 @@ class ConceptTransformerVIT(nn.Module):
 
         self.model_name = model_name
         self.only_visual_trunk = only_visual_trunk
+        self.class_names = class_names
 
         self.model = None
         self.tokenizer = None
@@ -312,9 +317,12 @@ class ConceptTransformerVIT(nn.Module):
                 attention_dropout=attention_dropout,
                 projection_dropout=projection_dropout,
             )
-        self.prompt_learner = HierarchyAwarePromptLearner(cfg, classnames=class_names, groupname2clsname=cfg.groupname2clsname, 
-                                                          clip_model=self.model, tokenizer=self.tokenizer, 
-                                                          use_group=True, multilabel_on=False)
+        self.set_learnable_prompts = set_learnable_prompts
+        if self.set_learnable_prompts:
+            self.prompt_learner = HierarchyAwarePromptLearner(cfg, classnames=self.class_names, groupname2clsname=cfg.groupname2clsname, 
+                                                              clip_model=self.model, tokenizer=self.tokenizer, 
+                                                              use_group=True, multilabel_on=False)
+            self.groupname2clsname = self.get_groupname2clsname()
 
         # Spatial Concepts
         self.n_spatial_concepts = n_spatial_concepts
@@ -333,9 +341,29 @@ class ConceptTransformerVIT(nn.Module):
                 projection_dropout=projection_dropout,
             )
 
+    def _encode_learnable_prompts(self, text_after_token_emb=None, text_after_tokenize=None, normalize=True, embed_cls=True):
+        '''
+        Copy from `conch/open_clip_custom/coca_model.py`
+
+        **For learnable soft prompts**
+
+        By default, do normalize (True) and embed_cls (True)
+
+        Input:
+        - text: is text tokens (630, 128)
+        '''
+        text = text[:, :-1] if embed_cls else text # make space for CLS token, shape (630, 127)
+        text_latent, token_emb = self._get_text_feat(text_after_token_emb=text_after_token_emb, text_after_tokenize=text_after_tokenize,
+                                                     use_cls_emb=False, use_text_projection=True)
+        text_latent = F.normalize(text_latent, dim=-1) if normalize else text_latent
+
+        return text_latent, token_emb
+
     def _encode_text(self, text, normalize=True, embed_cls=True):
         '''
         Copy from `conch/open_clip_custom/coca_model.py`
+
+        **For hard prompts**
 
         By default, do normalize (True) and embed_cls (True)
 
@@ -390,7 +418,7 @@ class ConceptTransformerVIT(nn.Module):
 
         return pooled, tokens # pooled.shape (630, 768) and tokens.shape (630, 127, 768)
 
-    def forward(self, x_cls, x, x_concepts=None):
+    def forward(self, x_cls, x, x_concepts=None, concept2cls=None, cls_id=None):
         '''
         - Inputs:
           cls token (category feature): x_cls.shape: (32, 1, 1024)
@@ -398,6 +426,14 @@ class ConceptTransformerVIT(nn.Module):
           x_concepts: can be original raw concepts `self.concept_raw` (630,) OR extracted embeddings `self.concepts` (630, 512)
         '''
         unsup_concept_attn, concept_attn, spatial_concept_attn = None, None, None
+
+        if self.set_learnable_prompts:
+            prompts, tokenized_prompts = self.prompt_learner(cls_id) # prompts.shape: (5, 127, 512), tokeninzed_prompts.shape: (5, 127)
+            # cls_id: None
+            soft_prompt_embeddings, _ = self._encode_learnable_prompts(prompts, tokenized_prompts) # (84, 512)
+
+            # normalize features
+            # text_features = text_features / text_features.norm(dim=-1, keepdim=True) # shape: (84, 512)
 
         if self.model_name == 'conch_ViT-B-16':
             if x_concepts is not None:
@@ -415,17 +451,12 @@ class ConceptTransformerVIT(nn.Module):
                     self.concept_embeddings = concept_embeddings[None, :, :]
                     torch.save(self.concept_embeddings, self.concept_embeddings_save_dir)
                 
-                # elif x_concepts.ndim == 2:
-                #     # Case (3) hard concepts in the form of extracted embeddings
-                #     txt_feat = x_concepts[None, :, :]
-            else:
-                # --- Soft prompts ---
-                # Case (2): hard concepts in raw
-                text_tokens = tokenize(texts=self.concepts, tokenizer=self.tokenizer).to(self.device)
-                with torch.inference_mode(): # !! do we need to use this when inside forward !!
-                    txt_feat = self.model.encode_text(text_tokens) # shape: (630, 512)
-                txt_feat = txt_feat[None, :, :]
-                # TODO: either set txt_feat to learnable here using nn.Parameter()
+        # ----- combine soft context vectors and hard concept vectors -----
+        self.class_names.index()
+        self.groupname2clsname
+        concept_embeddings
+        concept2cls
+        # -----------------------------------------------------------------
 
 
         out = 0.0

@@ -36,6 +36,7 @@ class HierarchyAwarePromptLearner(nn.Module):
 
         self.multilabel_on = multilabel_on
 
+        self.groupname2clsname = groupname2clsname
         self.groupnames = groupname2clsname.keys()
 
         if use_group:
@@ -147,6 +148,9 @@ class HierarchyAwarePromptLearner(nn.Module):
             tokenized_prompts = tokenized_prompts_pos
         self.register_buffer("tokenized_prompts", tokenized_prompts)
         self.name_lens = name_lens # [7, 6, 10, 3, 4, 7, 4, 7, 6, 3, 3, 4, 9, 5, ...]
+    
+    def get_groupname2clsname(self):
+        return self.groupname2clsname
 
     def forward(self, cls_id=None):
         '''
@@ -225,7 +229,7 @@ class HierarchyAwarePromptLearner(nn.Module):
             tokenized_prompts = self.tokenized_prompts
 
 
-        return prompts, tokenized_prompts # after text token embeddings hard-soft-hard (84, 77, 512) and after clip.tokenize (84, 77)
+        return prompts, tokenized_prompts # after text token embeddings hard-soft-hard (84, 77, 512) (5, 127, 512) and after clip.tokenize (84, 77) (5, 127)
 
 
 class TextEncoder(nn.Module):
