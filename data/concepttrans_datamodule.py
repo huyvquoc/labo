@@ -253,9 +253,9 @@ class ImgExplDataset(Dataset):
         target: is label, int or str?
         '''
         # Global explanations
-        expl = torch.FloatTensor(self.num_concept).fill_(0) # self.num_non_spatial_attributes = 13, initialize all elements with nan, expl.shape = (13)
+        expl = torch.FloatTensor(self.num_concept).fill_(0) # self.num_non_spatial_attributes = 13, initialize all elements with nan, expl.shape = (13), for glom crawl: expl.shape = (630)
 
-        for index in self.cls2indices[cls]:
+        for index in self.cls2indices[cls]: # map each class to all of its concept indices
             expl[index] = 1
 
         return expl # target expl and target spatial_expl is just to see which attributes exist in the current patch, just 0 or 1 value

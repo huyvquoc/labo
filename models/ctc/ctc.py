@@ -113,13 +113,14 @@ class Attention(nn.Module):
 
 class CrossAttention(nn.Module):
     def __init__(
-        self, dim, n_outputs=None, num_heads=8, attention_dropout=0.1, projection_dropout=0.0
+        self, dim, n_outputs=None, n_group_outputs=None, num_heads=8, attention_dropout=0.1, projection_dropout=0.0, both_concepts_and_contexts=False,
     ): # dim = 128, n_outputs = 2, num_heads = 2, attention_dropout = 0.1, projection_dropout = 0.1
         super().__init__()
         n_outputs = n_outputs if n_outputs else dim
         self.num_heads = num_heads
         head_dim = dim // self.num_heads # 64
         self.scale = head_dim ** -0.5 # 0.125
+        self.both_concepts_and_contexts = both_concepts_and_contexts
 
         self.q = nn.Linear(dim, dim, bias=False) # Linear(in_features=512, out_features=512, bias=False)
         self.kv = nn.Linear(dim, dim * 2, bias=False) # Linear(in_features=512, out_features=1024, bias=False)
@@ -134,7 +135,11 @@ class CrossAttention(nn.Module):
         # nn.init.xavier_uniform_(self.proj.weight)
         self.proj_drop = nn.Dropout(projection_dropout)
 
-    def forward(self, x, y, both_concepts_and_contexts=False):
+        if self.both_concepts_and_contexts:
+            self.proj2 = nn.Linear(dim, n_group_outputs)
+            self.proj_drop2 = nn.Dropout(projection_dropout)
+
+    def forward(self, x, y):
         '''
         Inputs:
         - x (or x_pooled): image features, MNIST shape (32, 1, 128), CUB no spatial shape (32, 1, 1024), CUB spatial shape (32, 196, 1024), GlomCrawl (bs, 1, 512)
@@ -143,7 +148,7 @@ class CrossAttention(nn.Module):
         B, Nx, C = x.shape # MNIST: 32, 1, 128; CUB no spatial: 32, 1, 1024; CUB spatial: 32, 196, 1024, GlomCrawl - one emb for an entire image: (990, 1, 512)
         By, Ny, Cy = y.shape # MNIST: 1, 10, 128; CUB no spatial: 1, 13, 1024; CUB spatial: 1, 95, 1024, GlomCrawl - one emb for an entire image: (1, 630, 512)
 
-        if not both_concepts_and_contexts:
+        if not self.both_concepts_and_contexts:
             assert C == Cy, "Feature size of x and y must be the same"
         else:
             assert 2*C == Cy, "Feature size of y must be twice as much as x"
@@ -187,9 +192,17 @@ class CrossAttention(nn.Module):
         x = (attn @ v).transpose(1, 2).reshape(B, Nx, C) # MNIST: (attn @ v).transpose(1, 2).reshape(B, Nx, C).shape: (32, 1, 128); CUB no spatial: (32, 1, 1024); CUB spatial: (32, 196, 1024)
 
         # x = self.relu1(self.fc1(x))
-        x = self.proj(x) # shape: mnist (32, 1, 2); cub no spatial: (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
-        x = self.proj_drop(x) # shape: (32, 1, 2); cub no spatial:  (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
-        return x, attn # x: (32, 1, 2), attn: (32, 2, 1, 10)
+        out1 = self.proj(x) # shape: mnist (32, 1, 2); cub no spatial: (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
+        out1 = self.proj_drop(out1) # shape: (32, 1, 2); cub no spatial:  (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
+
+        if self.both_concepts_and_contexts:
+            out2 = self.proj2(x)
+            out2 = self.proj_drop2(out2)
+
+        if not self.both_concepts_and_contexts:
+            return out1, attn # x: (32, 1, 2), attn: (32, 2, 1, 10)
+        else:
+            return out1, out2, attn
 
 
 class TransformerEncoderLayer(nn.Module):
@@ -666,6 +679,9 @@ def concepts_cost(concept_attn, attn_targets):
         CUB:
           concept_attn.shape: (32, 1, 13) , values are float lower than 1 but greater than 0
           attn_targets.shape: (32, 13) , values are binary just 0 or 1
+        GlomCrawl:
+          concept_attn.shape (990, 1, 630) 
+          expl.shape (990, 630)
     """
     if concept_attn is None:
         return 0.0

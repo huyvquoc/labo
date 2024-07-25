@@ -181,7 +181,7 @@ class CTCModel(pl.LightningModule):
             self.all_logit.append(logits)
 
 
-        expl_loss = concepts_cost(concept_attn, expl) + spatial_concepts_cost( # PRED concept_attn.shape: (32, 1, 13), TARGET expl.shape: (32, 13)
+        expl_loss = concepts_cost(concept_attn, expl) + spatial_concepts_cost( # PRED concept_attn.shape: (32, 1, 13), TARGET expl.shape: (32, 13); for glom crawl concept_attn.shape (990, 1, 630) and expl.shape (990, 630)
             spatial_concept_attn, spatial_expl # PRED spatial_concept_attn.shape: (32, 196, 95), TARGET spatial_expl.shpae: (32, 196, 95)
         )
         l1_loss = concepts_sparsity_cost(concept_attn, spatial_concept_attn)
