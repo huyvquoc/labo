@@ -1,22 +1,24 @@
+import collections
 from copy import deepcopy
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
+# from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 from conch.open_clip_custom import create_model_from_pretrained, tokenize, get_tokenizer
 
 
-_tokenizer = _Tokenizer()
+# _tokenizer = _Tokenizer()
 
 class HierarchyAwarePromptLearner(nn.Module):
     '''
-      - G1: Tuft Sclerosis and Collapse
-      - G2: Glomerular Basement Membrane (GBM), Bowman's Capsule, Epithelial Cells
-      - G3: Mesangial and Endocapillary Lesions
+      Group names are sorted in alphabetical order
+      - G1: Glomerular Basement Membrane (GBM), Bowman's Capsule, Epithelial Cells
+      - G2: Mesangial and Endocapillary Lesions
+      - G3: Miscellaneous Lesions and Key Normal Structures
       - G4: Necrotizing and Crescentic Lesions
-      - G5: Miscellaneous Lesions and Key Normal Structures
+      - G5: Tuft Sclerosis and Collapse
     '''
     def __init__(self, cfg, classnames, groupname2clsname, clip_model, tokenizer, use_group=True, multilabel_on=False):
         '''
@@ -36,7 +38,7 @@ class HierarchyAwarePromptLearner(nn.Module):
 
         self.multilabel_on = multilabel_on
 
-        self.groupname2clsname = groupname2clsname
+        self.groupname2clsname = collections.OrderedDict(sorted(groupname2clsname.items()))
         self.groupnames = groupname2clsname.keys()
 
         if use_group:
@@ -117,8 +119,8 @@ class HierarchyAwarePromptLearner(nn.Module):
             for name in self.classnames:
                 name_lens.append(len(tokenize(texts=name, tokenizer=tokenizer))) # ref: class name embeddings, `/conch/downstream/zeroshot_path.py`
                 # clip_model.encode_text(tokenize(texts=name, tokenizer=tokenizer).to(self.device)) # TODO: do we need to use `encode_text`?,
-        else:
-            name_lens = [len(_tokenizer.encode(name)) for name in self.classnames] # one class name is converted into multiple token ids
+        # else:
+        #     name_lens = [len(_tokenizer.encode(name)) for name in self.classnames] # one class name is converted into multiple token ids
 
         prompts_pos = [prompt_prefix_pos + " " + name + "." for name in self.classnames] # each element is "X X X ... class name"
         prompts_neg = [prompt_prefix_neg + " " + name + "." for name in self.classnames] # the same as prompt pos
@@ -150,7 +152,7 @@ class HierarchyAwarePromptLearner(nn.Module):
         self.name_lens = name_lens # [7, 6, 10, 3, 4, 7, 4, 7, 6, 3, 3, 4, 9, 5, ...]
     
     def get_groupname2clsname(self):
-        return self.groupname2clsname
+        return self.groupnames, self.groupname2clsname
 
     def forward(self, cls_id=None):
         '''

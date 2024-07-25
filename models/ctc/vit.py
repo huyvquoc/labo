@@ -322,7 +322,11 @@ class ConceptTransformerVIT(nn.Module):
             self.prompt_learner = HierarchyAwarePromptLearner(cfg, classnames=self.class_names, groupname2clsname=cfg.groupname2clsname, 
                                                               clip_model=self.model, tokenizer=self.tokenizer, 
                                                               use_group=True, multilabel_on=False)
-            self.groupname2clsname = self.get_groupname2clsname()
+            self.groupnames, self.groupname2clsname = self.get_groupname2clsname()
+            self.clsname2groupname = {}
+            for grp_name, cls_names in self.groupname2clsname.items():
+                for cls_name in cls_names:
+                    self.clsname2groupname[cls_name] = grp_name
 
         # Spatial Concepts
         self.n_spatial_concepts = n_spatial_concepts
@@ -427,6 +431,7 @@ class ConceptTransformerVIT(nn.Module):
         '''
         unsup_concept_attn, concept_attn, spatial_concept_attn = None, None, None
 
+        soft_prompt_embeddings = None
         if self.set_learnable_prompts:
             prompts, tokenized_prompts = self.prompt_learner(cls_id) # prompts.shape: (5, 127, 512), tokeninzed_prompts.shape: (5, 127)
             # cls_id: None
@@ -452,10 +457,24 @@ class ConceptTransformerVIT(nn.Module):
                     torch.save(self.concept_embeddings, self.concept_embeddings_save_dir)
                 
         # ----- combine soft context vectors and hard concept vectors -----
-        self.class_names.index()
-        self.groupname2clsname
-        concept_embeddings
-        concept2cls
+        if soft_prompt_embeddings is not None and self.concept_embeddings is not None:
+            # self.class_names.index()
+            # self.groupname2clsname
+            # self.concept_embeddings
+            # soft_prompt_embeddings
+            # concept2cls
+
+            combined_embeddings = []
+            for concept_idx in range(self.concept_embeddings.shape[0]): # 630
+                corr_label_int = int(concept2cls[concept_idx]) # label in int
+                corr_label_str = self.class_names[corr_label_int]
+                corr_parent_label_str = self.clsname2groupname[corr_label_str]
+                corr_parent_label_int = self.groupnames.index(corr_parent_label_str)
+
+                combined_embeddings.append(torch.cat((self.concept_embeddings[concept_idx], soft_prompt_embeddings[corr_parent_label_int]), 0))
+
+            combined_embeddings = torch.stack(combined_embeddings) # (630, 1024)
+            self.concept_embeddings = combined_embeddings
         # -----------------------------------------------------------------
 
 
@@ -468,7 +487,10 @@ class ConceptTransformerVIT(nn.Module):
         if self.n_concepts > 0:  # Non-spatial stream, self.n_concepts = 13 # TODO: global concepts
             if self.model_name == 'conch_ViT-B-16':
                 self.concept_embeddings /= self.concept_embeddings.norm(dim=-1, keepdim=True)
-                out_n, concept_attn = self.concept_tranformer(x_cls, self.concept_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+                if self.set_learnable_prompts:
+                    out_n, concept_attn = self.concept_tranformer(x_cls, self.concept_embeddings, both_concepts_and_contexts=True) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+                else:
+                    out_n, concept_attn = self.concept_tranformer(x_cls, self.concept_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             else:
                 out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             concept_attn = concept_attn.mean(1)  # average over heads, shape: (32, 1, 13)

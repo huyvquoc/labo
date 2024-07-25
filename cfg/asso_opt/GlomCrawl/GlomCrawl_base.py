@@ -54,17 +54,7 @@ balanced_weights = [0.6863153028201572, 2.8276190476190477, 0.9301378446115288, 
 # main_loss = 'APLLoss'
 main_loss = 'ANLSLoss'
 
-groupname2clsname = {"Tuft Sclerosis and Collapse": ['glomerular adhesion',
-                                                     'glomerular collapse', # subgroup: capillary collapse
-                                                     'glomerular foam cell',
-                                                     'glomerular hyalinosis',
-                                                     'glomerular obsolesce',
-                                                     'glomerular segmental sclerosis', # subgroup: segmental sclerosis
-                                                     'ischemic glomerular collapse', # subgroup: capillary collapse
-                                                     'nodular sclerosis glomerulus', # subgroup: sclerosis
-                                                     'periglomerular fibrosis',
-                                                     'solidified glomerular sclerosis global'], # subgroup: sclerosis ,
-
+groupname2clsname = {
                      "Glomerular Basement Membrane (GBM), Bowman's Capsule, Epithelial Cells": ['glomerular basement membrane duplication splitting',
                                                                                                 'glomerular basement membrane thickening',
                                                                                                 'hyalin drop diabetic glomerulus',
@@ -88,6 +78,12 @@ groupname2clsname = {"Tuft Sclerosis and Collapse": ['glomerular adhesion',
                                                              'mesangial hypercellularity',
                                                              'mesangial matrix expansion',
                                                              'mesangiolysis'],
+                     
+                     "Miscellaneous Lesions and Key Normal Structures": ['glomerulomegaly',
+                                                                         'immature glomerulus',
+                                                                         'parietal cell glomerulus',
+                                                                         'podocyte',
+                                                                         'visceral epithelial cell'],
 
                      "Necrotizing and Crescentic Lesions": ['fibrinoid necrosis glomerulus',
                                                             'fibrocellular crescent', # subgroup: crescents
@@ -95,8 +91,14 @@ groupname2clsname = {"Tuft Sclerosis and Collapse": ['glomerular adhesion',
                                                             'karyorrhexis glomerulonephritis',
                                                             'pseudocrescent'],
 
-                     "Miscellaneous Lesions and Key Normal Structures": ['glomerulomegaly',
-                                                                         'immature glomerulus',
-                                                                         'parietal cell glomerulus',
-                                                                         'podocyte',
-                                                                         'visceral epithelial cell']}
+                     "Tuft Sclerosis and Collapse": ['glomerular adhesion',
+                                                     'glomerular collapse', # subgroup: capillary collapse
+                                                     'glomerular foam cell',
+                                                     'glomerular hyalinosis',
+                                                     'glomerular obsolesce',
+                                                     'glomerular segmental sclerosis', # subgroup: segmental sclerosis
+                                                     'ischemic glomerular collapse', # subgroup: capillary collapse
+                                                     'nodular sclerosis glomerulus', # subgroup: sclerosis
+                                                     'periglomerular fibrosis',
+                                                     'solidified glomerular sclerosis global'] # subgroup: sclerosis
+}
