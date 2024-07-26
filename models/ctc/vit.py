@@ -231,24 +231,15 @@ class CVIT(nn.Module):
             x = self.feature_extractor.norm(x) # shape: (32, 197, 1024)
  
         x /= x.norm(dim=-1, keepdim=True)
-        if not self.set_learnable_prompts:
-            out, unsup_concept_attn, concept_attn, spatial_concept_attn = self.classifier(
-                x[:, 0].unsqueeze(1), x[:, 1:], x_concepts # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
-            )
-            # out.shape: (32, 200)
-            # unsup_concept_attn: None
-            # concept_attn.shape: (32, 1, 13)
-            # spatial_concept_attn.shape: (32, 196, 95)
-            return out, unsup_concept_attn, concept_attn, spatial_concept_attn
-        else:
-            out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn = self.classifier(
-                x[:, 0].unsqueeze(1), x[:, 1:], x_concepts, self.concept2cls # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
-            )
-            # out.shape: (32, 200)
-            # unsup_concept_attn: None
-            # concept_attn.shape: (32, 1, 13)
-            # spatial_concept_attn.shape: (32, 196, 95)
-            return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn
+
+        out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn = self.classifier(
+            x[:, 0].unsqueeze(1), x[:, 1:], x_concepts, self.concept2cls # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
+        )
+        # out.shape: (32, 200)
+        # unsup_concept_attn: None
+        # concept_attn.shape: (32, 1, 13)
+        # spatial_concept_attn.shape: (32, 196, 95)
+        return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn
 
 
 class ConceptTransformerVIT(nn.Module):
@@ -327,7 +318,6 @@ class ConceptTransformerVIT(nn.Module):
         if n_concepts > 0:
             self.set_learnable_prompts = set_learnable_prompts
 
-            both_concepts_and_contexts = False
             n_group_outputs = None
             if self.set_learnable_prompts:
                 self.prompt_learner = HierarchyAwarePromptLearner(cfg, classnames=self.class_names, groupname2clsname=cfg.groupname2clsname, 
@@ -339,7 +329,6 @@ class ConceptTransformerVIT(nn.Module):
                     for cls_name in cls_names:
                         self.clsname2groupname[cls_name] = grp_name
 
-                both_concepts_and_contexts = True
                 n_group_outputs = len(self.groupnames)
             
             self.concept_tranformer = CrossAttention(
@@ -349,7 +338,8 @@ class ConceptTransformerVIT(nn.Module):
                 num_heads=num_heads,
                 attention_dropout=attention_dropout,
                 projection_dropout=projection_dropout,
-                both_concepts_and_contexts=both_concepts_and_contexts,
+                use_child_classes=cfg.use_child_classes,
+                use_parent_classes=cfg.use_parent_classes,
             )
 
         # Spatial Concepts
@@ -515,16 +505,21 @@ class ConceptTransformerVIT(nn.Module):
         if self.n_concepts > 0:  # Non-spatial stream, self.n_concepts = 13 # TODO: global concepts
             if self.model_name == 'conch_ViT-B-16':
                 self.concept_embeddings /= self.concept_embeddings.norm(dim=-1, keepdim=True)
-                if not self.set_learnable_prompts:
-                    out_n, concept_attn = self.concept_tranformer(x_cls, self.concept_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
-                else:
-                    out_n, out_group_n, concept_attn = self.concept_tranformer(x_cls, combined_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+                out_n, out_group_n, concept_attn = self.concept_tranformer(x_cls, combined_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             else:
                 out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
 
             concept_attn = concept_attn.mean(1)  # average over heads, shape: (32, 1, 13), glomcrawl (990, 1, 630)
-            out = out + out_n.squeeze(1)  # squeeze token dimension, shape: (32, 200)
-            out_group = out_group + out_group_n.squeeze(1)  # squeeze token dimension, shape: (32, 200)
+
+            if out_n is not None:
+                out = out + out_n.squeeze(1)  # squeeze token dimension, shape: (32, 200)
+            else:
+                out = None
+
+            if out_group_n is not None:
+                out_group = out_group + out_group_n.squeeze(1)  # squeeze token dimension, shape: (32, 200)
+            else:
+                out_group = None
             # out = out + out_n.mean(1)  # pool tokens sequence, shape: (32, 200)
 
         if self.n_spatial_concepts > 0:  # Spatial stream, self.n_spatial_concepts = 95
@@ -532,7 +527,4 @@ class ConceptTransformerVIT(nn.Module):
             spatial_concept_attn = spatial_concept_attn.mean(1)  # average over heads, shape: (32, 196, 95)
             out = out + out_s.mean(1)  # pool tokens sequence, shape: (32, 200)
 
-        if not self.set_learnable_prompts:
-            return out, unsup_concept_attn, concept_attn, spatial_concept_attn
-        else:
-            return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn
+        return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn

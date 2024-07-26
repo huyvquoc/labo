@@ -113,14 +113,13 @@ class Attention(nn.Module):
 
 class CrossAttention(nn.Module):
     def __init__(
-        self, dim, n_outputs=None, n_group_outputs=None, num_heads=8, attention_dropout=0.1, projection_dropout=0.0, both_concepts_and_contexts=False,
+        self, dim, n_outputs=None, n_group_outputs=None, num_heads=8, attention_dropout=0.1, projection_dropout=0.0, use_child_classes=True, use_parent_classes=False,
     ): # dim = 128, n_outputs = 2, num_heads = 2, attention_dropout = 0.1, projection_dropout = 0.1
         super().__init__()
         n_outputs = n_outputs if n_outputs else dim
         self.num_heads = num_heads
         head_dim = dim // self.num_heads # 64
         self.scale = head_dim ** -0.5 # 0.125
-        self.both_concepts_and_contexts = both_concepts_and_contexts
 
         self.q = nn.Linear(dim, dim, bias=False) # Linear(in_features=512, out_features=512, bias=False)
         self.kv = nn.Linear(dim * 2, dim * 2, bias=False) # Linear(in_features=512, out_features=1024, bias=False)
@@ -128,14 +127,17 @@ class CrossAttention(nn.Module):
         # nn.init.xavier_uniform_(self.kv.weight)
         self.attn_drop = nn.Dropout(attention_dropout)
 
-        # self.fc1 = nn.Linear(dim, 256)
-        # self.relu1 = nn.LeakyReLU(0.1)
-        # nn.init.kaiming_normal_(self.fc1.weight)
-        self.proj = nn.Linear(dim, n_outputs) # Linear(in_features=512, out_features=42, bias=True)
-        # nn.init.xavier_uniform_(self.proj.weight)
-        self.proj_drop = nn.Dropout(projection_dropout)
+        self.use_child_classes = use_child_classes
+        if self.use_child_classes:
+            # self.fc1 = nn.Linear(dim, 256)
+            # self.relu1 = nn.LeakyReLU(0.1)
+            # nn.init.kaiming_normal_(self.fc1.weight)
+            self.proj = nn.Linear(dim, n_outputs) # Linear(in_features=512, out_features=42, bias=True)
+            # nn.init.xavier_uniform_(self.proj.weight)
+            self.proj_drop = nn.Dropout(projection_dropout)
 
-        if self.both_concepts_and_contexts:
+        self.use_parent_classes = use_parent_classes
+        if self.use_parent_classes:
             self.proj2 = nn.Linear(dim, n_group_outputs)
             self.proj_drop2 = nn.Dropout(projection_dropout)
 
@@ -148,10 +150,10 @@ class CrossAttention(nn.Module):
         B, Nx, C = x.shape # MNIST: 32, 1, 128; CUB no spatial: 32, 1, 1024; CUB spatial: 32, 196, 1024, GlomCrawl - one emb for an entire image: (990, 1, 512)
         By, Ny, Cy = y.shape # MNIST: 1, 10, 128; CUB no spatial: 1, 13, 1024; CUB spatial: 1, 95, 1024, GlomCrawl - one emb for an entire image: (1, 630, 512)
 
-        if not self.both_concepts_and_contexts:
-            assert C == Cy, "Feature size of x and y must be the same"
-        else:
-            assert 2*C == Cy, "Feature size of y must be twice as much as x"
+        # if not self.both_concepts_and_contexts:
+        #     assert C == Cy, "Feature size of x and y must be the same"
+        # else:
+        #     assert 2*C == Cy, "Feature size of y must be twice as much as x"
 
         # --- MNIST ---
         # self.q(x).shape: (32, 1, 128)
@@ -191,18 +193,18 @@ class CrossAttention(nn.Module):
         # MNIST: (attn @ v).transpose(1, 2).reshape(B, Nx, C).shape: (32, 1, 128); CUB no spatial: (32, 1, 1024); CUB spatial: (32, 196, 1024); glomcrawl: (990, 1, 512)
         x = (attn @ v).transpose(1, 2).reshape(B, Nx, C) # MNIST: (attn @ v).transpose(1, 2).reshape(B, Nx, C).shape: (32, 1, 128); CUB no spatial: (32, 1, 1024); CUB spatial: (32, 196, 1024)
 
-        # x = self.relu1(self.fc1(x))
-        out1 = self.proj(x) # shape: mnist (32, 1, 2); cub no spatial: (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
-        out1 = self.proj_drop(out1) # shape: (32, 1, 2); cub no spatial:  (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
+        out1 = None
+        if self.use_child_classes:
+            # x = self.relu1(self.fc1(x))
+            out1 = self.proj(x) # shape: mnist (32, 1, 2); cub no spatial: (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
+            out1 = self.proj_drop(out1) # shape: (32, 1, 2); cub no spatial:  (32, 1, 200); cub spatial: (32, 196, 200); glomcrawl: (990, 1, 42)
 
-        if self.both_concepts_and_contexts:
+        out2 = None
+        if self.use_parent_classes:
             out2 = self.proj2(x)
             out2 = self.proj_drop2(out2)
 
-        if not self.both_concepts_and_contexts:
-            return out1, attn # x: (32, 1, 2), attn: (32, 2, 1, 10)
-        else:
-            return out1, out2, attn # glomcrawl with soft prompt: out1.shape(990, 1, 42), out2.shape(990, 1, 5)
+        return out1, out2, attn #  x: (32, 1, 2), attn: (32, 2, 1, 10); glomcrawl with soft prompt: out1.shape(990, 1, 42), out2.shape(990, 1, 5)
 
 
 class TransformerEncoderLayer(nn.Module):

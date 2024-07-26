@@ -50,3 +50,5 @@ n_ctx_pos = 16
 n_ctx_neg = 16
 positive_prompt_init = ''
 negative_prompt_init = ''
+use_child_classes=False
+use_parent_classes=True
