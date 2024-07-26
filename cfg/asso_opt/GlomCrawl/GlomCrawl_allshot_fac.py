@@ -1,8 +1,8 @@
 _base_ = 'GlomCrawl_base.py'
 n_shots = "all"
 data_root = 'exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac'
-lr = 3e-3
-bs = 2048
+lr = 1e-2
+bs = 4096
 
 concept_type = "all_submodular"
 # concept_select_fn = "submodular"
@@ -13,7 +13,7 @@ submodular_weights = [1e7, 1]
 # submodular_weights = [1e9, 0.7]
 
 # ----- only for ConceptTransformer -----
-weight_decay = 1e-10
+weight_decay = 1e-12
 disable_lr_scheduler = False
 warmup = 1000
 group_lambda = 3.0
@@ -46,9 +46,9 @@ aug_level = 2
 # ----- only for learnable prompts -----
 set_learnable_prompts = True
 csc = True # whether to use class-specific contexts or a general context
-n_ctx_pos = 16
-n_ctx_neg = 16
+n_ctx_pos = 48
+n_ctx_neg = 48
 positive_prompt_init = ''
 negative_prompt_init = ''
-use_child_classes=False
-use_parent_classes=True
+use_child_classes=True
+use_parent_classes=False

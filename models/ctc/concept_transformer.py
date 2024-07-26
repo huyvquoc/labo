@@ -260,7 +260,7 @@ class CTCModel(pl.LightningModule):
             #     optimizer, warmup_epochs=self.cfg.warmup, max_epochs=self.cfg.max_epochs
             # )
             scheduler = CosineAnnealingWarmRestarts(
-                optimizer, T_0=self.cfg.warmup, T_mult=1, eta_min=1e-8, last_epoch=-1
+                optimizer, T_0=self.cfg.warmup, T_mult=1, eta_min=1e-6, last_epoch=-1
             )
             # scheduler = get_cosine_schedule_with_warmup(
             #     optimizer, num_warmup_steps=self.cfg.warmup, num_training_steps=20000
