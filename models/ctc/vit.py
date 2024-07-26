@@ -492,8 +492,6 @@ class ConceptTransformerVIT(nn.Module):
             # soft_prompt_embeddings
             # concept2cls
 
-            print('[**] self.concept_embeddings.shape: ', self.concept_embeddings.shape)
-            print('[**] soft_prompt_embeddings.shape: ', soft_prompt_embeddings.shape)
             combined_embeddings = []
             for concept_idx in range(self.concept_embeddings.shape[1]): # 630
                 corr_label_int = int(concept2cls[concept_idx]) # label in int

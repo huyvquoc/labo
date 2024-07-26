@@ -151,7 +151,6 @@ class CrossAttention(nn.Module):
         if not self.both_concepts_and_contexts:
             assert C == Cy, "Feature size of x and y must be the same"
         else:
-            print('[**] C, Cy: ', C, Cy)
             assert 2*C == Cy, "Feature size of y must be twice as much as x"
 
         # --- MNIST ---

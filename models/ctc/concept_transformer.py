@@ -168,7 +168,8 @@ class CTCModel(pl.LightningModule):
 
         cls_loss_group = None
         if preds_group is not None:
-            cls_loss_group = F.nll_loss(logits_group, y_group) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
+            # cls_loss_group = F.nll_loss(logits_group, y_group) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
+            cls_loss_group, reg_loss_group = self.criterion(logits_group, F.one_hot(y_group, num_classes=5).float()) # for ANLS
 
         # acc = accuracy(preds, y) # from ConceptTransformer
         if stage == 'train':
