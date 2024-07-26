@@ -113,7 +113,8 @@ class Attention(nn.Module):
 
 class CrossAttention(nn.Module):
     def __init__(
-        self, dim, n_outputs=None, n_group_outputs=None, num_heads=8, attention_dropout=0.1, projection_dropout=0.0, use_child_classes=True, use_parent_classes=False,
+        self, dim, n_outputs=None, n_group_outputs=None, num_heads=8, attention_dropout=0.1, projection_dropout=0.0, dict_of_mapping_from_conceptid_to_softpromptid=None, use_child_classes=True, use_parent_classes=False,
+        use_attn_parent_branch=False,
     ): # dim = 128, n_outputs = 2, num_heads = 2, attention_dropout = 0.1, projection_dropout = 0.1
         super().__init__()
         n_outputs = n_outputs if n_outputs else dim
@@ -126,6 +127,13 @@ class CrossAttention(nn.Module):
         # nn.init.xavier_uniform_(self.q.weight)
         # nn.init.xavier_uniform_(self.kv.weight)
         self.attn_drop = nn.Dropout(attention_dropout)
+
+        self.dict_of_mapping_from_conceptid_to_softpromptid = dict_of_mapping_from_conceptid_to_softpromptid # one-to-one
+        self.dict_of_mapping_from_softpromptid_to_conceptids = {} # one-to-many
+        for key_conceptid, value_softpromptid in self.dict_of_mapping_from_conceptid_to_softpromptid.items():
+            if value_softpromptid not in self.dict_of_mapping_from_softpromptid_to_conceptids:
+                self.dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid] = []
+            self.dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid].append(key_conceptid) # this list has been sorted, `collections.OrderedDict` is used in `models/ctc/vit.py`
 
         self.use_child_classes = use_child_classes
         if self.use_child_classes:
@@ -140,6 +148,8 @@ class CrossAttention(nn.Module):
         if self.use_parent_classes:
             self.proj2 = nn.Linear(dim, n_group_outputs)
             self.proj_drop2 = nn.Dropout(projection_dropout)
+
+        self.use_attn_parent_branch = use_attn_parent_branch
 
     def forward(self, x, y):
         '''
@@ -188,6 +198,24 @@ class CrossAttention(nn.Module):
         attn = attn.softmax(dim=-1) # mnist: (32, 2, 1, 10); cub no spatial: (32, 2, 1, 13); cub spatial: (32, 2, 196, 95); glomcrawl: (990, 8, 1, 630), pairwise score between each patch and each concept
         attn = self.attn_drop(attn) # mnist: (32, 2, 1, 10); cub no spatial: (32, 2, 1, 13); cub spatial: (32, 2, 196, 95); glomcrawl: (990, 8, 1, 630)
 
+        qk_parent_class = None
+        if self.use_attn_parent_branch:
+            # ----- reduce from (990, 8, 1, 630) to (990, 8, 1, 5) -----
+            # self.dict_of_mapping_from_conceptid_to_softpromptid
+        
+            qk_parent_class = []
+            for key_softpromptid, value_conceptids in self.dict_of_mapping_from_softpromptid_to_conceptids.items():
+                indices = torch.tensor(value_conceptids).to('cuda')
+                # index_select can be differentiable wrt source tensor but not indices (https://discuss.pytorch.org/t/problem-about-the-function-torch-index-select-input-dim-index-out-none/51668/7)
+                attn_sub = torch.index_select(attn, 3, indices) # shape (990, 8, 1, #parent_class_related_concepts). Check differentiability following this post: https://discuss.pytorch.org/t/how-to-know-if-specific-function-is-differential-or-not/125960
+                attn_sub = torch.squeeze(attn_sub) # (990, 8, #parent_class_related_concepts)
+                attn_sub = torch.mean(attn_sub, dim=1, keepdim=False) # wrt #heads (990, #parent_class_related_concepts)
+                attn_sub = torch.mean(attn_sub, dim=-1, keepdim=True) # wrt #concepts_of_current_parent_class (990, 1)
+                qk_parent_class.append(attn_sub)
+            qk_parent_class = torch.cat(qk_parent_class, dim=1)
+
+            # ----------------------------------------------------------
+
         # MNIST: (attn @ v).shape: (32, 2, 1, 64); CUB no spatial: (32, 2, 1, 512); CUB spatial: (32, 2, 196, 512); glomcrawl: (990, 8, 1, 64)
         # MNIST: (attn @ v).transpose(1, 2).shape: (32, 1, 2, 64); CUB no spatial: (32, 1, 2, 512); CUB spatial: (32, 196, 2, 512); glomcrawl: (990, 1, 8, 64)
         # MNIST: (attn @ v).transpose(1, 2).reshape(B, Nx, C).shape: (32, 1, 128); CUB no spatial: (32, 1, 1024); CUB spatial: (32, 196, 1024); glomcrawl: (990, 1, 512)
@@ -204,7 +232,7 @@ class CrossAttention(nn.Module):
             out2 = self.proj2(x)
             out2 = self.proj_drop2(out2)
 
-        return out1, out2, attn #  x: (32, 1, 2), attn: (32, 2, 1, 10); glomcrawl with soft prompt: out1.shape(990, 1, 42), out2.shape(990, 1, 5)
+        return out1, out2, attn, qk_parent_class #  x: (32, 1, 2), attn: (32, 2, 1, 10); glomcrawl with soft prompt: out1.shape(990, 1, 42), out2.shape(990, 1, 5)
 
 
 class TransformerEncoderLayer(nn.Module):

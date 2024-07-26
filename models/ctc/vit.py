@@ -1,3 +1,4 @@
+import collections
 import math
 
 from pathlib import Path
@@ -176,6 +177,7 @@ class CVIT(nn.Module):
             # _ = self.feature_extractor.eval()
 
         self.set_learnable_prompts = set_learnable_prompts
+        self.concept2cls = torch.squeeze(concept2cls)
 
         self.classifier = ConceptTransformerVIT(
             cfg,
@@ -193,12 +195,12 @@ class CVIT(nn.Module):
             concept_embeddings_save_dir=concept_embeddings_save_dir,
             only_visual_trunk=only_visual_trunk,
             set_learnable_prompts=self.set_learnable_prompts,
+            concept2cls=self.concept2cls,
             *args,
             **kwargs, # {'batch_size': 32, 'debug': False, 'data_dir': '/data/hqvo3/data/cub2011', 'finetune_unfreeze_epoch': 0, 'num_workers': 8, 'seed': 42, 'data_name': 'CUB2011Parts'}
         )
 
         self.use_extracted_img_embs = use_extracted_img_embs
-        self.concept2cls = torch.squeeze(concept2cls)
 
     def forward(self, x, x_concepts):
         '''
@@ -232,14 +234,14 @@ class CVIT(nn.Module):
  
         x /= x.norm(dim=-1, keepdim=True)
 
-        out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn = self.classifier(
-            x[:, 0].unsqueeze(1), x[:, 1:], x_concepts, self.concept2cls # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
+        out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn, qk_parent_class = self.classifier(
+            x[:, 0].unsqueeze(1), x[:, 1:], x_concepts # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
         )
         # out.shape: (32, 200)
         # unsup_concept_attn: None
         # concept_attn.shape: (32, 1, 13)
         # spatial_concept_attn.shape: (32, 196, 95)
-        return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn
+        return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn, qk_parent_class
 
 
 class ConceptTransformerVIT(nn.Module):
@@ -270,6 +272,7 @@ class ConceptTransformerVIT(nn.Module):
         concept_embeddings_save_dir=None,
         only_visual_trunk=False,
         set_learnable_prompts=False,
+        concept2cls=None,
         *args,
         **kwargs,
     ):
@@ -278,6 +281,7 @@ class ConceptTransformerVIT(nn.Module):
         self.model_name = model_name
         self.only_visual_trunk = only_visual_trunk
         self.class_names = class_names
+        self.concept2cls = concept2cls
 
         self.model = None
         self.tokenizer = None
@@ -330,6 +334,17 @@ class ConceptTransformerVIT(nn.Module):
                         self.clsname2groupname[cls_name] = grp_name
 
                 n_group_outputs = len(self.groupnames)
+
+                dict_of_mapping_from_conceptid_to_softpromptid = {} # concept index (630 concepts) to parent class index (5 soft prompts for)
+                for concept_idx in range(self.concept2cls.shape[0]): # 630
+                    corr_label_int = int(self.concept2cls[concept_idx]) # corresponding child class in int
+                    corr_label_str = self.class_names[corr_label_int] # corresponding child class in str
+                    corr_parent_label_str = self.clsname2groupname[corr_label_str] # corresponding parent class in str
+                    corr_parent_label_int = self.groupnames.index(corr_parent_label_str) # corresponding parent class in int
+
+                    dict_of_mapping_from_conceptid_to_softpromptid[concept_idx] = corr_parent_label_int
+
+                self.dict_of_mapping_from_conceptid_to_softpromptid = collections.OrderedDict(sorted(dict_of_mapping_from_conceptid_to_softpromptid.items()))
             
             self.concept_tranformer = CrossAttention(
                 dim=embedding_dim,
@@ -338,8 +353,10 @@ class ConceptTransformerVIT(nn.Module):
                 num_heads=num_heads,
                 attention_dropout=attention_dropout,
                 projection_dropout=projection_dropout,
+                dict_of_mapping_from_conceptid_to_softpromptid=self.dict_of_mapping_from_conceptid_to_softpromptid,
                 use_child_classes=cfg.use_child_classes,
                 use_parent_classes=cfg.use_parent_classes,
+                use_attn_parent_branch=cfg.use_attn_parent_branch
             )
 
         # Spatial Concepts
@@ -440,7 +457,7 @@ class ConceptTransformerVIT(nn.Module):
 
         return pooled, tokens # pooled.shape (630, 768) and tokens.shape (630, 127, 768)
 
-    def forward(self, x_cls, x, x_concepts=None, concept2cls=None, cls_id=None):
+    def forward(self, x_cls, x, x_concepts=None, cls_id=None):
         '''
         - Inputs:
           cls token (category feature): x_cls.shape: (32, 1, 1024)
@@ -453,7 +470,7 @@ class ConceptTransformerVIT(nn.Module):
         if self.set_learnable_prompts:
             prompts, tokenized_prompts = self.prompt_learner(cls_id) # prompts.shape: (5, 127, 512), tokeninzed_prompts.shape: (5, 127)
             # cls_id: None
-            soft_prompt_embeddings, _ = self._encode_learnable_prompts(prompts, tokenized_prompts) # (84, 512)
+            soft_prompt_embeddings, _ = self._encode_learnable_prompts(prompts, tokenized_prompts) # (5, 512)
 
             # normalize features
             # text_features = text_features / text_features.norm(dim=-1, keepdim=True) # shape: (84, 512)
@@ -484,10 +501,7 @@ class ConceptTransformerVIT(nn.Module):
 
             combined_embeddings = []
             for concept_idx in range(self.concept_embeddings.shape[1]): # 630
-                corr_label_int = int(concept2cls[concept_idx]) # label in int
-                corr_label_str = self.class_names[corr_label_int]
-                corr_parent_label_str = self.clsname2groupname[corr_label_str]
-                corr_parent_label_int = self.groupnames.index(corr_parent_label_str)
+                corr_parent_label_int = self.dict_of_mapping_from_conceptid_to_softpromptid[concept_idx]
 
                 combined_embeddings.append(torch.cat((self.concept_embeddings[0, concept_idx], soft_prompt_embeddings[corr_parent_label_int]), 0))
 
@@ -505,7 +519,11 @@ class ConceptTransformerVIT(nn.Module):
         if self.n_concepts > 0:  # Non-spatial stream, self.n_concepts = 13 # TODO: global concepts
             if self.model_name == 'conch_ViT-B-16':
                 self.concept_embeddings /= self.concept_embeddings.norm(dim=-1, keepdim=True)
-                out_n, out_group_n, concept_attn = self.concept_tranformer(x_cls, combined_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+
+                if soft_prompt_embeddings is not None and self.concept_embeddings is not None:
+                    out_n, out_group_n, concept_attn, qk_parent_class = self.concept_tranformer(x_cls, combined_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13); qk_parent_class.shape: (990, 5) 5 parent classes of glomcrawl
+                else:
+                    out_n, out_group_n, concept_attn, qk_parent_class = self.concept_tranformer(x_cls, self.concept_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             else:
                 out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
 
@@ -527,4 +545,4 @@ class ConceptTransformerVIT(nn.Module):
             spatial_concept_attn = spatial_concept_attn.mean(1)  # average over heads, shape: (32, 196, 95)
             out = out + out_s.mean(1)  # pool tokens sequence, shape: (32, 200)
 
-        return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn
+        return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn, qk_parent_class
