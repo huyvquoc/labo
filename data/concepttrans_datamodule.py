@@ -168,6 +168,8 @@ class ImgExplDataset(Dataset):
     def __init__(self,  \
                  list_of_img_names=[], \
                  list_of_labels=[], \
+                 cls_names=None, \
+                 groupname2clsname=None,
                  num_concept=-1,
                  concept2cls=None, 
                  split_name='train',
@@ -191,11 +193,19 @@ class ImgExplDataset(Dataset):
         self.transform = transform
 
         # Mapping class label to selected concepts'new indices. These new indices are not the indices in `self.select_idx`, but are the new indices have been assigned to the selected indices (0 -> 629)
+        self.cls_names = cls_names
         self.cls2indices = {}
         for idx, cls in enumerate(self.concept2cls):
             if cls not in self.cls2indices:
                 self.cls2indices[cls] = []
             self.cls2indices[cls].append(idx)
+
+        self.groupname2clsname = groupname2clsname
+        self.groupnames = list(groupname2clsname.keys())
+        self.clsname2groupname = {}
+        for grp_name, cls_names in self.groupname2clsname.items():
+            for cls_name in cls_names:
+                self.clsname2groupname[cls_name] = grp_name
 
         # ----- pre-extraction of image embeddings -----
         print('- Use img_embeddings_save_dir: ', img_embeddings_save_dir)
@@ -232,6 +242,11 @@ class ImgExplDataset(Dataset):
         int_target = self.labels[idx]
         target = torch.tensor(int_target, dtype=torch.long)
 
+        str_target = self.cls_names[int_target]
+        
+        int_target_group = self.groupnames.index(self.clsname2groupname[str_target]) # inferred from target int
+        target_group = torch.tensor(int_target_group, dtype=torch.long)
+
         if self.use_extracted_embs:
             img = self.img_embs[idx]
         else:
@@ -246,7 +261,7 @@ class ImgExplDataset(Dataset):
         expl = self._get_explanations(int_target)
 
         # spatial concepts are always set to None
-        return (img, expl, torch.tensor(float('nan')), target)
+        return (img, expl, torch.tensor(float('nan')), target, target_group)
     
     def _get_explanations(self, cls):
         '''
@@ -327,6 +342,7 @@ class ImgExplDataModule(pl.LightningDataModule):
             batch[1] = batch[1].to(device)
             batch[2] = batch[2].to(device)
             batch[3] = batch[3].to(device)
+            batch[4] = batch[4].to(device)
             return batch
         else:
             return super().transfer_batch_to_device(batch, device, dataloader_idx)
@@ -345,6 +361,8 @@ class ImgExplDataModule(pl.LightningDataModule):
         self.datasets = {
             mode: ImgExplDataset(list_of_img_names=self.dict_of_img_paths[mode], \
                                  list_of_labels=self.dict_of_labels[mode], \
+                                 cls_names=self.cls_names, \
+                                 groupname2clsname=self.cfg.groupname2clsname, \
                                  num_concept=self.num_concept, \
                                  concept2cls=self.concept2cls, \
                                  split_name=mode, \

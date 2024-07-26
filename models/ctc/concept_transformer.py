@@ -68,7 +68,7 @@ class CTCModel(pl.LightningModule):
         # self.save_hyperparameters() # comment this because it has already been at the last line of LaBo
 
         # Instantiate CTC model
-        self.model = getattr(models.ctc, self.cfg.ctc_model)(self.cfg, class_names) # self.model is CTC
+        self.model = getattr(models.ctc, self.cfg.ctc_model)(self.cfg, class_names, self.concept2cls) # self.model is CTC
         # ctc_model='mnist_ctc' for MNIST odd/even
         # ==================== ConceptTransformer ends here ====================
 
@@ -89,9 +89,11 @@ class CTCModel(pl.LightningModule):
         But one problem is 512 vs 1024, ConceptTransformer also has predefined cls_token from the pretrained feature extractor
         TODO: We should feed original image because later we will need to implement soft prompting, which means we will not have a fix collection of input
         '''
-        outputs, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x, self.concept_raw, self.concept2cls) # self.model is CTC for MNIST odd/even, and CVIT for CUB
+        outputs, outputs_group, unsup_concept_attn, concept_attn, spatial_concept_attn = self.model(x, self.concept_raw) # self.model is CTC for MNIST odd/even, and CVIT for CUB
+        logits_group = F.log_softmax(outputs_group, dim=-1) # can be None
         logits = F.log_softmax(outputs, dim=-1)
-        return logits, unsup_concept_attn, concept_attn, spatial_concept_attn
+
+        return logits, logits_group, unsup_concept_attn, concept_attn, spatial_concept_attn
         # ==================== ConceptTransformer ends here ====================
 
 
@@ -108,10 +110,12 @@ class CTCModel(pl.LightningModule):
         TODO: will keep mostly the ConceptTransformer code
         need to check if the required `batch` below matches with the argument `train_batch`
         '''
-        logits, preds, ce_loss, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(train_batch, stage='train')
+        logits, preds, cls_loss, cls_loss_group, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(train_batch, stage='train')
         # logits.shape: (32, 200)
         # preds.shape: (32)
-        loss = ce_loss
+        loss = cls_loss
+        if cls_loss_group is not None:
+            loss = loss + self.cfg.group_lambda * cls_loss_group
         if self.cfg.expl_lambda > 0:
             loss = loss + self.cfg.expl_lambda * expl_loss
         if self.cfg.attention_sparsity > 0:
@@ -120,7 +124,8 @@ class CTCModel(pl.LightningModule):
         self.log_dict(
             {
                 "train_loss": loss,
-                "train_ce_loss": ce_loss,
+                "train_ce_loss": cls_loss,
+                "train_ce_loss_group": cls_loss_group,
                 "train_acc": acc,
                 "train_expl_loss": expl_loss,
                 "train_l1_loss": l1_loss,
@@ -138,12 +143,15 @@ class CTCModel(pl.LightningModule):
         # ==================== ConceptTransformer starts here ====================
         # MNIST: x.shape: (32, 1, 28, 28), expl.shape: (32, 10), spatial_expl.shape: (32), y.shape: (32)
         # CUB: x.shape: (32, 3, 224, 224), expl.shape: (32, 13), spatial_expl.shape: (32, 196, 95), y.shape: (32)
-        x, expl, spatial_expl, y = batch
+        x, expl, spatial_expl, y, y_group = batch # TODO: data module needs return y_group
         # MNIST:
         # CUB: logits.shape: (32, 200), unsup_concept_attn.shape: None, concept_attn.shape: (32, 1, 13), spatial_concept_attn.shape: (32, 196, 95)
-        logits, unsup_concept_attn, concept_attn, spatial_concept_attn = self(x)
+        logits, logits_group, unsup_concept_attn, concept_attn, spatial_concept_attn = self(x)
         # logits = F.softmax(logits)
         preds = torch.argmax(logits, dim=1) # shape: (32)
+        preds_group = None
+        if logits_group is not None:
+            preds_group = torch.argmax(logits_group)
 
         # ----- loss functions from LaBo -----
         # cls_loss = F.cross_entropy(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
@@ -158,7 +166,9 @@ class CTCModel(pl.LightningModule):
         cls_loss, reg_loss = self.criterion(logits, F.one_hot(y, num_classes=42).float()) # for ANLS
         # cls_loss = self.criterion(logits, F.one_hot(y, num_classes=42).float())
 
-        # cls_loss = torch.mean(cls_loss)
+        cls_loss_group = None
+        if preds_group is not None:
+            cls_loss_group = F.nll_loss(logits_group, y_group) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
 
         # acc = accuracy(preds, y) # from ConceptTransformer
         if stage == 'train':
@@ -190,6 +200,7 @@ class CTCModel(pl.LightningModule):
             logits,
             preds,
             cls_loss,
+            cls_loss_group,
             acc,
             expl_loss,
             l1_loss,
@@ -242,10 +253,11 @@ class CTCModel(pl.LightningModule):
         TODO: Both `validation_step` have the same arguments `batch` and `batch_idx`. Both do not use batch_idx
         Need to check if the required `batch` is actually the argument `batch`
         '''
-        logits, preds, ce_loss, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
+        logits, preds, cls_loss, cls_loss_group, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
         self.log_dict(
             {
-                "val_ce_loss": ce_loss,
+                "val_ce_loss": cls_loss,
+                "val_ce_loss_group": cls_loss_group,
                 "val_acc": acc,
                 "val_expl_loss": expl_loss,
                 "val_l1_loss": l1_loss,
@@ -263,10 +275,11 @@ class CTCModel(pl.LightningModule):
         '''
         TODO: do we need to append y and pred into overall lists?
         '''
-        logits, preds, ce_loss, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='test')
+        logits, preds, cls_loss, cls_loss_group, acc, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='test')
         self.log_dict(
             {
-                "test_ce_loss": ce_loss,
+                "test_ce_loss": cls_loss,
+                "test_ce_loss_group": cls_loss_group,
                 "test_acc": acc,
                 "test_expl_loss": expl_loss,
                 "test_l1_loss": l1_loss,

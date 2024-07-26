@@ -54,8 +54,7 @@ balanced_weights = [0.6863153028201572, 2.8276190476190477, 0.9301378446115288, 
 # main_loss = 'APLLoss'
 main_loss = 'ANLSLoss'
 
-groupname2clsname = {
-                     "Glomerular Basement Membrane (GBM), Bowman's Capsule, Epithelial Cells": ['glomerular basement membrane duplication splitting',
+groupname2clsname = {"Glomerular Basement Membrane (GBM), Bowman's Capsule, Epithelial Cells": ['glomerular basement membrane duplication splitting',
                                                                                                 'glomerular basement membrane thickening',
                                                                                                 'hyalin drop diabetic glomerulus',
                                                                                                 'membranous nephropathy holes',
@@ -64,9 +63,8 @@ groupname2clsname = {
                                                                                                 'podocyte hypertrophy',
                                                                                                 'podocyte reabsorption droplet',
                                                                                                 'spikes glomerular amyoidosis',
-                                                                                                'visceral epithelial cell capping',
-                                                                                                'wire loop glomerulus'],
-
+                                                                                                'visceral epithelial cell capping', \
+                                                                                                'wire loop glomerulus',],\
                      "Mesangial and Endocapillary Lesions": ['endocapillary hypercellularity',
                                                              'exudative glomerulus',
                                                              'glomerul lipoprotein thrombus',
@@ -77,20 +75,17 @@ groupname2clsname = {
                                                              'glomerulus endotheliosis',
                                                              'mesangial hypercellularity',
                                                              'mesangial matrix expansion',
-                                                             'mesangiolysis'],
-                     
+                                                             'mesangiolysis'], \
                      "Miscellaneous Lesions and Key Normal Structures": ['glomerulomegaly',
                                                                          'immature glomerulus',
                                                                          'parietal cell glomerulus',
                                                                          'podocyte',
-                                                                         'visceral epithelial cell'],
-
+                                                                         'visceral epithelial cell'], \
                      "Necrotizing and Crescentic Lesions": ['fibrinoid necrosis glomerulus',
                                                             'fibrocellular crescent', # subgroup: crescents
                                                             'fibrous crescent', # subgroup: crescents
                                                             'karyorrhexis glomerulonephritis',
-                                                            'pseudocrescent'],
-
+                                                            'pseudocrescent'], \
                      "Tuft Sclerosis and Collapse": ['glomerular adhesion',
                                                      'glomerular collapse', # subgroup: capillary collapse
                                                      'glomerular foam cell',

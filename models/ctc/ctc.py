@@ -123,7 +123,7 @@ class CrossAttention(nn.Module):
         self.both_concepts_and_contexts = both_concepts_and_contexts
 
         self.q = nn.Linear(dim, dim, bias=False) # Linear(in_features=512, out_features=512, bias=False)
-        self.kv = nn.Linear(dim, dim * 2, bias=False) # Linear(in_features=512, out_features=1024, bias=False)
+        self.kv = nn.Linear(dim * 2, dim * 2, bias=False) # Linear(in_features=512, out_features=1024, bias=False)
         # nn.init.xavier_uniform_(self.q.weight)
         # nn.init.xavier_uniform_(self.kv.weight)
         self.attn_drop = nn.Dropout(attention_dropout)
@@ -142,7 +142,7 @@ class CrossAttention(nn.Module):
     def forward(self, x, y):
         '''
         Inputs:
-        - x (or x_pooled): image features, MNIST shape (32, 1, 128), CUB no spatial shape (32, 1, 1024), CUB spatial shape (32, 196, 1024), GlomCrawl (bs, 1, 512)
+        - x (or x_pooled): image features, MNIST shape (32, 1, 128), CUB no spatial shape (32, 1, 1024), CUB spatial shape (32, 196, 1024), GlomCrawl (990, 1, 512)
         - y (or self.concepts): concepts, MNIST shape (1, 10, 128), CUB no spatial shape (1, 13, 1024), CUB spatial shape (1, 95, 1024), GlomCrawl with only concepts (1, 630, 512), GlomCrawl with concepts contexts (1, 630, 1024)
         '''
         B, Nx, C = x.shape # MNIST: 32, 1, 128; CUB no spatial: 32, 1, 1024; CUB spatial: 32, 196, 1024, GlomCrawl - one emb for an entire image: (990, 1, 512)
@@ -151,6 +151,7 @@ class CrossAttention(nn.Module):
         if not self.both_concepts_and_contexts:
             assert C == Cy, "Feature size of x and y must be the same"
         else:
+            print('[**] C, Cy: ', C, Cy)
             assert 2*C == Cy, "Feature size of y must be twice as much as x"
 
         # --- MNIST ---
@@ -202,7 +203,7 @@ class CrossAttention(nn.Module):
         if not self.both_concepts_and_contexts:
             return out1, attn # x: (32, 1, 2), attn: (32, 2, 1, 10)
         else:
-            return out1, out2, attn
+            return out1, out2, attn # glomcrawl with soft prompt: out1.shape(990, 1, 42), out2.shape(990, 1, 5)
 
 
 class TransformerEncoderLayer(nn.Module):

@@ -22,7 +22,7 @@ def pre_exp(cfg_file, work_dir):
     """
     cfg = Config.fromfile(cfg_file)
     mmcv.mkdir_or_exist(work_dir)
-    cfg.dump(osp.join(work_dir, osp.basename(cfg_file)))
+    # cfg.dump(osp.join(work_dir, osp.basename(cfg_file)))
     cfg.work_dir = work_dir
     return cfg
 

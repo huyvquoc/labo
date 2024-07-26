@@ -16,7 +16,7 @@ from conch.open_clip_custom import create_model_from_pretrained, tokenize, get_t
 from models.ctc.prompts import HierarchyAwarePromptLearner
 
 
-def cub_cvit(cfg, class_names, baseline=False, *args, **kwargs):
+def cub_cvit(cfg, class_names, concept2cls, baseline=False, *args, **kwargs):
     """
     Args:
         baseline (bool): If true it returns the baseline model, which in this case it just the vit backbone without concept transformer
@@ -27,6 +27,7 @@ def cub_cvit(cfg, class_names, baseline=False, *args, **kwargs):
             model_name=cfg.clip_model,
             num_classes=cfg.num_cls,
             class_names=class_names,
+            concept2cls=concept2cls,
             n_unsup_concepts=cfg.num_unsup_concept,
             n_concepts=cfg.num_concept,
             n_spatial_concepts=cfg.num_spatial_concept,
@@ -139,6 +140,7 @@ class CVIT(nn.Module):
         cfg,
         num_classes=200,
         class_names=None,
+        concept2cls=None,
         model_name="vit_base_patch16_224",
         pretrained=True,
         n_unsup_concepts=50,
@@ -196,6 +198,7 @@ class CVIT(nn.Module):
         )
 
         self.use_extracted_img_embs = use_extracted_img_embs
+        self.concept2cls = torch.squeeze(concept2cls)
 
     def forward(self, x, x_concepts):
         '''
@@ -239,7 +242,7 @@ class CVIT(nn.Module):
             return out, unsup_concept_attn, concept_attn, spatial_concept_attn
         else:
             out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn = self.classifier(
-                x[:, 0].unsqueeze(1), x[:, 1:], x_concepts # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
+                x[:, 0].unsqueeze(1), x[:, 1:], x_concepts, self.concept2cls # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
             )
             # out.shape: (32, 200)
             # unsup_concept_attn: None
@@ -330,7 +333,7 @@ class ConceptTransformerVIT(nn.Module):
                 self.prompt_learner = HierarchyAwarePromptLearner(cfg, classnames=self.class_names, groupname2clsname=cfg.groupname2clsname, 
                                                                   clip_model=self.model, tokenizer=self.tokenizer, 
                                                                   use_group=True, multilabel_on=False)
-                self.groupnames, self.groupname2clsname = self.get_groupname2clsname()
+                self.groupnames, self.groupname2clsname = self.prompt_learner.get_groupname2clsname()
                 self.clsname2groupname = {}
                 for grp_name, cls_names in self.groupname2clsname.items():
                     for cls_name in cls_names:
@@ -366,7 +369,7 @@ class ConceptTransformerVIT(nn.Module):
                 projection_dropout=projection_dropout,
             )
 
-    def _encode_learnable_prompts(self, text_after_token_emb=None, text_after_tokenize=None, normalize=True, embed_cls=True):
+    def _encode_learnable_prompts(self, text_after_token_emb=None, text_after_tokenize=None, normalize=True, embed_cls=False):
         '''
         Copy from `conch/open_clip_custom/coca_model.py`
 
@@ -377,9 +380,9 @@ class ConceptTransformerVIT(nn.Module):
         Input:
         - text: is text tokens (630, 128)
         '''
-        text = text[:, :-1] if embed_cls else text # make space for CLS token, shape (630, 127)
+        text_after_tokenize = text_after_tokenize[:, :-1] if embed_cls else text_after_tokenize # make space for CLS token, shape (630, 127)
         text_latent, token_emb = self._get_text_feat(text_after_token_emb=text_after_token_emb, text_after_tokenize=text_after_tokenize,
-                                                     use_cls_emb=False, use_text_projection=True)
+                                                     use_text_projection=True)
         text_latent = F.normalize(text_latent, dim=-1) if normalize else text_latent
 
         return text_latent, token_emb
@@ -401,7 +404,7 @@ class ConceptTransformerVIT(nn.Module):
 
         return text_latent, token_emb
 
-    def _get_text_feat(self, text_after_token_emb=None, text_after_tokenize=None, use_cls_emb=True, use_text_projection=False):
+    def _get_text_feat(self, text_after_token_emb=None, text_after_tokenize=None, use_text_projection=False):
         '''
         Code from the `forward` function of `conch/open_clip_custom/transformer.py`
 
@@ -409,16 +412,20 @@ class ConceptTransformerVIT(nn.Module):
 
         Inputs:
         - text: shape (630, 127)
+
+        With soft prompts case:
+        - text_after_token_emb: shape(5, 128, 768)
+        - text_after_tokenize: shape(5, 127)
         '''
+        seq_len = text_after_tokenize.shape[1] # 127
+        cast_dtype = self.model.text.transformer.get_cast_dtype() # torch.float32
         if text_after_token_emb is None:
-            cast_dtype = self.model.text.transformer.get_cast_dtype() # torch.float32
-            seq_len = text_after_tokenize.shape[1] # 127
             x = self.model.text.token_embedding(text_after_tokenize).to(cast_dtype)  # (630, 127, 768) [batch_size, n_ctx, d_model]
         else:
-            x = text_after_token_emb
+            x = text_after_token_emb # soft prompt
 
         attn_mask = self.model.text.attn_mask # shape (128, 128)
-        if use_cls_emb and self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
+        if self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
             seq_len += 1 # 128
             x = torch.cat([x, self.model.text._repeat(self.model.text.cls_emb, x.shape[0])], dim=1) # self.model.text._repeat(self.model.text.cls_emb, x.shape[0]).shape = (630, 1, 768) -> x.shape: (630, 128, 768)
             cls_mask = self.model.text.build_cls_mask(text_after_tokenize, cast_dtype) # shape (7560, 128, 128)
@@ -431,7 +438,7 @@ class ConceptTransformerVIT(nn.Module):
 
         # x.shape = [batch_size, n_ctx, transformer.width]
         # take features from the eot embedding (eot_token is the highest number in each sequence)
-        if use_cls_emb and self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
+        if self.model.text.cls_emb is not None: # torch.nn.parameter.Parameter, shape (768)
             pooled, tokens = x[:, -1], x[:, :-1] # pooled.shape = (630, 768), tokens.shape = (630, 127, 768)
             pooled = self.model.text.ln_final(pooled) # `ln_final` is `LayerNorm((768,), eps=1e-05, elementwise_affine=True)`, shape (630, 768)
         else:
@@ -485,20 +492,23 @@ class ConceptTransformerVIT(nn.Module):
             # soft_prompt_embeddings
             # concept2cls
 
+            print('[**] self.concept_embeddings.shape: ', self.concept_embeddings.shape)
+            print('[**] soft_prompt_embeddings.shape: ', soft_prompt_embeddings.shape)
             combined_embeddings = []
-            for concept_idx in range(self.concept_embeddings.shape[0]): # 630
+            for concept_idx in range(self.concept_embeddings.shape[1]): # 630
                 corr_label_int = int(concept2cls[concept_idx]) # label in int
                 corr_label_str = self.class_names[corr_label_int]
                 corr_parent_label_str = self.clsname2groupname[corr_label_str]
                 corr_parent_label_int = self.groupnames.index(corr_parent_label_str)
 
-                combined_embeddings.append(torch.cat((self.concept_embeddings[concept_idx], soft_prompt_embeddings[corr_parent_label_int]), 0))
+                combined_embeddings.append(torch.cat((self.concept_embeddings[0, concept_idx], soft_prompt_embeddings[corr_parent_label_int]), 0))
 
             combined_embeddings = torch.stack(combined_embeddings) # (630, 1024)
-            self.concept_embeddings = combined_embeddings
+            combined_embeddings = combined_embeddings[None, :, :]
         # -----------------------------------------------------------------
 
         out = 0.0
+        out_group = 0.0
         if self.n_unsup_concepts > 0:  # unsupervised stream,  self.n_unsup_concepts = 0
             out_unsup, unsup_concept_attn = self.concept_tranformer(x_cls, self.unsup_concepts)
             unsup_concept_attn = unsup_concept_attn.mean(1)  # average over heads
@@ -510,12 +520,13 @@ class ConceptTransformerVIT(nn.Module):
                 if not self.set_learnable_prompts:
                     out_n, concept_attn = self.concept_tranformer(x_cls, self.concept_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
                 else:
-                    out_n, out_group_n, concept_attn = self.concept_tranformer(x_cls, self.concept_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+                    out_n, out_group_n, concept_attn = self.concept_tranformer(x_cls, combined_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
             else:
                 out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
 
             concept_attn = concept_attn.mean(1)  # average over heads, shape: (32, 1, 13), glomcrawl (990, 1, 630)
             out = out + out_n.squeeze(1)  # squeeze token dimension, shape: (32, 200)
+            out_group = out_group + out_group_n.squeeze(1)  # squeeze token dimension, shape: (32, 200)
             # out = out + out_n.mean(1)  # pool tokens sequence, shape: (32, 200)
 
         if self.n_spatial_concepts > 0:  # Spatial stream, self.n_spatial_concepts = 95
@@ -526,4 +537,4 @@ class ConceptTransformerVIT(nn.Module):
         if not self.set_learnable_prompts:
             return out, unsup_concept_attn, concept_attn, spatial_concept_attn
         else:
-            return out, out_group_n, unsup_concept_attn, concept_attn, spatial_concept_attn
+            return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn

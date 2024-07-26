@@ -39,7 +39,7 @@ class HierarchyAwarePromptLearner(nn.Module):
         self.multilabel_on = multilabel_on
 
         self.groupname2clsname = collections.OrderedDict(sorted(groupname2clsname.items()))
-        self.groupnames = groupname2clsname.keys()
+        self.groupnames = list(groupname2clsname.keys())
 
         if use_group:
             self.n_cls = len(self.groupnames) # 5
@@ -52,8 +52,8 @@ class HierarchyAwarePromptLearner(nn.Module):
         ctx_init_neg = cfg.negative_prompt_init.strip() # '' (empty string)
 
         if cfg.clip_model == 'conch_ViT-B-16':
-            dtype = clip_model.dtype # torch.float32
-            # cast_dtype = clip_model.text.transformer.get_cast_dtype() # TODO: if the above does not work
+            # dtype = clip_model.dtype # torch.float32
+            dtype = clip_model.text.transformer.get_cast_dtype() # TODO: if the above does not work
             ctx_dim = clip_model.text.ln_final.weight.shape[0] # 512
         else:
             dtype = clip_model.dtype # torch.float32
@@ -67,8 +67,8 @@ class HierarchyAwarePromptLearner(nn.Module):
             ctx_init_neg = ctx_init_neg.replace("_", " ")
             self.n_ctx_pos = len(ctx_init_pos.split(" "))
             self.n_ctx_neg = len(ctx_init_neg.split(" "))
-            prompt_pos = tokenize(texts=ctx_init_pos, tokenizer=tokenizer).to(self.device) # --- CONCH ---
-            prompt_neg = tokenize(texts=ctx_init_neg, tokenizer=tokenizer).to(self.device) # --- CONCH ---
+            prompt_pos = tokenize(texts=ctx_init_pos, tokenizer=tokenizer)[:, :-1].to(self.device) # --- CONCH ---
+            prompt_neg = tokenize(texts=ctx_init_neg, tokenizer=tokenizer)[:, :-1].to(self.device) # --- CONCH ---
             with torch.no_grad():
                 embedding_pos = clip_model.text.token_embedding(prompt_pos).type(dtype) # --- CONCH ---
                 embedding_neg = clip_model.text.token_embedding(prompt_neg).type(dtype) # --- CONCH ---
@@ -117,7 +117,7 @@ class HierarchyAwarePromptLearner(nn.Module):
         if cfg.clip_model == 'conch_ViT-B-16':
             name_lens = []
             for name in self.classnames:
-                name_lens.append(len(tokenize(texts=name, tokenizer=tokenizer))) # ref: class name embeddings, `/conch/downstream/zeroshot_path.py`
+                name_lens.append(len(tokenize(texts=[name], tokenizer=tokenizer)[:, :-1])) # ref: class name embeddings, `/conch/downstream/zeroshot_path.py`
                 # clip_model.encode_text(tokenize(texts=name, tokenizer=tokenizer).to(self.device)) # TODO: do we need to use `encode_text`?,
         # else:
         #     name_lens = [len(_tokenizer.encode(name)) for name in self.classnames] # one class name is converted into multiple token ids
@@ -128,8 +128,8 @@ class HierarchyAwarePromptLearner(nn.Module):
         tokenized_prompts_pos = []
         tokenized_prompts_neg = []
         for p_pos, p_neg in zip(prompts_pos, prompts_neg):
-            tokenized_prompts_pos.append(tokenize(texts=p_pos, tokenizer=tokenizer).to(self.device)) # --- CONCH --- 
-            tokenized_prompts_neg.append(tokenize(texts=p_neg, tokenizer=tokenizer).to(self.device)) # --- CONCH --- 
+            tokenized_prompts_pos.append(tokenize(texts=[p_pos], tokenizer=tokenizer)[:, :-1].to(self.device)) # --- CONCH --- 
+            tokenized_prompts_neg.append(tokenize(texts=[p_neg], tokenizer=tokenizer)[:, :-1].to(self.device)) # --- CONCH --- 
         tokenized_prompts_pos = torch.cat(tokenized_prompts_pos) # clip (42, 77) 77 is the number of tokens after using clip.tokenize, conch group: shape(5, 127)
         tokenized_prompts_neg = torch.cat(tokenized_prompts_neg) # clip (42, 77), conch group: shape(5, 127)
         with torch.no_grad():
@@ -204,7 +204,7 @@ class HierarchyAwarePromptLearner(nn.Module):
                 suffix_pos,  # (n_cls, *, dim) = (42, 60, 512), text token embeddings of 'X X X ... cls name'
             ],
             dim=1,
-        ) # (42, 77, 512): 77 is sum of second dim of the 3 tensor above
+        ) # (42, 77, 512): 77 is sum of second dim of the 3 tensor above; conch coca text branch (5, 128, 768)
 
         prompts_neg = torch.cat(
             [
@@ -213,12 +213,12 @@ class HierarchyAwarePromptLearner(nn.Module):
                 suffix_neg,  # (n_cls, *, dim)
             ],
             dim=1,
-        ) # (42, 77, 512)
+        ) # (42, 77, 512); conch coca text branch (5, 128, 768)
 
         if self.multilabel_on:
             prompts = torch.cat([prompts_neg, prompts_pos], dim=0) # (84, 77, 512) both positive and negative
         else:
-            prompts = prompts_pos
+            prompts = prompts_pos # conch: (5, 128, 768)
 
         if self.multilabel_on:
             if cls_id is not None:
@@ -228,10 +228,10 @@ class HierarchyAwarePromptLearner(nn.Module):
             else:
                 tokenized_prompts = self.tokenized_prompts # still "X X X ... {cls name}", token after clip.tokenize step (not do token embedding), (84, 77)
         else:
-            tokenized_prompts = self.tokenized_prompts
+            tokenized_prompts = self.tokenized_prompts # (5, 128)
 
 
-        return prompts, tokenized_prompts # after text token embeddings hard-soft-hard (84, 77, 512) (5, 127, 512) and after clip.tokenize (84, 77) (5, 127)
+        return prompts, tokenized_prompts # after text token embeddings hard-soft-hard (84, 77, 512) (5, 128, 768) and after clip.tokenize (84, 77) (5, 128)
 
 
 class TextEncoder(nn.Module):
