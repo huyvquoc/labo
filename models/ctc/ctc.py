@@ -137,6 +137,13 @@ class CrossAttention(nn.Module):
             dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid].append(key_conceptid) # this list has been sorted, `collections.OrderedDict` is used in `models/ctc/vit.py`
         self.dict_of_mapping_from_softpromptid_to_conceptids = collections.OrderedDict(sorted(dict_of_mapping_from_softpromptid_to_conceptids.items()))
 
+        # parent_in_dim_list = []
+        # parent_out_dim_list = []
+        # for key_softpromptid, value_conceptids in self.dict_of_mapping_from_softpromptid_to_conceptids.items():
+        #     parent_in_dim_list.append(len(value_conceptids))
+        #     parent_out_dim_list.append(1)
+        # self.parent_linears = nn.ModuleList([nn.Linear(parent_in_dim_list[i], parent_out_dim_list[i]) for i in range(len(parent_in_dim_list))])
+
         self.use_child_classes = use_child_classes
         if self.use_child_classes:
             # self.fc1 = nn.Linear(dim, 256)
@@ -209,9 +216,13 @@ class CrossAttention(nn.Module):
             for key_softpromptid, value_conceptids in self.dict_of_mapping_from_softpromptid_to_conceptids.items():
                 indices = torch.tensor(value_conceptids).to('cuda')
                 # index_select can be differentiable wrt source tensor but not indices (https://discuss.pytorch.org/t/problem-about-the-function-torch-index-select-input-dim-index-out-none/51668/7)
+                # --- select corresponding concept idx for each parent class ---
                 attn_sub = torch.index_select(attn, 3, indices) # shape (990, 8, 1, #parent_class_related_concepts). Check differentiability following this post: https://discuss.pytorch.org/t/how-to-know-if-specific-function-is-differential-or-not/125960
                 attn_sub = torch.squeeze(attn_sub) # (990, 8, #parent_class_related_concepts)
                 attn_sub = torch.mean(attn_sub, dim=1, keepdim=False) # wrt #heads (990, #parent_class_related_concepts)
+
+                # attn_sub = self.parent_linears[key_softpromptid](attn_sub) # (990, 1)
+
                 attn_sub = torch.mean(attn_sub, dim=-1, keepdim=True) # wrt #concepts_of_current_parent_class (990, 1)
                 qk_parent_class.append(attn_sub)
             qk_parent_class = torch.cat(qk_parent_class, dim=1)
