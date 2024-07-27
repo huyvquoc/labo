@@ -208,6 +208,7 @@ class CTCModel(pl.LightningModule):
 
         # ----- USE QK OF PARENT CLASSES -----
         if logits_qk_parent_class is not None:
+            # cls_loss_qk_group = F.nll_loss(logits_qk_parent_class, y_group) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
             cls_loss_qk_group, reg_loss_group = self.criterion(logits_qk_parent_class, F.one_hot(y_group, num_classes=5).float()) # for ANLS
         else:
             cls_loss_qk_group = 0

@@ -707,7 +707,7 @@ def concepts_cost(concept_attn, attn_targets):
     
     Inputs:
         CUB:
-          concept_attn.shape: (32, 1, 13) , values are float lower than 1 but greater than 0
+          concept_attn.shape: (32, 1, 13) glomcrawl (990, 8, 1, 630), values are float lower than 1 but greater than 0
           attn_targets.shape: (32, 13) , values are binary just 0 or 1
         GlomCrawl:
           concept_attn.shape (990, 1, 630) 
