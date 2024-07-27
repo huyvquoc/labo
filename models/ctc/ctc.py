@@ -1,4 +1,5 @@
 # Cross-attention code based on https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/cct.py by Phil Wang
+import collections
 import math
 
 import torch
@@ -129,11 +130,12 @@ class CrossAttention(nn.Module):
         self.attn_drop = nn.Dropout(attention_dropout)
 
         self.dict_of_mapping_from_conceptid_to_softpromptid = dict_of_mapping_from_conceptid_to_softpromptid # one-to-one
-        self.dict_of_mapping_from_softpromptid_to_conceptids = {} # one-to-many
+        dict_of_mapping_from_softpromptid_to_conceptids = {} # one-to-many
         for key_conceptid, value_softpromptid in self.dict_of_mapping_from_conceptid_to_softpromptid.items():
-            if value_softpromptid not in self.dict_of_mapping_from_softpromptid_to_conceptids:
-                self.dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid] = []
-            self.dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid].append(key_conceptid) # this list has been sorted, `collections.OrderedDict` is used in `models/ctc/vit.py`
+            if value_softpromptid not in dict_of_mapping_from_softpromptid_to_conceptids:
+                dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid] = []
+            dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid].append(key_conceptid) # this list has been sorted, `collections.OrderedDict` is used in `models/ctc/vit.py`
+        self.dict_of_mapping_from_softpromptid_to_conceptids = collections.OrderedDict(sorted(dict_of_mapping_from_softpromptid_to_conceptids.items()))
 
         self.use_child_classes = use_child_classes
         if self.use_child_classes:
