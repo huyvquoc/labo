@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn.functional as F
 import torchmetrics
@@ -87,9 +89,9 @@ class MetricsCalculator:
 
         self.dict_of_plottings = {
             # ----- plotting -----
-            'confusion_matrix_multiclass': torchmetrics.ConfusionMatrix(num_classes=num_cls, task='multiclass', normalize=None),
-            'roc_curve_multiclass': torchmetrics.ROC(num_classes=num_cls, task='multiclass'),
-            'pr_curve_multiclass': torchmetrics.PrecisionRecallCurve(num_classes=num_cls, task='multiclass')
+            'confusion_matrix_multiclass': torchmetrics.ConfusionMatrix(num_classes=num_cls, task='multiclass', normalize=None).to(self.device),
+            'roc_curve_multiclass': torchmetrics.ROC(num_classes=num_cls, task='multiclass').to(self.device),
+            'pr_curve_multiclass': torchmetrics.PrecisionRecallCurve(num_classes=num_cls, task='multiclass').to(self.device)
         }
 
         self.prefix_name = prefix_name
@@ -108,11 +110,11 @@ class MetricsCalculator:
                     metric_val = metric_op(logits, F.one_hot(y, num_classes=self.num_cls).float())
                 else:
                     metric_val = metric_op(logits, y)
-                ret_dict[metric_name] = metric_val
+                ret_dict[metric_name] = metric_val.type(torch.FloatTensor)
 
         return ret_dict
 
-    def generate_plots(self, logits, y):
+    def generate_plots(self, logits, y, save_dir=None):
         self.dict_of_plottings['confusion_matrix_multiclass'].update(logits, y)
         # cm = self.dict_of_plottings['confusion_matrix_multiclass'](logits, y)
         fig_confusion_matrix_multiclass, ax_confusion_matrix_multiclass = self.dict_of_plottings['confusion_matrix_multiclass'].plot(add_text=True, labels=self.class_names) # `labels` is a list of strings, `cmap` is matplotlib colormap to use for the confusion matrix 
@@ -124,4 +126,8 @@ class MetricsCalculator:
         self.dict_of_plottings['pr_curve_multiclass'].update(logits, y)
         # precision, recall, thresholds = self.dict_of_plottings['pr_curve_multiclass'](logits, y)
         fig_pr_curve_multiclass, ax_pr_curve_multiclass = self.dict_of_plottings['pr_curve_multiclass'].plot(score=True)
+
+        fig_confusion_matrix_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'cm.png'])))
+        fig_roc_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'roc_curve.png'])))
+        fig_pr_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'pr_curve.png'])))
 

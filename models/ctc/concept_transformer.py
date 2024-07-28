@@ -1,4 +1,5 @@
 import collections
+import os
 
 import numpy as np
 from pathlib import Path
@@ -85,7 +86,7 @@ class CTCModel(pl.LightningModule):
         self.all_y = []
         self.all_pred = []
         self.all_logit = []
-        self.confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=self.cfg.num_cls)
+        # self.confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=self.cfg.num_cls)
         self.balanced_weights = torch.DoubleTensor(cfg.balanced_weights).cuda()
         self.criterion = get_criterion(cfg)
         self.criterion.cuda()
@@ -161,7 +162,8 @@ class CTCModel(pl.LightningModule):
             loss = loss + self.cfg.attention_sparsity * l1_loss
 
         # merge 3 dicts
-        all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        # all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        all_metrics_dict = {**perf_dict, **qk_group_perf_dict}
         # add losses to the new merged dict
         all_metrics_dict.update(
             {
@@ -234,20 +236,26 @@ class CTCModel(pl.LightningModule):
             cls_loss_qk_group = 0
         # -----------------------------
 
-
+        group_perf_dict = None
         if stage == 'train':
             perf_dict = self.train_perf_calc.generate_dict_of_metrics(logits, y)
-            group_perf_dict = self.train_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
+            # group_perf_dict = self.train_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
             qk_group_perf_dict = self.train_qk_group_perf_calc.generate_dict_of_metrics(logits_qk_parent_class, y_group)
             # self.log()
         elif stage == 'val':
             perf_dict = self.val_perf_calc.generate_dict_of_metrics(logits, y)
-            group_perf_dict = self.val_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
+            # group_perf_dict = self.val_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
             qk_group_perf_dict = self.val_qk_group_perf_calc.generate_dict_of_metrics(logits_qk_parent_class, y_group)
+
+            # plotting
+            plotting_dir = 'output/concept_trans/figs'
+            os.makedirs(plotting_dir, exist_ok=True)
+            self.val_perf_calc.generate_plots(logits, y, save_dir=plotting_dir)
+            self.val_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=plotting_dir)
             # self.log()
         elif stage == 'test':
             perf_dict = self.test_perf_calc.generate_dict_of_metrics(logits, y)
-            group_perf_dict = self.test_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
+            # group_perf_dict = self.test_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
             qk_group_perf_dict = self.test_qk_group_perf_calc.generate_dict_of_metrics(logits_qk_parent_class, y_group)
 
             # self.log()
@@ -324,7 +332,8 @@ class CTCModel(pl.LightningModule):
         logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, perf_dict, group_perf_dict, qk_group_perf_dict, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
 
         # merge 3 dicts
-        all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        # all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        all_metrics_dict = {**perf_dict, **qk_group_perf_dict}
         # add losses to the new merged dict
         all_metrics_dict.update(
             {
@@ -354,7 +363,8 @@ class CTCModel(pl.LightningModule):
         logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, perf_dict, group_perf_dict, qk_group_perf_dict, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='test')
 
         # merge 3 dicts
-        all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        # all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        all_metrics_dict = {**perf_dict, **qk_group_perf_dict}
         # add losses to the new merged dict
         all_metrics_dict.update(
             {

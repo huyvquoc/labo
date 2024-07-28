@@ -392,7 +392,7 @@ def concept_trans_main(cfg):
     #                                                        "mult_adds",
     #                                                        "trainable"))
 
-    check_interval = 10
+    check_interval = 1
 
     print("check interval = {}".format(check_interval))
 
