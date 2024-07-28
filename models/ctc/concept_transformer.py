@@ -7,6 +7,7 @@ import torch
 import torch.nn.functional as F
 import torchmetrics
 from torchmetrics.functional.classification.accuracy import accuracy
+from torchmetrics.classification import MulticlassAccuracy, MultilabelAccuracy
 from transformers import get_cosine_schedule_with_warmup
 import wandb
 
@@ -48,23 +49,110 @@ class CTCModel(pl.LightningModule):
             self.concept_raw = self.concept_raw.tolist()
             self.concept2cls = torch.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1) # Mapping from a concept to its corresponding class
 
-        # ----- for child classes -----
-        self.train_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        self.val_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=cfg.top_k) # micro, macro, or weighted
-        # self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        self.test_f1 = torchmetrics.F1Score(num_classes=cfg.num_cls, average='macro', task='multiclass')
-        self.test_ap = torchmetrics.AveragePrecision(num_classes=cfg.num_cls, average='macro', task='multiclass')
+        # ---------- FOR CHILD CLASSES ----------
+        ### train ###
+        self.train_perf_dict = {
+            'acc_multiclass_top1_micro': torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=1),
+            'acc_multiclass_top5_micro': torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=5),
+            'acc_multiclass_top1_macro': torchmetrics.Accuracy(num_classes=cfg.num_cls, average='macro', task='multiclass', top_k=1),
+            'acc_multiclass_top5_macro': torchmetrics.Accuracy(num_classes=cfg.num_cls, average='macro', task='multiclass', top_k=5),
+            'acc_multiclass_top1_noavg': torchmetrics.Accuracy(num_classes=cfg.num_cls, average=None, task='multiclass'),
+            'acc_multilabel_thresh0.3_micro': torchmetrics.Accuracy(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.3),
+            'acc_multilabel_thresh0.5_micro': torchmetrics.Accuracy(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.5),
+            'acc_multilabel_thresh0.7_micro': torchmetrics.Accuracy(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.7),
+            'acc_multilabel_thresh0.3_macro': torchmetrics.Accuracy(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.3),
+            'acc_multilabel_thresh0.5_macro': torchmetrics.Accuracy(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.5),
+            'acc_multilabel_thresh0.7_macro': torchmetrics.Accuracy(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.7),
 
-        # ----- for parent classes -----
-        self.train_acc_group = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, task='multiclass')
-        self.val_acc_group = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, task='multiclass')
-        self.test_acc_group = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, average='micro', task='multiclass', top_k=cfg.top_k) # micro, macro, or weighted
+            'precision_multiclass_top1_micro': torchmetrics.Precision(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=1),
+            'precision_multiclass_top5_micro': torchmetrics.Precision(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=5),
+            'precision_multiclass_top1_macro': torchmetrics.Precision(num_classes=cfg.num_cls, average='macro', task='multiclass', top_k=1),
+            'precision_multiclass_top5_macro': torchmetrics.Precision(num_classes=cfg.num_cls, average='macro', task='multiclass', top_k=5),
+            'precision_multiclass_top1_noavg': torchmetrics.Precision(num_classes=cfg.num_cls, average=None, task='multiclass'),
+            'precision_multilabel_thresh0.3_micro': torchmetrics.Precision(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.3),
+            'precision_multilabel_thresh0.5_micro': torchmetrics.Precision(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.5),
+            'precision_multilabel_thresh0.7_micro': torchmetrics.Precision(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.7),
+            'precision_multilabel_thresh0.3_macro': torchmetrics.Precision(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.3),
+            'precision_multilabel_thresh0.5_macro': torchmetrics.Precision(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.5),
+            'precision_multilabel_thresh0.7_macro': torchmetrics.Precision(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.7),
 
-        # ----- for qk of parent classes -----
-        self.train_acc_qk_group = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, task='multiclass')
-        self.val_acc_qk_group = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, task='multiclass')
-        self.test_acc_qk_group = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, average='micro', task='multiclass', top_k=cfg.top_k) # micro, macro, or weighted
+
+            'recall_multiclass_top1_micro': torchmetrics.Recall(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=1),
+            'recall_multiclass_top5_micro': torchmetrics.Recall(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=5),
+            'recall_multiclass_top1_macro': torchmetrics.Recall(num_classes=cfg.num_cls, average='macro', task='multiclass', top_k=1),
+            'recall_multiclass_top5_macro': torchmetrics.Recall(num_classes=cfg.num_cls, average='macro', task='multiclass', top_k=5),
+            'recall_multiclass_top1_noavg': torchmetrics.Recall(num_classes=cfg.num_cls, average=None, task='multiclass'),
+            'recall_multilabel_thresh0.3_micro': torchmetrics.Recall(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.3),
+            'recall_multilabel_thresh0.5_micro': torchmetrics.Recall(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.5),
+            'recall_multilabel_thresh0.7_micro': torchmetrics.Recall(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.7),
+            'recall_multilabel_thresh0.3_macro': torchmetrics.Recall(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.3),
+            'recall_multilabel_thresh0.5_macro': torchmetrics.Recall(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.5),
+            'recall_multilabel_thresh0.7_macro': torchmetrics.Recall(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.7),
+
+
+            'f1_multiclass_top1_micro': torchmetrics.F1Score(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=1),
+            'f1_multiclass_top5_micro': torchmetrics.F1Score(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=5),
+            'f1_multiclass_top1_macro': torchmetrics.F1Score(num_classes=cfg.num_cls, average='macro', task='multiclass', top_k=1),
+            'f1_multiclass_top5_macro': torchmetrics.F1Score(num_classes=cfg.num_cls, average='macro', task='multiclass', top_k=5),
+            'f1_multiclass_top1_noavg': torchmetrics.F1Score(num_classes=cfg.num_cls, average=None, task='multiclass'),
+            'f1_multilabel_thresh0.3_micro': torchmetrics.F1Score(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.3),
+            'f1_multilabel_thresh0.5_micro': torchmetrics.F1Score(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.5),
+            'f1_multilabel_thresh0.7_micro': torchmetrics.F1Score(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.7),
+            'f1_multilabel_thresh0.3_macro': torchmetrics.F1Score(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.3),
+            'f1_multilabel_thresh0.5_macro': torchmetrics.F1Score(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.5),
+            'f1_multilabel_thresh0.7_macro': torchmetrics.F1Score(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.7),
+
+
+
+            'auroc_score_multiclass_micro': torchmetrics.AUROC(num_classes=cfg.num_cls, average='micro', task='multiclass'), # 'summarizes the ROC curve into a single number that describes the performance of a model for multiple thresholds at the same time'
+            'auroc_score_multiclass_macro': torchmetrics.AUROC(num_classes=cfg.num_cls, average='macro', task='multiclass'),
+            'auroc_score_multilabel_thresh0.3_micro': torchmetrics.AUROC(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.3),
+            'auroc_score_multilabel_thresh0.5_micro': torchmetrics.AUROC(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.5),
+            'auroc_score_multilabel_thresh0.7_micro': torchmetrics.AUROC(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.7),
+            'auroc_score_multilabel_thresh0.3_macro': torchmetrics.AUROC(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.3),
+            'auroc_score_multilabel_thresh0.5_macro': torchmetrics.AUROC(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.5),
+            'auroc_score_multilabel_thresh0.7_macro': torchmetrics.AUROC(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.7),
+            'ap_score_multiclass_micro': torchmetrics.AveragePrecision(num_classes=cfg.num_cls, average='micro', task='multiclass'), # summarizes the precision-recall curve as an weighted mean of precisions at each threshold, with the difference in recall from the previous threshold as weight
+            'ap_score_multiclass_macro': torchmetrics.AveragePrecision(num_classes=cfg.num_cls, average='macro', task='multiclass'),
+            'ap_score_multilabel_thresh0.3_micro': torchmetrics.AveragePrecision(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.3),
+            'ap_score_multilabel_thresh0.5_micro': torchmetrics.AveragePrecision(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.5),
+            'ap_score_multilabel_thresh0.7_micro': torchmetrics.AveragePrecision(num_labels=cfg.num_cls, average='micro', task='multilabel', threshold=0.7),
+            'ap_score_multilabel_thresh0.3_macro': torchmetrics.AveragePrecision(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.3),
+            'ap_score_multilabel_thresh0.5_macro': torchmetrics.AveragePrecision(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.5),
+            'ap_score_multilabel_thresh0.7_macro': torchmetrics.AveragePrecision(num_labels=cfg.num_cls, average='macro', task='multilabel', threshold=0.7),
+
+            'confusion_matrix_multiclass': torchmetrics.ConfusionMatrix(num_classes=cfg.num_cls, task='multiclass'),
+            'roc_curve_multiclass': torchmetrics.ROC(num_classes=cfg.num_cls, task='multiclass'),
+            'pr_curve_multiclass': torchmetrics.PrecisionRecallCurve(num_classes=cfg.num_cls, task='multiclass')
+        }
+
+        ### val ###
+        self.val_perf_dict = [torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=1)]
+
+        ### test ###
+        self.test_perf_dict = [torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass', top_k=1)] # micro, macro, or weighted
+
+        self.test_f1 = torchmetrics.F1Score(num_classes=cfg.num_cls, average='micro', task='multiclass')
+        self.test_ap = torchmetrics.AveragePrecision(num_classes=cfg.num_cls, average='micro', task='multiclass')
+        # ----------------------------------------
+
+        # ---------- FOR PARENT CLASSES ----------
+        ### train ###
+        self.train_group_perf_dict = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, average='micro', task='multiclass')
+        ### val ###
+        self.val_group_perf_dict = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, average='micro', task='multiclass')
+        ### test ###
+        self.test_group_perf_dict = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, average='micro', task='multiclass', top_k=1) # micro, macro, or weighted
+        # ----------------------------------------
+
+        # ---------- FOR QK OF PARENT CLASSES ----------
+        ### train ###
+        self.train_qk_group_perf_dict = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, average='micro', task='multiclass')
+        ### val ###
+        self.val_qk_group_perf_dict = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, average='micro', task='multiclass')
+        ### test ###
+        self.test_qk_group_perf_dict = torchmetrics.Accuracy(num_classes=cfg.num_cls_group, average='micro', task='multiclass', top_k=1) # micro, macro, or weighted
+        # ----------------------------------------
 
         self.all_y = []
         self.all_pred = []
@@ -148,7 +236,7 @@ class CTCModel(pl.LightningModule):
             {
                 "train_loss": loss,
                 "train_ce_loss": cls_loss,
-                "train_ce_loss_group": cls_loss_group,
+                # "train_ce_loss_group": cls_loss_group,
                 "train_qk_loss_group": cls_loss_qk_group,
                 "train_acc": acc,
                 "train_acc_group": acc_group,
@@ -229,7 +317,7 @@ class CTCModel(pl.LightningModule):
         elif stage == 'test':
             # self.log('test_loss', cls_loss)
             acc = self.test_acc(logits, y)
-            acc_group = self.test_acc_group(logits_group, y_group)
+            # acc_group = self.test_acc_group(logits_group, y_group)
             acc_qk_group = self.test_acc_qk_group(logits_qk_parent_class, y_group) if logits_qk_parent_class is not None else -1
             # self.log('test_acc', self.test_acc, on_step=False, on_epoch=True)
             self.test_f1(logits, y)
@@ -311,7 +399,7 @@ class CTCModel(pl.LightningModule):
         self.log_dict(
             {
                 "val_ce_loss": cls_loss,
-                "val_ce_loss_group": cls_loss_group,
+                # "val_ce_loss_group": cls_loss_group,
                 "val_qk_loss_group": cls_loss_qk_group,
                 "val_acc": acc,
                 "val_acc_group": acc_group,
@@ -336,7 +424,7 @@ class CTCModel(pl.LightningModule):
         self.log_dict(
             {
                 "test_ce_loss": cls_loss,
-                "test_ce_loss_group": cls_loss_group,
+                # "test_ce_loss_group": cls_loss_group,
                 "test_qk_loss_group": cls_loss_qk_group,
                 "test_acc": acc,
                 "test_acc_group": acc_group,
