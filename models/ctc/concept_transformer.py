@@ -160,22 +160,22 @@ class CTCModel(pl.LightningModule):
         if self.cfg.attention_sparsity > 0:
             loss = loss + self.cfg.attention_sparsity * l1_loss
 
-        # TODO: merge 3 dicts
-        perf_dict, group_perf_dict, qk_group_perf_dict
-        # TODO: add losses to the new merged dict
-
-        self.log_dict(
+        # merge 3 dicts
+        all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        # add losses to the new merged dict
+        all_metrics_dict.update(
             {
                 "train_loss": loss,
-                "train_ce_loss": cls_loss,
+                "train_main_loss": cls_loss,
                 # "train_ce_loss_group": cls_loss_group,
                 "train_qk_loss_group": cls_loss_qk_group,
-                "train_acc": acc,
-                # "train_acc_group": acc_group,
-                "train_acc_qk_group": acc_qk_group,
                 "train_expl_loss": expl_loss,
                 "train_l1_loss": l1_loss,
-            },
+            }
+        )
+
+        self.log_dict(
+            all_metrics_dict,
             on_step=False,
             on_epoch=True,
         )
@@ -322,21 +322,26 @@ class CTCModel(pl.LightningModule):
         Need to check if the required `batch` is actually the argument `batch`
         '''
         logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, perf_dict, group_perf_dict, qk_group_perf_dict, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
-        self.log_dict(
+
+        # merge 3 dicts
+        all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        # add losses to the new merged dict
+        all_metrics_dict.update(
             {
                 "val_ce_loss": cls_loss,
                 # "val_ce_loss_group": cls_loss_group,
                 "val_qk_loss_group": cls_loss_qk_group,
-                "val_acc": acc,
-                # "val_acc_group": acc_group,
-                "val_acc_qk_group": acc_qk_group,
                 "val_expl_loss": expl_loss,
                 "val_l1_loss": l1_loss,
-            },
+            }
+        )
+
+        self.log_dict(
+            all_metrics_dict,
             on_step=False,
             on_epoch=True,
         )
-        return acc
+        return all_metrics_dict['val_main_cls_acc_multiclass_top1_micro']
         # return ce_loss # LaBo
         # ==================== ConceptTransformer ends here ====================
 
@@ -347,22 +352,27 @@ class CTCModel(pl.LightningModule):
         TODO: do we need to append y and pred into overall lists?
         '''
         logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, perf_dict, group_perf_dict, qk_group_perf_dict, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='test')
-        self.log_dict(
+
+        # merge 3 dicts
+        all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        # add losses to the new merged dict
+        all_metrics_dict.update(
             {
                 "test_ce_loss": cls_loss,
                 # "test_ce_loss_group": cls_loss_group,
                 "test_qk_loss_group": cls_loss_qk_group,
-                "test_acc": acc,
-                # "test_acc_group": acc_group,
-                "test_acc_qk_group": acc_qk_group,
                 "test_expl_loss": expl_loss,
                 "test_l1_loss": l1_loss,
             }
         )
-        return acc
+
+        self.log_dict(
+            all_metrics_dict
+        )
+
+        return all_metrics_dict['test_main_cls_acc_multiclass_top1_micro']
         # return loss # LaBo
         # ==================== ConceptTransformer ends here ====================
-
 
     def test_epoch_end(self, outputs):
         # ==================== LaBo starts here ====================

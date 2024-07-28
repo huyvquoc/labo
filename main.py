@@ -406,7 +406,7 @@ def concept_trans_main(cfg):
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
                 filename='{epoch}-{step}-{val_acc:.4f}',
-                monitor='val_acc',
+                monitor='val_main_cls_acc_multiclass_top1_micro',
                 mode='max',
                 save_top_k=1,
                 every_n_epochs=check_interval)
@@ -433,7 +433,7 @@ def concept_trans_main(cfg):
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
                 filename='{epoch}-{step}-{val_acc:.4f}',
-                monitor='val_acc',
+                monitor='val_main_cls_acc_multiclass_top1_micro',
                 mode='max',
                 save_top_k=1,
                 every_n_epochs=10)
