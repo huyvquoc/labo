@@ -1,6 +1,8 @@
 import os
 
+import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torchmetrics
@@ -128,30 +130,108 @@ class MetricsCalculator:
         # ax_confusion_matrix_multiclass.set_yscale("linear")
 
         # Create color bar
-        # cbar = ax_confusion_matrix_multiclass.figure.colorbar(cm, ax=ax_confusion_matrix_multiclass)
-        # cbar.ax.set_ylabel(cbarlabel="", rotation=-90, va="bottom")
+        axes_image = ax_confusion_matrix_multiclass.get_images()[0] # mappable object: AxesImage of Axes - get an image inside an axis
+        axes_image.set(cmap='BuPu')
+        # ax_confusion_matrix_multiclass.figure.colorbar(axes_image)
+        cbar = fig_confusion_matrix_multiclass.figure.colorbar(axes_image, ax=ax_confusion_matrix_multiclass, drawedges=False, fraction=0.02, aspect=50)
+        cbar.ax.set_ylabel("", rotation=-90, va="bottom")
         # Let the horizontal axes labeling appear on top
         ax_confusion_matrix_multiclass.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
         # Rotate the tick labels and set their alignment
         ax_confusion_matrix_multiclass.set_xticklabels(ax_confusion_matrix_multiclass.get_xticklabels(), rotation=-30, ha="right", rotation_mode="anchor")
         # Turn spines off and create white grid
         ax_confusion_matrix_multiclass.spines[:].set_visible(False)
+        ax_confusion_matrix_multiclass.set_xticks(np.arange(len(self.class_names) + 1)-.5, minor=True)
+        ax_confusion_matrix_multiclass.set_yticks(np.arange(len(self.class_names) + 1)-.5, minor=True)
         ax_confusion_matrix_multiclass.grid(which="minor", color="w", linestyle='-', linewidth=3)
         ax_confusion_matrix_multiclass.tick_params(which="minor", bottom=False, left=False)
 
-        fig_confusion_matrix_multiclass.set_size_inches(42, 42)
-        fig_confusion_matrix_multiclass.tight_layout()
+        ax_confusion_matrix_multiclass.tick_params(axis='both', which='major', labelsize=20)
+        ax_confusion_matrix_multiclass.tick_params(axis='both', which='minor', labelsize=18)
+
+        texts = annotate_heatmap(axes_image, valfmt="{x:.0f}")
+
+        fig_confusion_matrix_multiclass.set_size_inches(32, 30)
+        # fig_confusion_matrix_multiclass.tight_layout()
 
 
         self.dict_of_plottings['roc_curve_multiclass'].update(logits, y)
         # fpr, tpr, thresholds = self.dict_of_plottings['roc_curve_multiclass'](logits, y)
         fig_roc_curve_multiclass, ax_roc_curve_multiclass = self.dict_of_plottings['roc_curve_multiclass'].plot(score=True)
 
+        ax_roc_curve_multiclass.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+        fig_roc_curve_multiclass.set_size_inches(25, 20)
+
         self.dict_of_plottings['pr_curve_multiclass'].update(logits, y)
         # precision, recall, thresholds = self.dict_of_plottings['pr_curve_multiclass'](logits, y)
         fig_pr_curve_multiclass, ax_pr_curve_multiclass = self.dict_of_plottings['pr_curve_multiclass'].plot(score=True)
+
+        ax_pr_curve_multiclass.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+        fig_pr_curve_multiclass.set_size_inches(25, 20)
 
         fig_confusion_matrix_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'cm.png'])))
         fig_roc_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'roc_curve.png'])))
         fig_pr_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'pr_curve.png'])))
 
+def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
+                     textcolors=("black", "white"),
+                     threshold=None, **textkw):
+    """
+    A function to annotate a heatmap. Reference: https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html#sphx-glr-gallery-images-contours-and-fields-image-annotated-heatmap-py
+
+    Parameters
+    ----------
+    im
+        The AxesImage to be labeled.
+    data
+        Data used to annotate.  If None, the image's data is used.  Optional.
+    valfmt
+        The format of the annotations inside the heatmap.  This should either
+        use the string format method, e.g. "$ {x:.2f}", or be a
+        `matplotlib.ticker.Formatter`.  Optional.
+    textcolors
+        A pair of colors.  The first is used for values below a threshold,
+        the second for those above.  Optional.
+    threshold
+        Value in data units according to which the colors from textcolors are
+        applied.  If None (the default) uses the middle of the colormap as
+        separation.  Optional.
+    **kwargs
+        All other arguments are forwarded to each call to `text` used to create
+        the text labels.
+    """
+
+    if not isinstance(data, (list, np.ndarray)):
+        data = im.get_array()
+
+    # Normalize the threshold to the images color range.
+    if threshold is not None:
+        threshold = im.norm(threshold)
+    else:
+        threshold = im.norm(data.max())/2.
+
+    # Set default alignment to center, but allow it to be
+    # overwritten by textkw.
+    kw = dict(horizontalalignment="center",
+              verticalalignment="center",
+              fontsize=18.0)
+    kw.update(textkw)
+
+    # Get the formatter in case a string is supplied
+    if isinstance(valfmt, str):
+        valfmt = matplotlib.ticker.StrMethodFormatter(valfmt)
+
+    # TODO: remove previous plotted texts by torchmetrics. Reference: https://stackoverflow.com/questions/26005138/how-can-you-clear-a-matplotlib-text-box-that-was-previously-drawn
+    for txt in im.axes.texts:
+        txt.set_visible(False)
+
+    # Loop over the data and create a `Text` for each "pixel".
+    # Change the text's color depending on the data.
+    texts = []
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            kw.update(color=textcolors[int(im.norm(data[i, j]) > threshold)])
+            text = im.axes.text(j, i, valfmt(data[i, j], None), **kw) # keep references for modifying
+            texts.append(text)
+
+    return texts
