@@ -248,7 +248,7 @@ class CTCModel(pl.LightningModule):
             qk_group_perf_dict = self.val_qk_group_perf_calc.generate_dict_of_metrics(logits_qk_parent_class, y_group)
 
             # plotting
-            plotting_dir = 'output/concept_trans/figs'
+            plotting_dir = 'output/concept_trans/figs_debug'
             os.makedirs(plotting_dir, exist_ok=True)
             self.val_perf_calc.generate_plots(logits, y, save_dir=plotting_dir)
             self.val_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=plotting_dir)

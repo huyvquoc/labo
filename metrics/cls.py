@@ -1,5 +1,6 @@
 import os
 
+import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 import torchmetrics
@@ -118,6 +119,29 @@ class MetricsCalculator:
         self.dict_of_plottings['confusion_matrix_multiclass'].update(logits, y)
         # cm = self.dict_of_plottings['confusion_matrix_multiclass'](logits, y)
         fig_confusion_matrix_multiclass, ax_confusion_matrix_multiclass = self.dict_of_plottings['confusion_matrix_multiclass'].plot(add_text=True, labels=self.class_names) # `labels` is a list of strings, `cmap` is matplotlib colormap to use for the confusion matrix 
+
+        # ax_confusion_matrix_multiclass.set_title('Confusion matrix')
+        # ax_confusion_matrix_multiclass.set_xlabel('Predicted')
+        # ax_confusion_matrix_multiclass.set_ylabel('Groundtruth')
+        # ax_confusion_matrix_multiclass.set_ylim(-5, 100)
+        # ax_confusion_matrix_multiclass.set_xscale("linear")
+        # ax_confusion_matrix_multiclass.set_yscale("linear")
+
+        # Create color bar
+        # cbar = ax_confusion_matrix_multiclass.figure.colorbar(cm, ax=ax_confusion_matrix_multiclass)
+        # cbar.ax.set_ylabel(cbarlabel="", rotation=-90, va="bottom")
+        # Let the horizontal axes labeling appear on top
+        ax_confusion_matrix_multiclass.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
+        # Rotate the tick labels and set their alignment
+        ax_confusion_matrix_multiclass.set_xticklabels(ax_confusion_matrix_multiclass.get_xticklabels(), rotation=-30, ha="right", rotation_mode="anchor")
+        # Turn spines off and create white grid
+        ax_confusion_matrix_multiclass.spines[:].set_visible(False)
+        ax_confusion_matrix_multiclass.grid(which="minor", color="w", linestyle='-', linewidth=3)
+        ax_confusion_matrix_multiclass.tick_params(which="minor", bottom=False, left=False)
+
+        fig_confusion_matrix_multiclass.set_size_inches(42, 42)
+        fig_confusion_matrix_multiclass.tight_layout()
+
 
         self.dict_of_plottings['roc_curve_multiclass'].update(logits, y)
         # fpr, tpr, thresholds = self.dict_of_plottings['roc_curve_multiclass'](logits, y)
