@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torchmetrics
+matplotlib.use('Agg')
 
 
 
@@ -119,7 +120,9 @@ class MetricsCalculator:
 
     def generate_plots(self, logits, y, save_dir=None):
         self.dict_of_plottings['confusion_matrix_multiclass'].update(logits, y)
+        print('[**] {} - Sum of confmat: {}'.format(self.prefix_name, torch.sum(self.dict_of_plottings['confusion_matrix_multiclass'].confmat)))
         # cm = self.dict_of_plottings['confusion_matrix_multiclass'](logits, y)
+        # print('[**] {} - Sum of cm: {}'.format(self.prefix_name, torch.sum(cm)))
         fig_confusion_matrix_multiclass, ax_confusion_matrix_multiclass = self.dict_of_plottings['confusion_matrix_multiclass'].plot(add_text=True, labels=self.class_names) # `labels` is a list of strings, `cmap` is matplotlib colormap to use for the confusion matrix 
 
         # ax_confusion_matrix_multiclass.set_title('Confusion matrix')
@@ -172,6 +175,13 @@ class MetricsCalculator:
         fig_confusion_matrix_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'cm.png'])))
         fig_roc_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'roc_curve.png'])))
         fig_pr_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'pr_curve.png'])))
+
+        plt.close()
+
+        # Reset global states of `torchmetrics.Metric`. Ref: https://lightning.ai/docs/torchmetrics/stable/pages/implement.html
+        self.dict_of_plottings['confusion_matrix_multiclass'].reset()
+        self.dict_of_plottings['roc_curve_multiclass'].reset()
+        self.dict_of_plottings['pr_curve_multiclass'].reset()
 
 def annotate_heatmap(im, data=None, valfmt="{x:.2f}",
                      textcolors=("black", "white"),
