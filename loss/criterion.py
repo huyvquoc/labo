@@ -399,12 +399,12 @@ class ANLSLoss(nn.Module):
         self.label_smooth = label_smooth
 
         self.balanced_weights = torch.as_tensor(balanced_weights, device=self.device) # https://discuss.pytorch.org/t/best-way-to-convert-a-list-to-a-tensor/59949/3
-        self.balanced_weights = F.softmax(self.balanced_weights)
-        self.balanced_weights = self.balanced_weights[None, :]
+        # self.balanced_weights = F.softmax(self.balanced_weights)
+        self.balanced_weights = self.balanced_weights[:, None] # (990, 1)
 
         self.balanced_weights_parents = torch.as_tensor(balanced_weights_parents, device=self.device)
-        self.balanced_weights_parents = F.softmax(self.balanced_weights_parents)
-        self.balanced_weights_parents = self.balanced_weights_parents[None, :]
+        # self.balanced_weights_parents = F.softmax(self.balanced_weights_parents)
+        self.balanced_weights_parents = self.balanced_weights_parents[:, None] # (990, 1)
 
     def forward(self, preds, observed_labels):
         preds = F.softmax(preds)
@@ -426,10 +426,19 @@ class ANLSLoss(nn.Module):
         num_classes = int(preds.size(1))
 
         if self.balanced_weights is not None and self.balanced_weights_parents is not None:
+            # if num_classes == 5: # parent classes
+            #     loss_mtx = loss_mtx * self.balanced_weights_parents
+            # else:
+            #     loss_mtx = loss_mtx * self.balanced_weights
+
+            corr_cls_idx = torch.argmax(observed_labels, dim=-1)
+
             if num_classes == 5: # parent classes
-                loss_mtx = loss_mtx * self.balanced_weights_parents
+                replicated_weights = torch.index_select(self.balanced_weights_parents, 0, corr_cls_idx) # (990, 1)
             else:
-                loss_mtx = loss_mtx * self.balanced_weights
+                replicated_weights = torch.index_select(self.balanced_weights, 0, corr_cls_idx)
+
+            loss_mtx = loss_mtx * replicated_weights
     
         loss_denom_mtx = (num_classes * batch_size) * torch.ones_like(preds) # (990, 42)
         assert preds.size() == observed_labels.size()
