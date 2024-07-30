@@ -1,7 +1,7 @@
 _base_ = 'GlomCrawl_base.py'
 n_shots = "all"
 data_root = 'exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac'
-plotting_dir = 'output/concept_trans/figs_debug' # for plotting only when model checkpoint
+plotting_dir = 'output/concept_trans/figs_debug_bw_softmax' # for plotting only when model checkpoint
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_micro' # for plotting only when model checkpoint
 lr = 1e-2
 bs = 4096

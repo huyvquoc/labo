@@ -251,6 +251,7 @@ class CTCModel(pl.LightningModule):
 
             # plotting
             if self.best_val_metric is None or perf_dict[self.cfg.best_val_metric_name] >= self.best_val_metric:
+                os.makedirs(self.cfg.plotting_dir, exist_ok=True)
                 if len(os.listdir(self.cfg.plotting_dir)) != 0:
                     for old_plot in os.listdir(self.cfg.plotting_dir):
                         old_plot_path = os.path.join(self.cfg.plotting_dir, old_plot)
@@ -258,7 +259,6 @@ class CTCModel(pl.LightningModule):
 
                 val_metric_info = ''.join([self.cfg.best_val_metric_name, '_', str(perf_dict[self.cfg.best_val_metric_name].item())])
                 print(f'[**] Found new best val metric !! - {val_metric_info}')
-                os.makedirs(self.cfg.plotting_dir, exist_ok=True)
                 self.val_perf_calc.generate_plots(logits, y, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
                 self.val_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
 
