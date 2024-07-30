@@ -398,13 +398,17 @@ class ANLSLoss(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.label_smooth = label_smooth
 
-        self.balanced_weights = torch.as_tensor(balanced_weights, device=self.device) # https://discuss.pytorch.org/t/best-way-to-convert-a-list-to-a-tensor/59949/3
-        # self.balanced_weights = F.softmax(self.balanced_weights)
-        self.balanced_weights = self.balanced_weights[:, None] # (990, 1)
+        self.balanced_weights = None
+        if balanced_weights is not None:
+            self.balanced_weights = torch.as_tensor(balanced_weights, device=self.device) # https://discuss.pytorch.org/t/best-way-to-convert-a-list-to-a-tensor/59949/3
+            # self.balanced_weights = F.softmax(self.balanced_weights)
+            self.balanced_weights = self.balanced_weights[:, None] # (990, 1)
 
-        self.balanced_weights_parents = torch.as_tensor(balanced_weights_parents, device=self.device)
-        # self.balanced_weights_parents = F.softmax(self.balanced_weights_parents)
-        self.balanced_weights_parents = self.balanced_weights_parents[:, None] # (990, 1)
+        self.balanced_weights_parents = None
+        if balanced_weights_parents is not None:
+            self.balanced_weights_parents = torch.as_tensor(balanced_weights_parents, device=self.device)
+            # self.balanced_weights_parents = F.softmax(self.balanced_weights_parents)
+            self.balanced_weights_parents = self.balanced_weights_parents[:, None] # (990, 1)
 
     def forward(self, preds, observed_labels):
         preds = F.softmax(preds, dim=-1)
@@ -480,6 +484,7 @@ def get_criterion(cfg):
     elif cfg.main_loss == 'APLLoss':
         return APLLoss(gamma_neg=1, gamma_pos=2, clip=0.05, eps=1e-8, disable_torch_grad_focal_loss=True)
     elif cfg.main_loss == 'ANLSLoss':
-        return ANLSLoss(label_smooth=0.1, balanced_weights=cfg.balanced_weights, balanced_weights_parents=cfg.balanced_weights_parents)
+        # balanced_weights_parents = [1.6779661016949152, 0.5981873111782477, 1.9223300970873787, 2.302325581395349, 0.5625]
+        return ANLSLoss(label_smooth=0.2, balanced_weights=cfg.balanced_weights, balanced_weights_parents=cfg.balanced_weights_parents)
     else:
         raise ValueError(f"Not supported loss {cfg.main_loss}")

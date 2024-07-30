@@ -56,3 +56,7 @@ negative_prompt_init = ''
 use_child_classes=True
 use_parent_classes=False
 use_attn_parent_branch=True
+
+# --- weight balance for loss function ---
+balanced_weights = None
+balanced_weights_parents = None

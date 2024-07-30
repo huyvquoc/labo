@@ -358,11 +358,11 @@ def concept_trans_main(cfg):
         model = CTCModel.load_from_checkpoint(str(ckpt_path))
         trainer = pl.Trainer(gpus=1)
         trainer.test(model, data_module)
-        test_acc = round(100 * float(model.total_test_acc), 2)
+        # test_acc = round(100 * float(model.total_test_acc), 2)
         dataset = cfg.ckpt_path.split("/")[-3]
         exp = cfg.ckpt_path.split("/")[-2]
-        with open("output/concept_trans/{}.txt".format(dataset), "a") as f:
-            f.write("{}\t{}\n".format(exp, test_acc))
+        # with open("output/concept_trans/{}.txt".format(dataset), "a") as f:
+        #     f.write("{}\t{}\n".format(exp, test_acc))
         return
 
     print("use concept trans")
@@ -441,6 +441,9 @@ def concept_trans_main(cfg):
         trainer = pl.Trainer(gpus=1, max_epochs=1000, \
             callbacks=[checkpoint_callback, ], check_val_every_n_epoch=10, default_root_dir=cfg.work_dir)
     trainer.fit(model, data_module)
+
+    # automatically loads the best weights for you
+    trainer.test(model, data_module)
 
 if __name__ == "__main__":
     from mmcv import DictAction

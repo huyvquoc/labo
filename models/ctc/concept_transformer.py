@@ -89,7 +89,7 @@ class CTCModel(pl.LightningModule):
         self.all_pred = []
         self.all_logit = []
         # self.confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=self.cfg.num_cls)
-        self.balanced_weights = torch.DoubleTensor(cfg.balanced_weights).cuda()
+        # self.balanced_weights = torch.DoubleTensor(cfg.balanced_weights).cuda()
         self.criterion = get_criterion(cfg)
         self.criterion.cuda()
         self.save_hyperparameters()
@@ -396,14 +396,14 @@ class CTCModel(pl.LightningModule):
         # return loss # LaBo
         # ==================== ConceptTransformer ends here ====================
 
-    def test_epoch_end(self, outputs):
-        # ==================== LaBo starts here ====================
-        all_y = torch.hstack(self.all_y)
-        all_pred = torch.hstack(self.all_pred)
-        all_logit = torch.hstack(self.all_logit)
-        self.total_test_acc = self.test_acc(all_logit, all_y)
-        self.total_test_f1 = self.test_f1(all_pred, all_y)
-        self.total_test_ap = self.test_ap(all_logit, all_y)
-        pass
-        # ==================== LaBo ends here ====================
+    # def test_epoch_end(self, outputs):
+    #     # ==================== LaBo starts here ====================
+    #     # all_y = torch.hstack(self.all_y)
+    #     # all_pred = torch.hstack(self.all_pred)
+    #     # all_logit = torch.hstack(self.all_logit)
+    #     # self.total_test_acc = self.test_acc(all_logit, all_y)
+    #     # self.total_test_f1 = self.test_f1(all_pred, all_y)
+    #     # self.total_test_ap = self.test_ap(all_logit, all_y)
+    #     pass
+    #     # ==================== LaBo ends here ====================
     
