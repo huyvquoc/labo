@@ -407,7 +407,7 @@ class ANLSLoss(nn.Module):
         self.balanced_weights_parents = self.balanced_weights_parents[:, None] # (990, 1)
 
     def forward(self, preds, observed_labels):
-        preds = F.softmax(preds)
+        preds = F.softmax(preds, dim=-1)
 
         # input validation: 
         assert torch.max(preds) <= 1
@@ -480,6 +480,6 @@ def get_criterion(cfg):
     elif cfg.main_loss == 'APLLoss':
         return APLLoss(gamma_neg=1, gamma_pos=2, clip=0.05, eps=1e-8, disable_torch_grad_focal_loss=True)
     elif cfg.main_loss == 'ANLSLoss':
-        return ANLSLoss(label_smooth=0.2, balanced_weights=cfg.balanced_weights, balanced_weights_parents=cfg.balanced_weights_parents)
+        return ANLSLoss(label_smooth=0.1, balanced_weights=cfg.balanced_weights, balanced_weights_parents=cfg.balanced_weights_parents)
     else:
         raise ValueError(f"Not supported loss {cfg.main_loss}")
