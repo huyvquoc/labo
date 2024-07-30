@@ -83,6 +83,8 @@ class CTCModel(pl.LightningModule):
         self.test_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_qk_hierarchy')
         # ----------------------------------------
 
+        self.best_val_metric = None
+
         self.all_y = []
         self.all_pred = []
         self.all_logit = []
@@ -248,10 +250,19 @@ class CTCModel(pl.LightningModule):
             qk_group_perf_dict = self.val_qk_group_perf_calc.generate_dict_of_metrics(logits_qk_parent_class, y_group)
 
             # plotting
-            plotting_dir = 'output/concept_trans/figs_debug'
-            os.makedirs(plotting_dir, exist_ok=True)
-            self.val_perf_calc.generate_plots(logits, y, save_dir=plotting_dir)
-            self.val_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=plotting_dir)
+            if self.best_val_metric is None or perf_dict[self.cfg.best_val_metric_name] >= self.best_val_metric:
+                if len(os.listdir(self.cfg.plotting_dir)) != 0:
+                    for old_plot in os.listdir(self.cfg.plotting_dir):
+                        old_plot_path = os.path.join(self.cfg.plotting_dir, old_plot)
+                        os.unlink(old_plot_path)
+
+                val_metric_info = ''.join([self.cfg.best_val_metric_name, '_', str(perf_dict[self.cfg.best_val_metric_name].item())])
+                print(f'[**] Found new best val metric !! - {val_metric_info}')
+                os.makedirs(self.cfg.plotting_dir, exist_ok=True)
+                self.val_perf_calc.generate_plots(logits, y, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
+                self.val_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
+
+                self.best_val_metric = perf_dict[self.cfg.best_val_metric_name]
             # self.log()
         elif stage == 'test':
             perf_dict = self.test_perf_calc.generate_dict_of_metrics(logits, y)
@@ -350,6 +361,7 @@ class CTCModel(pl.LightningModule):
             on_step=False,
             on_epoch=True,
         )
+
         return all_metrics_dict['val_main_cls_acc_multiclass_top1_micro']
         # return ce_loss # LaBo
         # ==================== ConceptTransformer ends here ====================

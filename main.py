@@ -392,7 +392,7 @@ def concept_trans_main(cfg):
     #                                                        "mult_adds",
     #                                                        "trainable"))
 
-    check_interval = 1
+    check_interval = 10
 
     print("check interval = {}".format(check_interval))
 
@@ -406,7 +406,7 @@ def concept_trans_main(cfg):
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
                 filename='{epoch}-{step}-{val_acc:.4f}',
-                monitor='val_main_cls_acc_multiclass_top1_micro',
+                monitor=cfg.best_val_metric_name, # TODO: If you change the metric to monitor here, 
                 mode='max',
                 save_top_k=1,
                 every_n_epochs=check_interval)
@@ -433,7 +433,7 @@ def concept_trans_main(cfg):
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
                 filename='{epoch}-{step}-{val_acc:.4f}',
-                monitor='val_main_cls_acc_multiclass_top1_micro',
+                monitor=cfg.best_val_metric_name,
                 mode='max',
                 save_top_k=1,
                 every_n_epochs=10)

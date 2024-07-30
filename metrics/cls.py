@@ -118,9 +118,8 @@ class MetricsCalculator:
 
         return ret_dict
 
-    def generate_plots(self, logits, y, save_dir=None):
+    def generate_plots(self, logits, y, save_dir=None, suffix=''):
         self.dict_of_plottings['confusion_matrix_multiclass'].update(logits, y)
-        print('[**] {} - Sum of confmat: {}'.format(self.prefix_name, torch.sum(self.dict_of_plottings['confusion_matrix_multiclass'].confmat)))
         # cm = self.dict_of_plottings['confusion_matrix_multiclass'](logits, y)
         # print('[**] {} - Sum of cm: {}'.format(self.prefix_name, torch.sum(cm)))
         fig_confusion_matrix_multiclass, ax_confusion_matrix_multiclass = self.dict_of_plottings['confusion_matrix_multiclass'].plot(add_text=True, labels=self.class_names) # `labels` is a list of strings, `cmap` is matplotlib colormap to use for the confusion matrix 
@@ -172,11 +171,13 @@ class MetricsCalculator:
         ax_pr_curve_multiclass.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
         fig_pr_curve_multiclass.set_size_inches(25, 20)
 
-        fig_confusion_matrix_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'cm.png'])))
-        fig_roc_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'roc_curve.png'])))
-        fig_pr_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'pr_curve.png'])))
+        fig_confusion_matrix_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'cm_', suffix, '.png'])))
+        fig_roc_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'roc_curve_', suffix, '.png'])))
+        fig_pr_curve_multiclass.savefig(os.path.join(save_dir, ''.join([self.prefix_name, '_', 'pr_curve_', suffix, '.png'])))
 
-        plt.close()
+        plt.close(fig_confusion_matrix_multiclass)
+        plt.close(fig_roc_curve_multiclass)
+        plt.close(fig_pr_curve_multiclass)
 
         # Reset global states of `torchmetrics.Metric`. Ref: https://lightning.ai/docs/torchmetrics/stable/pages/implement.html
         self.dict_of_plottings['confusion_matrix_multiclass'].reset()
