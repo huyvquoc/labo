@@ -374,6 +374,8 @@ def concept_trans_main(cfg):
     # model.CVIT.VisionTransformer.requires_grad_(False)
     # model.CVIT.ConceptTransformerVIT.CoCa.requires_grad_(False)
     model.model.feature_extractor.requires_grad_(False)
+    model.model.feature_extractor.visual.attn_pool_contrast.requires_grad_(True)
+    model.model.feature_extractor.visual.ln_contrast.requires_grad_(True)
     model.model.classifier.model.requires_grad_(False)
     # for name, module in model.model.named_children():
     #     print('[name]', name)

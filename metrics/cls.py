@@ -11,18 +11,17 @@ matplotlib.use('Agg')
 
 
 class MetricsCalculator:
-    def __init__(self, num_cls, class_names, prefix_name):
+    def __init__(self, num_cls, class_names, prefix_name, report_top5=True):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.class_names = class_names
         self.num_cls = num_cls
+        self.report_top5 = report_top5
 
-        self.dict_of_metrics = {
+        self.dict_of_metrics_top1 = {
             # ----- accuracy -----
             'acc_multiclass_top1_micro': torchmetrics.Accuracy(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
-            'acc_multiclass_top5_micro': torchmetrics.Accuracy(num_classes=num_cls, average='micro', task='multiclass', top_k=5).to(self.device),
             'acc_multiclass_top1_macro': torchmetrics.Accuracy(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
-            'acc_multiclass_top5_macro': torchmetrics.Accuracy(num_classes=num_cls, average='macro', task='multiclass', top_k=5).to(self.device),
             # 'acc_multiclass_top1_noavg': torchmetrics.Accuracy(num_classes=num_cls, average=None, task='multiclass').to(self.device),
             # 'acc_multilabel_thresh0.3_micro': torchmetrics.Accuracy(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
             # 'acc_multilabel_thresh0.5_micro': torchmetrics.Accuracy(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
@@ -33,9 +32,7 @@ class MetricsCalculator:
     
             # ----- precision -----
             'precision_multiclass_top1_micro': torchmetrics.Precision(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
-            'precision_multiclass_top5_micro': torchmetrics.Precision(num_classes=num_cls, average='micro', task='multiclass', top_k=5).to(self.device),
             'precision_multiclass_top1_macro': torchmetrics.Precision(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
-            'precision_multiclass_top5_macro': torchmetrics.Precision(num_classes=num_cls, average='macro', task='multiclass', top_k=5).to(self.device),
             # 'precision_multiclass_top1_noavg': torchmetrics.Precision(num_classes=num_cls, average=None, task='multiclass').to(self.device),
             # 'precision_multilabel_thresh0.3_micro': torchmetrics.Precision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
             # 'precision_multilabel_thresh0.5_micro': torchmetrics.Precision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
@@ -46,9 +43,7 @@ class MetricsCalculator:
     
             # ----- recall -----
             'recall_multiclass_top1_micro': torchmetrics.Recall(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
-            'recall_multiclass_top5_micro': torchmetrics.Recall(num_classes=num_cls, average='micro', task='multiclass', top_k=5).to(self.device),
             'recall_multiclass_top1_macro': torchmetrics.Recall(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
-            'recall_multiclass_top5_macro': torchmetrics.Recall(num_classes=num_cls, average='macro', task='multiclass', top_k=5).to(self.device),
             # 'recall_multiclass_top1_noavg': torchmetrics.Recall(num_classes=num_cls, average=None, task='multiclass').to(self.device),
             # 'recall_multilabel_thresh0.3_micro': torchmetrics.Recall(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
             # 'recall_multilabel_thresh0.5_micro': torchmetrics.Recall(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
@@ -59,9 +54,7 @@ class MetricsCalculator:
     
             # ----- f1 -----
             'f1_multiclass_top1_micro': torchmetrics.F1Score(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
-            'f1_multiclass_top5_micro': torchmetrics.F1Score(num_classes=num_cls, average='micro', task='multiclass', top_k=5).to(self.device),
             'f1_multiclass_top1_macro': torchmetrics.F1Score(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
-            'f1_multiclass_top5_macro': torchmetrics.F1Score(num_classes=num_cls, average='macro', task='multiclass', top_k=5).to(self.device),
             # 'f1_multiclass_top1_noavg': torchmetrics.F1Score(num_classes=num_cls, average=None, task='multiclass').to(self.device),
             # 'f1_multilabel_thresh0.3_micro': torchmetrics.F1Score(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
             # 'f1_multilabel_thresh0.5_micro': torchmetrics.F1Score(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
@@ -90,6 +83,22 @@ class MetricsCalculator:
             # 'ap_score_multilabel_thresh0.5_macro': torchmetrics.AveragePrecision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5),
             # 'ap_score_multilabel_thresh0.7_macro': torchmetrics.AveragePrecision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7),
         }
+
+        self.dict_of_metrics_top5 = {
+            'acc_multiclass_top5_micro': torchmetrics.Accuracy(num_classes=num_cls, average='micro', task='multiclass', top_k=5).to(self.device),
+            'acc_multiclass_top5_macro': torchmetrics.Accuracy(num_classes=num_cls, average='macro', task='multiclass', top_k=5).to(self.device),
+            'precision_multiclass_top5_micro': torchmetrics.Precision(num_classes=num_cls, average='micro', task='multiclass', top_k=5).to(self.device),
+            'precision_multiclass_top5_macro': torchmetrics.Precision(num_classes=num_cls, average='macro', task='multiclass', top_k=5).to(self.device),
+            'recall_multiclass_top5_micro': torchmetrics.Recall(num_classes=num_cls, average='micro', task='multiclass', top_k=5).to(self.device),
+            'recall_multiclass_top5_macro': torchmetrics.Recall(num_classes=num_cls, average='macro', task='multiclass', top_k=5).to(self.device),
+            'f1_multiclass_top5_micro': torchmetrics.F1Score(num_classes=num_cls, average='micro', task='multiclass', top_k=5).to(self.device),
+            'f1_multiclass_top5_macro': torchmetrics.F1Score(num_classes=num_cls, average='macro', task='multiclass', top_k=5).to(self.device),
+        }
+
+        if report_top5:
+            self.dict_of_metrics = {**self.dict_of_metrics_top1, **self.dict_of_metrics_top5}
+        else:
+            self.dict_of_metrics = self.dict_of_metrics_top1
 
         self.dict_of_plottings = {
             # ----- plotting -----

@@ -208,21 +208,22 @@ class ImgExplDataset(Dataset):
                 self.clsname2groupname[cls_name] = grp_name
 
         # ----- pre-extraction of image embeddings -----
-        print('- Use img_embeddings_save_dir: ', img_embeddings_save_dir)
-        if Path(img_embeddings_save_dir.format(split_name)).exists():
-            print('Exist! Just load to use')
-            self.img_embs = torch.load(img_embeddings_save_dir.format(split_name))
-            self.labels = torch.load(labels_save_dir.format(split_name))
-        else:
-            print('Not exist! Jump into a function to start the extraction')
-            if split_name == 'train':
-                self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
-                                                                                       transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
+        if use_extracted_embs:
+            print('- Use img_embeddings_save_dir: ', img_embeddings_save_dir)
+            if Path(img_embeddings_save_dir.format(split_name)).exists():
+                print('Exist! Just load to use')
+                self.img_embs = torch.load(img_embeddings_save_dir.format(split_name))
+                self.labels = torch.load(labels_save_dir.format(split_name))
             else:
-                self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
-                                                                                       transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=False, n_iters=self.n_iters)
-            torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
-            torch.save(self.labels, labels_save_dir.format(split_name))
+                print('Not exist! Jump into a function to start the extraction')
+                if split_name == 'train':
+                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                                                                                           transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
+                else:
+                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                                                                                           transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=False, n_iters=self.n_iters)
+                torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
+                torch.save(self.labels, labels_save_dir.format(split_name))
         
         self.use_extracted_embs = use_extracted_embs
 
@@ -251,12 +252,12 @@ class ImgExplDataset(Dataset):
             img = self.img_embs[idx]
         else:
             img_path = self.img_names[idx] # Absolute path to a specific image
-            img = self.loader(img_path)
+            img = self.loader(img_path) # PIL image object
 
             if self.transform is not None: # self.transform is passed through the datamodule in the file 'cub2011parts_datamodule'
                 image_np = np.array(img) # img is a PIL with (153, 264); image_np.shape: (264, 153, 3)
-                transformed = self.transform(image=image_np)
-                img = transformed['image'] # shape: (3, 224, 224)
+                transformed = self.transform(image=image_np) # a dictionary of a key 'image'
+                img = transformed['image'] # shape: (3, 448, 448)
 
         expl = self._get_explanations(int_target)
 

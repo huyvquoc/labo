@@ -67,20 +67,20 @@ class CTCModel(pl.LightningModule):
 
         # ---------- FOR PARENT CLASSES ----------
         ### train ###
-        self.train_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_sup_cls')
+        self.train_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_sup_cls', report_top5=False)
         ### val ###
-        self.val_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_sup_cls')
+        self.val_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_sup_cls', report_top5=False)
         ### test ###
-        self.test_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_sup_cls')
+        self.test_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_sup_cls', report_top5=False)
         # ----------------------------------------
 
         # ---------- FOR QK OF PARENT CLASSES ----------
         ### train ###
-        self.train_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_qk_hierarchy')
+        self.train_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_qk_hierarchy', report_top5=False)
         ### val ###
-        self.val_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_qk_hierarchy')
+        self.val_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_qk_hierarchy', report_top5=False)
         ### test ###
-        self.test_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_qk_hierarchy')
+        self.test_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_qk_hierarchy', report_top5=False)
         # ----------------------------------------
 
         self.best_val_metric = None

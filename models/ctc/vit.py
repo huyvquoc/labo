@@ -38,6 +38,7 @@ def cub_cvit(cfg, class_names, concept2cls, baseline=False, *args, **kwargs):
             ckpt_path=cfg.ckpt_path,
             concept_embeddings_save_dir=cfg.concept_embeddings_save_dir,
             use_extracted_img_embs=cfg.use_extracted_img_embs,
+            use_patches_embeddings=cfg.use_patches_embeddings,
             only_visual_trunk=cfg.only_visual_trunk,
             set_learnable_prompts=cfg.set_learnable_prompts,
             *args,
@@ -153,6 +154,7 @@ class CVIT(nn.Module):
         ckpt_path=None, # only for loading conch model
         concept_embeddings_save_dir=None,
         use_extracted_img_embs=True,
+        use_patches_embeddings=False,
         only_visual_trunk=False,
         set_learnable_prompts=False,
         *args,
@@ -201,38 +203,53 @@ class CVIT(nn.Module):
         )
 
         self.use_extracted_img_embs = use_extracted_img_embs
+        self.use_patches_embeddings = use_patches_embeddings
 
     def forward(self, x, x_concepts):
         '''
         Inputs:
-        - Original images - x.shape: (batch_size, 3, 224, 224)
+        - Original images - x.shape: (batch_size, 3, 224, 224) or (batch_size, 3, 448, 448) for GlomCrawl
         - x_concepts: can be original raw concepts `self.concept_raw` (630,) OR extracted embeddings `self.concepts` (630, 512)
         OR
         - Extracted embeds - x.shape: (batch_size, 512) or (batch_size, 768) for conch.vision.trunk
         '''
         if not self.use_extracted_img_embs:
-            x = self.feature_extractor.patch_embed(x) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16)) shape (128, 14, 14, 768)
-            if self.model_name == 'conch_ViT-B-16':
-                x = torch.flatten(x, start_dim=1, end_dim=2) # (128, 196, 768)
+            if self.use_patches_embeddings:
+                x = self.feature_extractor.patch_embed(x) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16)) shape (128, 14, 14, 768)
+                if self.model_name == 'conch_ViT-B-16':
+                    x = torch.flatten(x, start_dim=1, end_dim=2) # (128, 196, 768)
 
-            cls_token = self.feature_extractor.cls_token.expand( # self.feature_extractor.cls_token.shape: (1, 1, 1024)
-                x.shape[0], -1, -1
-            )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (990, 1, 768)
+                cls_token = self.feature_extractor.cls_token.expand( # self.feature_extractor.cls_token.shape: (1, 1, 1024)
+                    x.shape[0], -1, -1
+                )  # stole cls_tokens impl from Phil Wang, thanks, cls_token.shape: (32, 1, 1024), TODO: CoCa model.visual.trunk.cls_token (torch.nn.parameter.Parameter) with shape (990, 1, 768)
 
-            # self.feature_extractor.dist_token.shape: (1, 1, 1024)
-            if not hasattr(self.feature_extractor, 'dist_token') or self.feature_extractor.dist_token is None: # yes, dist token is None, TODO: CoCa has no dist_token too: model.visual.trunk.dist_token
-                x = torch.cat((cls_token, x), dim=1) # x.shape: (32, 197, 1024)
-            else:
-                x = torch.cat((cls_token, self.feature_extractor.dist_token.expand(x.shape[0], -1, -1), x), dim=1)
+                # self.feature_extractor.dist_token.shape: (1, 1, 1024)
+                if not hasattr(self.feature_extractor, 'dist_token') or self.feature_extractor.dist_token is None: # yes, dist token is None, TODO: CoCa has no dist_token too: model.visual.trunk.dist_token
+                    x = torch.cat((cls_token, x), dim=1) # x.shape: (32, 197, 1024)
+                else:
+                    x = torch.cat((cls_token, self.feature_extractor.dist_token.expand(x.shape[0], -1, -1), x), dim=1)
         
-            # TODO: CoCa model.visual.trunk.pos_embed.shape: (1, 785, 768), model.visual.trunk.pos_drop: Dropout(p=0.0, inplace=False)
-            x = self.feature_extractor.pos_drop(x + self.feature_extractor.pos_embed) # self.feature_extractor.pos_embed.shape: (1, 197, 1024), x.shape: (32, 197, 1024)
-            # TODO: CoCa model.visual.trunk.blocks: 12 blocks (id 0 -> 11)
-            x = self.feature_extractor.blocks(x) # shape: (32, 197, 1024)
-            # TODO: CoCa model.visual.trunk.norm: LayerNorm((768,), eps=1e-06, elementwise_affine=True)
-            x = self.feature_extractor.norm(x) # shape: (32, 197, 1024)
+                # TODO: CoCa model.visual.trunk.pos_embed.shape: (1, 785, 768), model.visual.trunk.pos_drop: Dropout(p=0.0, inplace=False)
+                x = self.feature_extractor.pos_drop(x + self.feature_extractor.pos_embed) # self.feature_extractor.pos_embed.shape: (1, 197, 1024), x.shape: (32, 197, 1024)
+                # TODO: CoCa model.visual.trunk.blocks: 12 blocks (id 0 -> 11)
+                x = self.feature_extractor.blocks(x) # shape: (32, 197, 1024)
+                # TODO: CoCa model.visual.trunk.norm: LayerNorm((768,), eps=1e-06, elementwise_affine=True)
+                x = self.feature_extractor.norm(x) # shape: (32, 197, 1024)
+
+                x /= x.norm(dim=-1, keepdim=True) # shape (990, 1, 512)
+            else:
+                # Reference from CONCH's authors: /conch/open_clip_custom/vision_tower.py 
+                # x is an image tensor with shape(batch_size, 3, 448, 448)
+                # image_latent, tokens_embs = self.feature_extractor.visual(x)
+
+                x = self.feature_extractor.visual.trunk(x) # (990, 785, 768)
+                x = self.feature_extractor.visual.attn_pool_contrast(x)[:, 0] # single query, shape (990, 512)
+                x = self.feature_extractor.visual.ln_contrast(x) # shape (990, 512)
+                x = x @ self.feature_extractor.visual.proj_contrast # shape (990, 512)
+
+                x = F.normalize(x, dim=-1) # shape (990, 512)
+                x = x[:, None, :]
  
-        x /= x.norm(dim=-1, keepdim=True)
 
         out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn, qk_parent_class = self.classifier(
             x[:, 0].unsqueeze(1), x[:, 1:], x_concepts # shape: cls token: (32, 1, 1024) and remaining: (32, 196, 1024)
