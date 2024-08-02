@@ -32,9 +32,9 @@
                     "PYTHONPATH":"${PYTHONPATH}:/data/hqvo3/codes/CONCH"},
             "args": [
                 "--cfg",
-                "cfg/asso_opt/GlomCrawl/GlomCrawl_allshot_fac_unfreeze_wo_wb.py",
+                "cfg/asso_opt/GlomCrawl/GlomCrawl_allshot_fac_wo_wb.py",
                 "--work-dir",
-                "exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac_unfreezze",
+                "exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac_debug",
                 "--func",
                 "concept_trans_main",
             ]
