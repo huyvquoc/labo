@@ -1,7 +1,7 @@
 _base_ = 'GlomCrawl_base.py'
 n_shots = "all"
 data_root = 'exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac'
-plotting_dir = 'output/concept_trans/figs_all_unfreeze_without_weight_balance_lsmoothing1' # for plotting only when model checkpoint
+plotting_dir = 'output/concept_trans/figs_all_unfreeze_without_weight_balance_lsmoothing1_version3' # for plotting only when model checkpoint
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_micro' # for plotting only when model checkpoint
 lr = 1e-2
 bs = 512
@@ -17,7 +17,7 @@ submodular_weights = [1e7, 1]
 # ----- only for ConceptTransformer -----
 weight_decay = 1e-12
 disable_lr_scheduler = False
-warmup = 1000
+warmup = 500
 group_lambda = 3.0
 qk_group_lambda = 3.0
 expl_lambda = 2.0
@@ -61,5 +61,5 @@ use_attn_parent_branch=True
 balanced_weights = None
 balanced_weights_parents = None
 
-# --- whether to extract patch-level embeddings for each input image ---
+# --- whether to extract patch-level embeddings for each input image (True) or unfreeze vision backbone (False) ---
 use_patches_embeddings = False

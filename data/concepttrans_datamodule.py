@@ -359,6 +359,10 @@ class ImgExplDataModule(pl.LightningDataModule):
         - if allowing grad to image, provide (image, label)
         - if allowing grad to text, compute concept_feat inside the model        
         """
+        # check if val and test set are completely different
+        for img_val_path in self.dict_of_img_paths['val']:
+            assert img_val_path not in self.dict_of_img_paths['test']
+
         self.datasets = {
             mode: ImgExplDataset(list_of_img_names=self.dict_of_img_paths[mode], \
                                  list_of_labels=self.dict_of_labels[mode], \

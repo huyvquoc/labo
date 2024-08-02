@@ -485,6 +485,6 @@ def get_criterion(cfg):
         return APLLoss(gamma_neg=1, gamma_pos=2, clip=0.05, eps=1e-8, disable_torch_grad_focal_loss=True)
     elif cfg.main_loss == 'ANLSLoss':
         # balanced_weights_parents = [1.6779661016949152, 0.5981873111782477, 1.9223300970873787, 2.302325581395349, 0.5625]
-        return ANLSLoss(label_smooth=0.1, balanced_weights=cfg.balanced_weights, balanced_weights_parents=cfg.balanced_weights_parents)
+        return ANLSLoss(label_smooth=0.2, balanced_weights=cfg.balanced_weights, balanced_weights_parents=cfg.balanced_weights_parents)
     else:
         raise ValueError(f"Not supported loss {cfg.main_loss}")

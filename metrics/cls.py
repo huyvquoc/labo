@@ -18,70 +18,74 @@ class MetricsCalculator:
         self.num_cls = num_cls
         self.report_top5 = report_top5
 
+        # self.dict_of_metrics_top1 = {
+        #     # ----- accuracy -----
+        #     'acc_multiclass_top1_micro': torchmetrics.Accuracy(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
+        #     'acc_multiclass_top1_macro': torchmetrics.Accuracy(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
+        #     # 'acc_multiclass_top1_noavg': torchmetrics.Accuracy(num_classes=num_cls, average=None, task='multiclass').to(self.device),
+        #     # 'acc_multilabel_thresh0.3_micro': torchmetrics.Accuracy(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
+        #     # 'acc_multilabel_thresh0.5_micro': torchmetrics.Accuracy(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
+        #     # 'acc_multilabel_thresh0.7_micro': torchmetrics.Accuracy(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7).to(self.device),
+        #     # 'acc_multilabel_thresh0.3_macro': torchmetrics.Accuracy(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3).to(self.device),
+        #     # 'acc_multilabel_thresh0.5_macro': torchmetrics.Accuracy(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5).to(self.device),
+        #     # 'acc_multilabel_thresh0.7_macro': torchmetrics.Accuracy(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7).to(self.device),
+    
+        #     # ----- precision -----
+        #     'precision_multiclass_top1_micro': torchmetrics.Precision(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
+        #     'precision_multiclass_top1_macro': torchmetrics.Precision(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
+        #     # 'precision_multiclass_top1_noavg': torchmetrics.Precision(num_classes=num_cls, average=None, task='multiclass').to(self.device),
+        #     # 'precision_multilabel_thresh0.3_micro': torchmetrics.Precision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
+        #     # 'precision_multilabel_thresh0.5_micro': torchmetrics.Precision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
+        #     # 'precision_multilabel_thresh0.7_micro': torchmetrics.Precision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7).to(self.device),
+        #     # 'precision_multilabel_thresh0.3_macro': torchmetrics.Precision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3).to(self.device),
+        #     # 'precision_multilabel_thresh0.5_macro': torchmetrics.Precision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5).to(self.device),
+        #     # 'precision_multilabel_thresh0.7_macro': torchmetrics.Precision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7).to(self.device),
+    
+        #     # ----- recall -----
+        #     'recall_multiclass_top1_micro': torchmetrics.Recall(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
+        #     'recall_multiclass_top1_macro': torchmetrics.Recall(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
+        #     # 'recall_multiclass_top1_noavg': torchmetrics.Recall(num_classes=num_cls, average=None, task='multiclass').to(self.device),
+        #     # 'recall_multilabel_thresh0.3_micro': torchmetrics.Recall(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
+        #     # 'recall_multilabel_thresh0.5_micro': torchmetrics.Recall(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
+        #     # 'recall_multilabel_thresh0.7_micro': torchmetrics.Recall(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7).to(self.device),
+        #     # 'recall_multilabel_thresh0.3_macro': torchmetrics.Recall(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3).to(self.device),
+        #     # 'recall_multilabel_thresh0.5_macro': torchmetrics.Recall(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5).to(self.device),
+        #     # 'recall_multilabel_thresh0.7_macro': torchmetrics.Recall(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7).to(self.device),
+    
+        #     # ----- f1 -----
+        #     'f1_multiclass_top1_micro': torchmetrics.F1Score(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
+        #     'f1_multiclass_top1_macro': torchmetrics.F1Score(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
+        #     # 'f1_multiclass_top1_noavg': torchmetrics.F1Score(num_classes=num_cls, average=None, task='multiclass').to(self.device),
+        #     # 'f1_multilabel_thresh0.3_micro': torchmetrics.F1Score(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
+        #     # 'f1_multilabel_thresh0.5_micro': torchmetrics.F1Score(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
+        #     # 'f1_multilabel_thresh0.7_micro': torchmetrics.F1Score(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7).to(self.device),
+        #     # 'f1_multilabel_thresh0.3_macro': torchmetrics.F1Score(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3).to(self.device),
+        #     # 'f1_multilabel_thresh0.5_macro': torchmetrics.F1Score(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5).to(self.device),
+        #     # 'f1_multilabel_thresh0.7_macro': torchmetrics.F1Score(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7).to(self.device),
+    
+        #     # ----- auroc score -----
+        #     # 'auroc_score_multiclass_noavg': torchmetrics.AUROC(num_classes=num_cls, average=None, task='multiclass').to(self.device), # 'summarizes the ROC curve into a single number that describes the performance of a model for multiple thresholds at the same time'
+        #     'auroc_score_multiclass_macro': torchmetrics.AUROC(num_classes=num_cls, average='macro', task='multiclass').to(self.device),
+        #     # 'auroc_score_multilabel_thresh0.3_micro': torchmetrics.AUROC(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3),
+        #     # 'auroc_score_multilabel_thresh0.5_micro': torchmetrics.AUROC(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5),
+        #     # 'auroc_score_multilabel_thresh0.7_micro': torchmetrics.AUROC(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7),
+        #     # 'auroc_score_multilabel_thresh0.3_macro': torchmetrics.AUROC(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3),
+        #     # 'auroc_score_multilabel_thresh0.5_macro': torchmetrics.AUROC(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5),
+        #     # 'auroc_score_multilabel_thresh0.7_macro': torchmetrics.AUROC(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7),
+    
+        #     # ----- ap score -----
+        #     # 'ap_score_multiclass_noavg': torchmetrics.AveragePrecision(num_classes=num_cls, average=None, task='multiclass').to(self.device), # summarizes the precision-recall curve as an weighted mean of precisions at each threshold, with the difference in recall from the previous threshold as weight
+        #     'ap_score_multiclass_macro': torchmetrics.AveragePrecision(num_classes=num_cls, average='macro', task='multiclass').to(self.device),
+        #     # 'ap_score_multilabel_thresh0.3_micro': torchmetrics.AveragePrecision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3),
+        #     # 'ap_score_multilabel_thresh0.5_micro': torchmetrics.AveragePrecision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5),
+        #     # 'ap_score_multilabel_thresh0.7_micro': torchmetrics.AveragePrecision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7),
+        #     # 'ap_score_multilabel_thresh0.3_macro': torchmetrics.AveragePrecision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3),
+        #     # 'ap_score_multilabel_thresh0.5_macro': torchmetrics.AveragePrecision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5),
+        #     # 'ap_score_multilabel_thresh0.7_macro': torchmetrics.AveragePrecision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7),
+        # }
+        
         self.dict_of_metrics_top1 = {
-            # ----- accuracy -----
             'acc_multiclass_top1_micro': torchmetrics.Accuracy(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
-            'acc_multiclass_top1_macro': torchmetrics.Accuracy(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
-            # 'acc_multiclass_top1_noavg': torchmetrics.Accuracy(num_classes=num_cls, average=None, task='multiclass').to(self.device),
-            # 'acc_multilabel_thresh0.3_micro': torchmetrics.Accuracy(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
-            # 'acc_multilabel_thresh0.5_micro': torchmetrics.Accuracy(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
-            # 'acc_multilabel_thresh0.7_micro': torchmetrics.Accuracy(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7).to(self.device),
-            # 'acc_multilabel_thresh0.3_macro': torchmetrics.Accuracy(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3).to(self.device),
-            # 'acc_multilabel_thresh0.5_macro': torchmetrics.Accuracy(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5).to(self.device),
-            # 'acc_multilabel_thresh0.7_macro': torchmetrics.Accuracy(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7).to(self.device),
-    
-            # ----- precision -----
-            'precision_multiclass_top1_micro': torchmetrics.Precision(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
-            'precision_multiclass_top1_macro': torchmetrics.Precision(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
-            # 'precision_multiclass_top1_noavg': torchmetrics.Precision(num_classes=num_cls, average=None, task='multiclass').to(self.device),
-            # 'precision_multilabel_thresh0.3_micro': torchmetrics.Precision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
-            # 'precision_multilabel_thresh0.5_micro': torchmetrics.Precision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
-            # 'precision_multilabel_thresh0.7_micro': torchmetrics.Precision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7).to(self.device),
-            # 'precision_multilabel_thresh0.3_macro': torchmetrics.Precision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3).to(self.device),
-            # 'precision_multilabel_thresh0.5_macro': torchmetrics.Precision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5).to(self.device),
-            # 'precision_multilabel_thresh0.7_macro': torchmetrics.Precision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7).to(self.device),
-    
-            # ----- recall -----
-            'recall_multiclass_top1_micro': torchmetrics.Recall(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
-            'recall_multiclass_top1_macro': torchmetrics.Recall(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
-            # 'recall_multiclass_top1_noavg': torchmetrics.Recall(num_classes=num_cls, average=None, task='multiclass').to(self.device),
-            # 'recall_multilabel_thresh0.3_micro': torchmetrics.Recall(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
-            # 'recall_multilabel_thresh0.5_micro': torchmetrics.Recall(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
-            # 'recall_multilabel_thresh0.7_micro': torchmetrics.Recall(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7).to(self.device),
-            # 'recall_multilabel_thresh0.3_macro': torchmetrics.Recall(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3).to(self.device),
-            # 'recall_multilabel_thresh0.5_macro': torchmetrics.Recall(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5).to(self.device),
-            # 'recall_multilabel_thresh0.7_macro': torchmetrics.Recall(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7).to(self.device),
-    
-            # ----- f1 -----
-            'f1_multiclass_top1_micro': torchmetrics.F1Score(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
-            'f1_multiclass_top1_macro': torchmetrics.F1Score(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
-            # 'f1_multiclass_top1_noavg': torchmetrics.F1Score(num_classes=num_cls, average=None, task='multiclass').to(self.device),
-            # 'f1_multilabel_thresh0.3_micro': torchmetrics.F1Score(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3).to(self.device),
-            # 'f1_multilabel_thresh0.5_micro': torchmetrics.F1Score(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5).to(self.device),
-            # 'f1_multilabel_thresh0.7_micro': torchmetrics.F1Score(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7).to(self.device),
-            # 'f1_multilabel_thresh0.3_macro': torchmetrics.F1Score(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3).to(self.device),
-            # 'f1_multilabel_thresh0.5_macro': torchmetrics.F1Score(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5).to(self.device),
-            # 'f1_multilabel_thresh0.7_macro': torchmetrics.F1Score(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7).to(self.device),
-    
-            # ----- auroc score -----
-            # 'auroc_score_multiclass_noavg': torchmetrics.AUROC(num_classes=num_cls, average=None, task='multiclass').to(self.device), # 'summarizes the ROC curve into a single number that describes the performance of a model for multiple thresholds at the same time'
-            'auroc_score_multiclass_macro': torchmetrics.AUROC(num_classes=num_cls, average='macro', task='multiclass').to(self.device),
-            # 'auroc_score_multilabel_thresh0.3_micro': torchmetrics.AUROC(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3),
-            # 'auroc_score_multilabel_thresh0.5_micro': torchmetrics.AUROC(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5),
-            # 'auroc_score_multilabel_thresh0.7_micro': torchmetrics.AUROC(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7),
-            # 'auroc_score_multilabel_thresh0.3_macro': torchmetrics.AUROC(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3),
-            # 'auroc_score_multilabel_thresh0.5_macro': torchmetrics.AUROC(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5),
-            # 'auroc_score_multilabel_thresh0.7_macro': torchmetrics.AUROC(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7),
-    
-            # ----- ap score -----
-            # 'ap_score_multiclass_noavg': torchmetrics.AveragePrecision(num_classes=num_cls, average=None, task='multiclass').to(self.device), # summarizes the precision-recall curve as an weighted mean of precisions at each threshold, with the difference in recall from the previous threshold as weight
-            'ap_score_multiclass_macro': torchmetrics.AveragePrecision(num_classes=num_cls, average='macro', task='multiclass').to(self.device),
-            # 'ap_score_multilabel_thresh0.3_micro': torchmetrics.AveragePrecision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.3),
-            # 'ap_score_multilabel_thresh0.5_micro': torchmetrics.AveragePrecision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.5),
-            # 'ap_score_multilabel_thresh0.7_micro': torchmetrics.AveragePrecision(num_labels=num_cls, average='micro', task='multilabel', threshold=0.7),
-            # 'ap_score_multilabel_thresh0.3_macro': torchmetrics.AveragePrecision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.3),
-            # 'ap_score_multilabel_thresh0.5_macro': torchmetrics.AveragePrecision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.5),
-            # 'ap_score_multilabel_thresh0.7_macro': torchmetrics.AveragePrecision(num_labels=num_cls, average='macro', task='multilabel', threshold=0.7),
         }
 
         self.dict_of_metrics_top5 = {

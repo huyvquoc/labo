@@ -58,11 +58,11 @@ class CTCModel(pl.LightningModule):
 
         # ---------- FOR CHILD CLASSES ----------
         ### train ###
-        self.train_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='train_main_cls')
+        self.train_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='train_main_cls', report_top5=False)
         ### val ###
-        self.val_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='val_main_cls')
+        self.val_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='val_main_cls', report_top5=False)
         ### test ###
-        self.test_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='test_main_cls')
+        self.test_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='test_main_cls', report_top5=False)
         # ----------------------------------------
 
         # ---------- FOR PARENT CLASSES ----------
@@ -88,6 +88,9 @@ class CTCModel(pl.LightningModule):
         self.all_y = []
         self.all_pred = []
         self.all_logit = []
+
+        self.val_step_outputs = []
+        self.val_step_targets = []
         # self.confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=self.cfg.num_cls)
         # self.balanced_weights = torch.DoubleTensor(cfg.balanced_weights).cuda()
         self.criterion = get_criterion(cfg)
@@ -249,21 +252,22 @@ class CTCModel(pl.LightningModule):
             # group_perf_dict = self.val_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
             qk_group_perf_dict = self.val_qk_group_perf_calc.generate_dict_of_metrics(logits_qk_parent_class, y_group)
 
-            # plotting
-            if self.best_val_metric is None or perf_dict[self.cfg.best_val_metric_name] >= self.best_val_metric:
-                os.makedirs(self.cfg.plotting_dir, exist_ok=True)
-                if len(os.listdir(self.cfg.plotting_dir)) != 0:
-                    for old_plot in os.listdir(self.cfg.plotting_dir):
-                        old_plot_path = os.path.join(self.cfg.plotting_dir, old_plot)
-                        os.unlink(old_plot_path)
+            if self.cfg.do_val_plotting:
+                # plotting
+                if self.best_val_metric is None or perf_dict[self.cfg.best_val_metric_name] >= self.best_val_metric:
+                    os.makedirs(self.cfg.plotting_dir, exist_ok=True)
+                    if len(os.listdir(self.cfg.plotting_dir)) != 0:
+                        for old_plot in os.listdir(self.cfg.plotting_dir):
+                            old_plot_path = os.path.join(self.cfg.plotting_dir, old_plot)
+                            os.unlink(old_plot_path)
 
-                val_metric_info = ''.join([self.cfg.best_val_metric_name, '_', str(perf_dict[self.cfg.best_val_metric_name].item())])
-                print(f'[**] Found new best val metric !! - {val_metric_info}')
-                self.val_perf_calc.generate_plots(logits, y, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
-                self.val_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
+                    val_metric_info = ''.join([self.cfg.best_val_metric_name, '_', str(perf_dict[self.cfg.best_val_metric_name].item())])
+                    print(f'[**] Found new best val metric !! - {val_metric_info}')
+                    self.val_perf_calc.generate_plots(logits, y, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
+                    self.val_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
 
-                self.best_val_metric = perf_dict[self.cfg.best_val_metric_name]
-            # self.log()
+                    self.best_val_metric = perf_dict[self.cfg.best_val_metric_name]
+                # self.log()
         elif stage == 'test':
             perf_dict = self.test_perf_calc.generate_dict_of_metrics(logits, y)
             # group_perf_dict = self.test_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
@@ -273,6 +277,16 @@ class CTCModel(pl.LightningModule):
             self.all_y.append(y)
             self.all_pred.append(preds)
             self.all_logit.append(logits)
+
+            os.makedirs(self.cfg.plotting_dir, exist_ok=True)
+            if len(os.listdir(self.cfg.plotting_dir)) != 0:
+                for old_plot in os.listdir(self.cfg.plotting_dir):
+                    old_plot_path = os.path.join(self.cfg.plotting_dir, old_plot)
+                    os.unlink(old_plot_path)
+
+            test_metric_info = 'test'
+            self.test_perf_calc.generate_plots(logits, y, save_dir=self.cfg.plotting_dir, suffix=test_metric_info)
+            self.test_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=self.cfg.plotting_dir, suffix=test_metric_info)
 
 
         expl_loss = concepts_cost(concept_attn, expl) + spatial_concepts_cost( # PRED concept_attn.shape: (32, 1, 13), TARGET expl.shape: (32, 13); for glom crawl concept_attn.shape (990, 1, 630) and expl.shape (990, 630)
@@ -395,6 +409,8 @@ class CTCModel(pl.LightningModule):
         return all_metrics_dict['test_main_cls_acc_multiclass_top1_micro']
         # return loss # LaBo
         # ==================== ConceptTransformer ends here ====================
+
+    # def on_validation_epoch_end(self):
 
     # def test_epoch_end(self, outputs):
     #     # ==================== LaBo starts here ====================
