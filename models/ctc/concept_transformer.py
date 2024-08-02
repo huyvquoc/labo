@@ -347,7 +347,7 @@ class CTCModel(pl.LightningModule):
         # ==================== LaBo starts here ====================
         if not self.cfg.DEBUG:
             if self.global_step == 0 and not self.cfg.DEBUG:
-                wandb.define_metric('val_acc', summary='max')
+                wandb.define_metric(self.cfg.best_val_metric_name, summary='max')
         # ==================== LaBo ends here ====================
         # ==================== ConceptTransformer starts here ====================
         '''
