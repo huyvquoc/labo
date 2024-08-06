@@ -165,7 +165,8 @@ class ImgPreExtEmbsDataset(Dataset):
         return img, label
 
 class ImgExplDataset(Dataset):
-    def __init__(self,  \
+    def __init__(self, \
+                 model_name=None, \
                  list_of_img_names=[], \
                  list_of_labels=[], \
                  cls_names=None, \
@@ -184,6 +185,7 @@ class ImgExplDataset(Dataset):
 
         self.loader = default_loader
 
+        self.model_name = model_name
         self.img_names = list_of_img_names # train, val, or test. read pickle file in pl.DataModule
         self.labels = list_of_labels
         self.num_concept = num_concept
@@ -217,10 +219,10 @@ class ImgExplDataset(Dataset):
             else:
                 print('Not exist! Jump into a function to start the extraction')
                 if split_name == 'train':
-                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
                                                                                            transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
                 else:
-                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
                                                                                            transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=False, n_iters=self.n_iters)
                 torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
                 torch.save(self.labels, labels_save_dir.format(split_name))
@@ -239,6 +241,8 @@ class ImgExplDataset(Dataset):
             index (int): Index
         Returns:
             tuple: (PIL image, target) where target is index of the target class.
+            or:
+            tupe: (image embedding, target)
         """
         int_target = self.labels[idx]
         target = torch.tensor(int_target, dtype=torch.long)
@@ -321,12 +325,19 @@ class ImgExplDataModule(pl.LightningDataModule):
         self.concept_raw = np.load(self.concept_raw_path)[self.select_idx] # shape: (630, )
         self.concept2cls = torch.from_numpy(np.load(self.concept2cls_path)[self.select_idx]).long().view(1, -1) # shape: (1, 630)
 
-        resized_img_dim = 224
         if model_name == 'conch_ViT-B-16':
             resized_img_dim = 448
+            mean_tuple = (0.48145466, 0.4578275, 0.40821073)
+            std_tuple = (0.26862954, 0.26130258, 0.27577711)
+        else:
+            # === OPENCLIP ===
+            resized_img_dim = 224
+            mean_tuple = (0.5, 0.5, 0.5)
+            std_tuple = (0.5, 0.5, 0.5)
+
         self.transform = build_transform_dict(input_size=resized_img_dim, 
-                                              norm_mean=(0.48145466, 0.4578275, 0.40821073), # these numbers are taken from CONCH's preprocess
-                                              norm_std=(0.26862954, 0.26130258, 0.27577711), # these numbers are taken from CONCH's preprocess
+                                              norm_mean=mean_tuple, # these numbers are taken from CONCH's preprocess
+                                              norm_std=std_tuple, # these numbers are taken from CONCH's preprocess
                                               level=self.cfg.aug_level)
 
     def transfer_batch_to_device(self, batch, device, dataloader_idx):
@@ -364,7 +375,8 @@ class ImgExplDataModule(pl.LightningDataModule):
             assert img_val_path not in self.dict_of_img_paths['test']
 
         self.datasets = {
-            mode: ImgExplDataset(list_of_img_names=self.dict_of_img_paths[mode], \
+            mode: ImgExplDataset(model_name=self.cfg.clip_model,
+                                 list_of_img_names=self.dict_of_img_paths[mode], \
                                  list_of_labels=self.dict_of_labels[mode], \
                                  cls_names=self.cls_names, \
                                  groupname2clsname=self.cfg.groupname2clsname, \

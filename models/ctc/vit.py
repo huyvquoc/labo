@@ -91,9 +91,9 @@ def one_forward_of_vlm_foundation_img_branch(feature_extractor, preprocessed_img
 
     return x
 
-def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, list_of_labels, dataset_class, transform_compose, only_visual_trunk=False, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin', do_aug=False, n_iters=10):
+def extract_img_embs_using_conch_visual_trunk(model_name, list_of_img_paths, list_of_labels, dataset_class, transform_compose, only_visual_trunk=False, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin', do_aug=False, n_iters=10):
     '''
-    This function is mostly used in the data module file
+    This function is mostly used in the concepttrans data module file
 
     Inputs:
     - list_of_img_paths (list): list of absolute image paths
@@ -106,14 +106,21 @@ def extract_img_embs_using_conch_visual_trunk(list_of_img_paths, list_of_labels,
 
     print('- Start extract img embeddings...')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    feature_extractor, preprocess = create_model_from_pretrained('conch_ViT-B-16', ckpt_path, device=device)
-    if only_visual_trunk:
-        feature_extractor = feature_extractor.visual.trunk
+
+    if model_name == 'conch_ViT-B-16':
+        feature_extractor, preprocess = create_model_from_pretrained(model_name, ckpt_path, device=device)
+        if only_visual_trunk:
+            feature_extractor = feature_extractor.visual.trunk
+    else:
+        # === OPENCLIP ===
+        feature_extractor, preprocess, _ = open_clip.create_model_and_transforms(model_name, pretrained='laion2b_s32b_b82k', device=device)
+
 
     list_of_img_embs = []
     list_of_new_labels = [] # only change when there are augmentations
     if do_aug:
       for idx in range(n_iters):
+          print('[**] aug idx: ', idx)
           stream = tqdm.tqdm(predict_loader)
           for jdx, (images, labels) in enumerate(stream, start=1):
               images = images.to(device, non_blocking=True)
@@ -169,22 +176,28 @@ class CVIT(nn.Module):
 
         self.model_name = model_name
 
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if self.model_name == 'vit_base_patch16_224':
             self.feature_extractor = timm.create_model(self.model_name, pretrained=True, num_classes=num_classes) # CoCa model.visual
             del self.feature_extractor.head
         elif self.model_name == 'conch_ViT-B-16':
-            device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             self.feature_extractor, self.preprocess = create_model_from_pretrained(self.model_name, ckpt_path, device=device)
             if only_visual_trunk:
                 self.feature_extractor = self.feature_extractor.visual.trunk
             # _ = self.feature_extractor.eval()
+            self.embed_dim = self.feature_extractor.embed_dim
+        else:
+            # === OPENCLIP ===
+            # model, preprocess_train, preprocess_val
+            self.feature_extractor, self.preprocess, _ = open_clip.create_model_and_transforms(self.model_name, pretrained='laion2b_s32b_b82k', device=device)
+            self.embed_dim = self.feature_extractor.ln_final.weight.shape[0]
 
         self.set_learnable_prompts = set_learnable_prompts
         self.concept2cls = torch.squeeze(concept2cls)
 
         self.classifier = ConceptTransformerVIT(
             cfg,
-            embedding_dim=self.feature_extractor.embed_dim, # 1024
+            embedding_dim=self.embed_dim, # 1024
             num_classes=num_classes, # 200
             class_names=class_names,
             num_heads=num_heads,
@@ -239,6 +252,7 @@ class CVIT(nn.Module):
 
                 x /= x.norm(dim=-1, keepdim=True) # shape (990, 1, 512)
             else:
+                # === for training with unfrozen vision layers ===
                 # Reference from CONCH's authors: /conch/open_clip_custom/vision_tower.py 
                 # x is an image tensor with shape(batch_size, 3, 448, 448)
                 # image_latent, tokens_embs = self.feature_extractor.visual(x)
@@ -304,6 +318,7 @@ class ConceptTransformerVIT(nn.Module):
         self.model = None
         self.tokenizer = None
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
         if self.model_name == 'conch_ViT-B-16':
             # ----- only for CONCH -----
             self.tokenizer = get_tokenizer()
@@ -316,8 +331,9 @@ class ConceptTransformerVIT(nn.Module):
             if self.concept_embeddings_save_dir.exists():
                 self.concept_embeddings = torch.load(self.concept_embeddings_save_dir).cuda()
         else:
+            # === OPENCLIP ===
             self.tokenizer = open_clip.get_tokenizer(self.model_name) # 'ViT-L-14'
-            self.model, _, self.preprocess = open_clip.create_model_and_transforms(self.model_name, pretrained='laion2b_s32b_b82k') # 'ViT-L-14'
+            self.model, _, self.preprocess = open_clip.create_model_and_transforms(self.model_name, pretrained='laion2b_s32b_b82k', device=self.device) # 'ViT-L-14'
 
             self.concept_embeddings_save_dir = Path(concept_embeddings_save_dir)
             self.concept_embeddings = None
@@ -415,8 +431,15 @@ class ConceptTransformerVIT(nn.Module):
         - text_after_tokenize: is text tokens (630, 128)
         '''
         text_after_tokenize = text_after_tokenize[:, :-1] if embed_cls else text_after_tokenize # make space for CLS token, shape (630, 127)
-        text_latent, token_emb = self._get_text_feat(text_after_token_emb=text_after_token_emb, text_after_tokenize=text_after_tokenize,
-                                                     use_text_projection=True)
+        if self.model_name == 'conch_ViT-B-16':
+            text_latent, token_emb = self._get_text_feat(text_after_token_emb=text_after_token_emb, text_after_tokenize=text_after_tokenize,
+                                                         use_text_projection=True)
+        else:
+            # === OPENCLIP ===
+            text_latent, token_emb = self._get_text_feat_openclip(text_after_token_emb=text_after_token_emb, text_after_tokenize=text_after_tokenize,
+                                                         use_text_projection=True)
+            
+
         text_latent = F.normalize(text_latent, dim=-1) if normalize else text_latent
 
         return text_latent, token_emb
@@ -427,13 +450,20 @@ class ConceptTransformerVIT(nn.Module):
 
         **For hard prompts**
 
+        when only use visual trunk
+
         By default, do normalize (True) and embed_cls (True)
 
         Input:
         - text: is text tokens (630, 128)
         '''
         text = text[:, :-1] if embed_cls else text # make space for CLS token, shape (630, 127)
-        text_latent, token_emb = self._get_text_feat(text_after_tokenize=text)
+
+        if self.model_name == 'conch_ViT-B-16':
+            text_latent, token_emb = self._get_text_feat(text_after_tokenize=text)
+        else:
+            text_latent, token_emb = self._get_text_feat_openclip(text_after_tokenize=text)
+
         text_latent = F.normalize(text_latent, dim=-1) if normalize else text_latent
 
         return text_latent, token_emb
@@ -484,6 +514,30 @@ class ConceptTransformerVIT(nn.Module):
 
         return pooled, tokens # pooled.shape (630, 768) and tokens.shape (630, 127, 768)
 
+    def _get_text_feat_openclip(self, text_after_token_emb=None, text_after_tokenize=None, use_text_projection=False):
+        '''
+        The function is from `open_clip/model.py`
+        '''
+        cast_dtype = self.model.transformer.get_cast_dtype()
+
+        if text_after_token_emb is None:
+            x = self.model.token_embedding(text_after_tokenize).to(cast_dtype)  # [batch_size, n_ctx, d_model]
+        else:
+            x = text_after_token_emb # soft prompt
+
+        x = x + self.model.positional_embedding.to(cast_dtype)
+        x = self.model.transformer(x, attn_mask=self.model.attn_mask)
+        x = self.model.ln_final(x)  # [batch_size, n_ctx, transformer.width]
+        pooled, tokens = self.text_global_pool(x, text_after_tokenize, self.model.text_pool_type)
+
+        if self.model.text_projection is not None and use_text_projection:
+            if isinstance(self.model.text_projection, nn.Linear):
+                pooled = self.model.text_projection(pooled)
+            else:
+                pooled = pooled @ self.model.text_projection
+
+        return pooled, tokens
+
     def forward(self, x_cls, x, x_concepts=None, cls_id=None):
         '''
         - Inputs:
@@ -513,8 +567,8 @@ class ConceptTransformerVIT(nn.Module):
                         with torch.inference_mode():
                             concept_embeddings, _ = self._encode_text(text_tokens)
                     else:
-                        with torch.inference_mode(): # !! do we need to use this when inside forward !!
-                            concept_embeddings = self.model.encode_text(text_tokens) # shape: (630, 512)
+                        with torch.inference_mode(): # for both CONCH and OPENCLIP
+                            concept_embeddings = self.model.encode_text(text_tokens) # shape: conch (630, 512); openclip (630, 768)
 
                     self.concept_embeddings = concept_embeddings[None, :, :]
                     torch.save(self.concept_embeddings, self.concept_embeddings_save_dir)
@@ -574,3 +628,28 @@ class ConceptTransformerVIT(nn.Module):
             out = out + out_s.mean(1)  # pool tokens sequence, shape: (32, 200)
 
         return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn, qk_parent_class
+
+
+
+def text_global_pool(x, text=None, pool_type='argmax'):
+    '''
+    Only for openclip-related functions
+    The function is from openclip repo: `open_clip/transformer.py`
+
+    Inputs:
+    - text (torch.Tensor):
+    - pool_type (str): default to 'argmax'
+
+    '''
+    if pool_type == 'first':
+        pooled, tokens = x[:, 0], x[:, 1:]
+    elif pool_type == 'last':
+        pooled, tokens = x[:, -1], x[:, :-1]
+    elif pool_type == 'argmax':
+        # take features from the eot embedding (eot_token is the highest number in each sequence)
+        assert text is not None
+        pooled, tokens = x[torch.arange(x.shape[0]), text.argmax(dim=-1)], x
+    else:
+        pooled = tokens = x
+ 
+    return pooled, tokens

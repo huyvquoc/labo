@@ -56,7 +56,8 @@ class HierarchyAwarePromptLearner(nn.Module):
             dtype = clip_model.text.transformer.get_cast_dtype() # TODO: if the above does not work
             ctx_dim = clip_model.text.ln_final.weight.shape[0] # 512
         else:
-            dtype = clip_model.dtype # torch.float32
+            # === OPENCLIP ===
+            dtype = clip_model.transformer.get_cast_dtype() # torch.float32
             ctx_dim = clip_model.ln_final.weight.shape[0] # 512
 
         if ctx_init_pos and ctx_init_neg:
@@ -124,14 +125,14 @@ class HierarchyAwarePromptLearner(nn.Module):
         else:
             self.classnames = [name.replace("_", " ") for name in classnames]
 
-        if cfg.clip_model == 'conch_ViT-B-16':
-            name_lens = []
-            for name in self.classnames:
-                if cfg.clip_model == 'conch_ViT-B-16':
-                    name_lens.append(len(tokenize(texts=[name], tokenizer=tokenizer)[:, :-1])) # ref: class name embeddings, `/conch/downstream/zeroshot_path.py`, --- CONCH ---
-                    # clip_model.encode_text(tokenize(texts=name, tokenizer=tokenizer).to(self.device)) # TODO: do we need to use `encode_text`?,
-                else:
-                    name_lens.append(len(tokenizer(name)[:, :-1])) # ref: class name embeddings
+        # if cfg.clip_model == 'conch_ViT-B-16':
+        name_lens = []
+        for name in self.classnames:
+            if cfg.clip_model == 'conch_ViT-B-16':
+                name_lens.append(len(tokenize(texts=[name], tokenizer=tokenizer)[:, :-1])) # ref: class name embeddings, `/conch/downstream/zeroshot_path.py`, --- CONCH ---
+                # clip_model.encode_text(tokenize(texts=name, tokenizer=tokenizer).to(self.device)) # TODO: do we need to use `encode_text`?,
+            else:
+                name_lens.append(len(tokenizer(name)[:, :-1])) # ref: class name embeddings
         # else:
         #     name_lens = [len(_tokenizer.encode(name)) for name in self.classnames] # one class name is converted into multiple token ids
 
