@@ -15,6 +15,7 @@ from .ctc import CrossAttention
 from conch.open_clip_custom import create_model_from_pretrained, tokenize, get_tokenizer
 # from data.pre_ext_dataset import ImgPreExtEmbsDataset
 from models.ctc.prompts import HierarchyAwarePromptLearner
+import open_clip
 
 
 def cub_cvit(cfg, class_names, concept2cls, baseline=False, *args, **kwargs):
@@ -302,13 +303,21 @@ class ConceptTransformerVIT(nn.Module):
 
         self.model = None
         self.tokenizer = None
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if self.model_name == 'conch_ViT-B-16':
             # ----- only for CONCH -----
             self.tokenizer = get_tokenizer()
-            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
             self.model, self.preprocess = create_model_from_pretrained(self.model_name, ckpt_path, device=self.device)
             # _ = self.model.eval()
             # ----- only for CONCH -----
+
+            self.concept_embeddings_save_dir = Path(concept_embeddings_save_dir)
+            self.concept_embeddings = None
+            if self.concept_embeddings_save_dir.exists():
+                self.concept_embeddings = torch.load(self.concept_embeddings_save_dir).cuda()
+        else:
+            self.tokenizer = open_clip.get_tokenizer(self.model_name) # 'ViT-L-14'
+            self.model, _, self.preprocess = open_clip.create_model_and_transforms(self.model_name, pretrained='laion2b_s32b_b82k') # 'ViT-L-14'
 
             self.concept_embeddings_save_dir = Path(concept_embeddings_save_dir)
             self.concept_embeddings = None
@@ -402,7 +411,8 @@ class ConceptTransformerVIT(nn.Module):
         By default, do normalize (True) and embed_cls (True)
 
         Input:
-        - text: is text tokens (630, 128)
+        - text_after_token_emb: (630, 127, 768)
+        - text_after_tokenize: is text tokens (630, 128)
         '''
         text_after_tokenize = text_after_tokenize[:, :-1] if embed_cls else text_after_tokenize # make space for CLS token, shape (630, 127)
         text_latent, token_emb = self._get_text_feat(text_after_token_emb=text_after_token_emb, text_after_tokenize=text_after_tokenize,
@@ -483,18 +493,19 @@ class ConceptTransformerVIT(nn.Module):
         '''
         unsup_concept_attn, concept_attn, spatial_concept_attn = None, None, None
 
+        # ------- Soft context prompts -------
         soft_prompt_embeddings = None
         if self.set_learnable_prompts:
-            prompts, tokenized_prompts = self.prompt_learner(cls_id) # prompts.shape: (5, 127, 512), tokeninzed_prompts.shape: (5, 127)
+            prompts, tokenized_prompts = self.prompt_learner(cls_id) # prompts.shape: (5, 127, 768), tokeninzed_prompts.shape: (5, 127)
             # cls_id: None
             soft_prompt_embeddings, _ = self._encode_learnable_prompts(prompts, tokenized_prompts) # (5, 512)
 
             # normalize features
             # text_features = text_features / text_features.norm(dim=-1, keepdim=True) # shape: (84, 512)
 
-        if self.model_name == 'conch_ViT-B-16':
+        # ------- Hard concept prompts -------
+        if self.model_name is not None:
             if x_concepts is not None:
-                # --- Hard concept prompts ---
                 if self.concept_embeddings is None: # (1, 630, 512)
                     # Case (2): hard concepts in raw
                     text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device) # (630, 128)

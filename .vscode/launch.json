@@ -58,6 +58,17 @@
                 "bs=1024",
                 "ckpt_path='/data/hqvo3/codes/LaBo/exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac/epoch=749-step=11250-val_acc=0.3636.ckpt'",
             ]
+        },
+        {
+            "name": "Demo Open CLIP",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "justMyCode": false,
+            "cwd": "/data/hqvo3/codes/LaBo",
+            "env": {"CUDA_VISIBLE_DEVICES":"1"},
+            "args": [
+            ]
         }
     ]
 }

@@ -67,11 +67,21 @@ class HierarchyAwarePromptLearner(nn.Module):
             ctx_init_neg = ctx_init_neg.replace("_", " ")
             self.n_ctx_pos = len(ctx_init_pos.split(" "))
             self.n_ctx_neg = len(ctx_init_neg.split(" "))
-            prompt_pos = tokenize(texts=ctx_init_pos, tokenizer=tokenizer)[:, :-1].to(self.device) # --- CONCH ---
-            prompt_neg = tokenize(texts=ctx_init_neg, tokenizer=tokenizer)[:, :-1].to(self.device) # --- CONCH ---
+            if cfg.clip_model == 'conch_ViT-B-16':
+                prompt_pos = tokenize(texts=ctx_init_pos, tokenizer=tokenizer)[:, :-1].to(self.device) # --- CONCH ---
+                prompt_neg = tokenize(texts=ctx_init_neg, tokenizer=tokenizer)[:, :-1].to(self.device) # --- CONCH ---
+            else:
+                prompt_pos = tokenizer(ctx_init_pos)[:, :-1].to(self.device)
+                prompt_neg = tokenizer(ctx_init_neg)[:, :-1].to(self.device)
+
             with torch.no_grad():
-                embedding_pos = clip_model.text.token_embedding(prompt_pos).type(dtype) # --- CONCH ---
-                embedding_neg = clip_model.text.token_embedding(prompt_neg).type(dtype) # --- CONCH ---
+                if cfg.clip_model == 'conch_ViT-B-16':
+                    embedding_pos = clip_model.text.token_embedding(prompt_pos).type(dtype) # --- CONCH ---
+                    embedding_neg = clip_model.text.token_embedding(prompt_neg).type(dtype) # --- CONCH ---
+                else:
+                    embedding_pos = clip_model.token_embedding(prompt_pos).type(dtype)
+                    embedding_neg = clip_model.token_embedding(prompt_neg).type(dtype)
+
             ctx_vectors_pos = embedding_pos[0, 1: 1 + self.n_ctx_pos, :]
             ctx_vectors_neg = embedding_neg[0, 1: 1 + self.n_ctx_neg, :]
             prompt_prefix_pos = ctx_init_pos
@@ -117,8 +127,11 @@ class HierarchyAwarePromptLearner(nn.Module):
         if cfg.clip_model == 'conch_ViT-B-16':
             name_lens = []
             for name in self.classnames:
-                name_lens.append(len(tokenize(texts=[name], tokenizer=tokenizer)[:, :-1])) # ref: class name embeddings, `/conch/downstream/zeroshot_path.py`
-                # clip_model.encode_text(tokenize(texts=name, tokenizer=tokenizer).to(self.device)) # TODO: do we need to use `encode_text`?,
+                if cfg.clip_model == 'conch_ViT-B-16':
+                    name_lens.append(len(tokenize(texts=[name], tokenizer=tokenizer)[:, :-1])) # ref: class name embeddings, `/conch/downstream/zeroshot_path.py`, --- CONCH ---
+                    # clip_model.encode_text(tokenize(texts=name, tokenizer=tokenizer).to(self.device)) # TODO: do we need to use `encode_text`?,
+                else:
+                    name_lens.append(len(tokenizer(name)[:, :-1])) # ref: class name embeddings
         # else:
         #     name_lens = [len(_tokenizer.encode(name)) for name in self.classnames] # one class name is converted into multiple token ids
 
@@ -128,13 +141,21 @@ class HierarchyAwarePromptLearner(nn.Module):
         tokenized_prompts_pos = []
         tokenized_prompts_neg = []
         for p_pos, p_neg in zip(prompts_pos, prompts_neg):
-            tokenized_prompts_pos.append(tokenize(texts=[p_pos], tokenizer=tokenizer)[:, :-1].to(self.device)) # --- CONCH --- 
-            tokenized_prompts_neg.append(tokenize(texts=[p_neg], tokenizer=tokenizer)[:, :-1].to(self.device)) # --- CONCH --- 
+            if cfg.clip_model == 'conch_ViT-B-16':
+                tokenized_prompts_pos.append(tokenize(texts=[p_pos], tokenizer=tokenizer)[:, :-1].to(self.device)) # --- CONCH --- 
+                tokenized_prompts_neg.append(tokenize(texts=[p_neg], tokenizer=tokenizer)[:, :-1].to(self.device)) # --- CONCH --- 
+            else:
+                tokenized_prompts_pos.append(tokenizer(p_pos)[:, :-1].to(self.device))
+                tokenized_prompts_neg.append(tokenizer(p_neg)[:, :-1].to(self.device))
         tokenized_prompts_pos = torch.cat(tokenized_prompts_pos) # clip (42, 77) 77 is the number of tokens after using clip.tokenize, conch group: shape(5, 127)
         tokenized_prompts_neg = torch.cat(tokenized_prompts_neg) # clip (42, 77), conch group: shape(5, 127)
         with torch.no_grad():
-            embedding_pos = clip_model.text.token_embedding(tokenized_prompts_pos).type(dtype) # clip (42, 77, 512); conch group (5, 127, 512)
-            embedding_neg = clip_model.text.token_embedding(tokenized_prompts_neg).type(dtype) # clip (42, 77, 512); conch group (5, 127, 512)
+            if cfg.clip_model == 'conch_ViT-B-16':
+                embedding_pos = clip_model.text.token_embedding(tokenized_prompts_pos).type(dtype) # clip (42, 77, 512); conch group (5, 127, 512), --- CONCH ---
+                embedding_neg = clip_model.text.token_embedding(tokenized_prompts_neg).type(dtype) # clip (42, 77, 512); conch group (5, 127, 512), --- CONCH ---
+            else:
+                embedding_pos = clip_model.token_embedding(tokenized_prompts_pos).type(dtype) # clip
+                embedding_neg = clip_model.token_embedding(tokenized_prompts_neg).type(dtype) # clip
 
         # These token vectors will be saved when in save_model(),
         # but they should be ignored in load_model() as we want to use
@@ -232,6 +253,7 @@ class HierarchyAwarePromptLearner(nn.Module):
 
 
         return prompts, tokenized_prompts # after text token embeddings hard-soft-hard (84, 77, 512) (5, 128, 768) and after clip.tokenize (84, 77) (5, 128)
+        # TODO: don't return token embedding `prompts`
 
 
 class TextEncoder(nn.Module):
