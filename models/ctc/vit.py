@@ -518,6 +518,7 @@ class ConceptTransformerVIT(nn.Module):
         '''
         The function is from `open_clip/model.py`
         '''
+        seq_len = text_after_tokenize.shape[1] #
         cast_dtype = self.model.transformer.get_cast_dtype()
 
         if text_after_token_emb is None:
@@ -525,10 +526,13 @@ class ConceptTransformerVIT(nn.Module):
         else:
             x = text_after_token_emb # soft prompt
 
-        x = x + self.model.positional_embedding.to(cast_dtype)
-        x = self.model.transformer(x, attn_mask=self.model.attn_mask)
+        attn_mask = self.model.attn_mask
+        attn_mask = attn_mask[:seq_len, :seq_len]
+
+        x = x + self.model.positional_embedding[:seq_len].to(cast_dtype)
+        x = self.model.transformer(x, attn_mask=attn_mask)
         x = self.model.ln_final(x)  # [batch_size, n_ctx, transformer.width]
-        pooled, tokens = self.text_global_pool(x, text_after_tokenize, self.model.text_pool_type)
+        pooled, tokens = text_global_pool(x, text_after_tokenize, self.model.text_pool_type)
 
         if self.model.text_projection is not None and use_text_projection:
             if isinstance(self.model.text_projection, nn.Linear):
@@ -562,7 +566,12 @@ class ConceptTransformerVIT(nn.Module):
             if x_concepts is not None:
                 if self.concept_embeddings is None: # (1, 630, 512)
                     # Case (2): hard concepts in raw
-                    text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device) # (630, 128)
+                    if self.model_name == 'conch_ViT-B-16':
+                        text_tokens = tokenize(texts=x_concepts, tokenizer=self.tokenizer).to(self.device) # (630, 128)
+                    else:
+                        # === OPENCLIP ===
+                        text_tokens = self.tokenizer(x_concepts).to(self.device)
+
                     if self.only_visual_trunk:
                         with torch.inference_mode():
                             concept_embeddings, _ = self._encode_text(text_tokens)
@@ -599,15 +608,15 @@ class ConceptTransformerVIT(nn.Module):
             out = out + out_unsup.squeeze(1)  # squeeze token dimension
 
         if self.n_concepts > 0:  # Non-spatial stream, self.n_concepts = 13 # TODO: global concepts
-            if self.model_name == 'conch_ViT-B-16':
-                self.concept_embeddings /= self.concept_embeddings.norm(dim=-1, keepdim=True)
+            # if self.model_name == 'conch_ViT-B-16':
+            self.concept_embeddings /= self.concept_embeddings.norm(dim=-1, keepdim=True)
 
-                if soft_prompt_embeddings is not None and self.concept_embeddings is not None:
-                    out_n, out_group_n, concept_attn, qk_parent_class = self.concept_tranformer(x_cls, combined_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13); qk_parent_class.shape: (990, 5) 5 parent classes of glomcrawl
-                else:
-                    out_n, out_group_n, concept_attn, qk_parent_class = self.concept_tranformer(x_cls, self.concept_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+            if soft_prompt_embeddings is not None and self.concept_embeddings is not None:
+                out_n, out_group_n, concept_attn, qk_parent_class = self.concept_tranformer(x_cls, combined_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13); qk_parent_class.shape: (990, 5) 5 parent classes of glomcrawl
             else:
-                out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+                out_n, out_group_n, concept_attn, qk_parent_class = self.concept_tranformer(x_cls, self.concept_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
+            # else:
+            #     out_n, concept_attn = self.concept_tranformer(x_cls, self.concepts) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13)
 
             concept_attn = concept_attn.mean(1)  # average over heads, shape: (32, 1, 13), glomcrawl (990, 1, 630)
 
