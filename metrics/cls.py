@@ -132,6 +132,9 @@ class MetricsCalculator:
         return ret_dict
 
     def generate_plots(self, logits, y, save_dir=None, suffix=''):
+        if logits is None:
+            print('Logits is None, cannot generate plots!')
+            return
         self.dict_of_plottings['confusion_matrix_multiclass'].update(logits, y)
         # cm = self.dict_of_plottings['confusion_matrix_multiclass'](logits, y)
         # print('[**] {} - Sum of cm: {}'.format(self.prefix_name, torch.sum(cm)))

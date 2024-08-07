@@ -407,12 +407,12 @@ def concept_trans_main(cfg):
         if 'use_last_ckpt' in cfg and cfg['use_last_ckpt']:
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
-                filename='{epoch}-{step}-{val_acc:.4f}',
+                filename='{epoch}-{step}-{val_main_cls_acc_multiclass_top1_micro:.4f}',
                 every_n_epochs=check_interval)
         else:
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
-                filename='{epoch}-{step}-{val_acc:.4f}',
+                filename='{epoch}-{step}-{val_main_cls_acc_multiclass_top1_micro:.4f}',
                 monitor=cfg.best_val_metric_name, # TODO: If you change the metric to monitor here, 
                 mode='max',
                 save_top_k=1,
@@ -434,19 +434,19 @@ def concept_trans_main(cfg):
         if 'use_last_ckpt' in cfg and cfg['use_last_ckpt']:
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
-                filename='{epoch}-{step}-{val_acc:.4f}',
+                filename='{epoch}-{step}-{val_main_cls_acc_multiclass_top1_micro:.4f}',
                 every_n_epochs=check_interval)
         else:
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
-                filename='{epoch}-{step}-{val_acc:.4f}',
+                filename='{epoch}-{step}-{val_main_cls_acc_multiclass_top1_micro:.4f}',
                 monitor=cfg.best_val_metric_name,
                 mode='max',
                 save_top_k=1,
-                every_n_epochs=10)
+                every_n_epochs=check_interval)
         # device_stats = pl.callbacks.DeviceStatsMonitor()
         trainer = pl.Trainer(gpus=1, max_epochs=1000, \
-            callbacks=[checkpoint_callback, ], check_val_every_n_epoch=10, default_root_dir=cfg.work_dir)
+            callbacks=[checkpoint_callback, ], check_val_every_n_epoch=check_interval, default_root_dir=cfg.work_dir)
     trainer.fit(model, data_module)
 
     # automatically loads the best weights for you
