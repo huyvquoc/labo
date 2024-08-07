@@ -39,8 +39,8 @@ lambda_div = 0
 # CLIP Backbone
 # clip_model = 'ViT-L/14'
 # clip_model_name = 'clip'
-# clip_model = 'conch_ViT-B-16'
-clip_model = 'ViT-L-14'
+clip_model = 'conch_ViT-B-16'
+# clip_model = 'ViT-L-14'
 clip_model_name = 'conch'
 # main_loss = 'TwoWayLoss'
 # main_loss = 'AsymmetricLoss'

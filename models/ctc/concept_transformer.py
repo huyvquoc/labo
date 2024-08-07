@@ -85,12 +85,27 @@ class CTCModel(pl.LightningModule):
 
         self.best_val_metric = None
 
-        self.all_y = []
-        self.all_pred = []
-        self.all_logit = []
+        self.train_step_outputs = []
+        self.train_step_targets = []
+        self.train_step_outputs_group = []
+        self.train_step_targets_group = []
+        self.train_step_outputs_qk_group = []
+        self.train_step_targets_qk_group = []
 
         self.val_step_outputs = []
         self.val_step_targets = []
+        self.val_step_outputs_group = []
+        self.val_step_targets_group = []
+        self.val_step_outputs_qk_group = []
+        self.val_step_targets_qk_group = []
+
+        self.test_step_outputs = []
+        self.test_step_targets = []
+        self.test_step_outputs_group = []
+        self.test_step_targets_group = []
+        self.test_step_outputs_qk_group = []
+        self.test_step_targets_qk_group = []
+
         # self.confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=self.cfg.num_cls)
         # self.balanced_weights = torch.DoubleTensor(cfg.balanced_weights).cuda()
         self.criterion = get_criterion(cfg)
@@ -153,7 +168,7 @@ class CTCModel(pl.LightningModule):
         TODO: will keep mostly the ConceptTransformer code
         need to check if the required `batch` below matches with the argument `train_batch`
         '''
-        logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, perf_dict, group_perf_dict, qk_group_perf_dict, expl_loss, l1_loss, _, _, _ = self.shared_step(train_batch, stage='train')
+        logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(train_batch, stage='train')
         # logits.shape: (32, 200)
         # preds.shape: (32)
         loss = cls_loss
@@ -168,21 +183,20 @@ class CTCModel(pl.LightningModule):
 
         # merge 3 dicts
         # all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
-        all_metrics_dict = {**perf_dict, **qk_group_perf_dict}
+        # all_metrics_dict = {**perf_dict, **qk_group_perf_dict}
         # add losses to the new merged dict
-        all_metrics_dict.update(
-            {
-                "train_loss": loss,
-                "train_main_loss": cls_loss,
-                # "train_ce_loss_group": cls_loss_group,
-                "train_qk_loss_group": cls_loss_qk_group,
-                "train_expl_loss": expl_loss,
-                "train_l1_loss": l1_loss,
-            }
-        )
+
+        loss_dict = {
+            "train_loss": loss,
+            "train_main_loss": cls_loss,
+            # "train_ce_loss_group": cls_loss_group,
+            "train_qk_loss_group": cls_loss_qk_group,
+            "train_expl_loss": expl_loss,
+            "train_l1_loss": l1_loss,
+        }
 
         self.log_dict(
-            all_metrics_dict,
+            loss_dict,
             on_step=False,
             on_epoch=True,
         )
@@ -241,53 +255,27 @@ class CTCModel(pl.LightningModule):
             cls_loss_qk_group = 0
         # -----------------------------
 
-        group_perf_dict = None
         if stage == 'train':
-            perf_dict = self.train_perf_calc.generate_dict_of_metrics(logits, y)
-            # group_perf_dict = self.train_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
-            qk_group_perf_dict = self.train_qk_group_perf_calc.generate_dict_of_metrics(logits_qk_parent_class, y_group)
-            # self.log()
+            self.train_step_outputs.append(logits)
+            self.train_step_targets.append(y)
+            self.train_step_outputs_group.append(logits_group)
+            self.train_step_targets_group.append(y_group)
+            self.train_step_outputs_qk_group.append(logits_qk_parent_class)
+            self.train_step_targets_qk_group.append(y_group)
         elif stage == 'val':
-            perf_dict = self.val_perf_calc.generate_dict_of_metrics(logits, y)
-            # group_perf_dict = self.val_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
-            qk_group_perf_dict = self.val_qk_group_perf_calc.generate_dict_of_metrics(logits_qk_parent_class, y_group)
-
-            if self.cfg.do_val_plotting:
-                # plotting
-                if self.best_val_metric is None or perf_dict[self.cfg.best_val_metric_name] >= self.best_val_metric:
-                    os.makedirs(self.cfg.plotting_dir, exist_ok=True)
-                    if len(os.listdir(self.cfg.plotting_dir)) != 0:
-                        for old_plot in os.listdir(self.cfg.plotting_dir):
-                            old_plot_path = os.path.join(self.cfg.plotting_dir, old_plot)
-                            os.unlink(old_plot_path)
-
-                    val_metric_info = ''.join([self.cfg.best_val_metric_name, '_', str(perf_dict[self.cfg.best_val_metric_name].item())])
-                    print(f'[**] Found new best val metric !! - {val_metric_info}')
-                    self.val_perf_calc.generate_plots(logits, y, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
-                    self.val_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
-
-                    self.best_val_metric = perf_dict[self.cfg.best_val_metric_name]
-                # self.log()
+            self.val_step_outputs.append(logits)
+            self.val_step_targets.append(y)
+            self.val_step_outputs_group.append(logits_group)
+            self.val_step_targets_group.append(y_group)
+            self.val_step_outputs_qk_group.append(logits_qk_parent_class)
+            self.val_step_targets_qk_group.append(y_group)
         elif stage == 'test':
-            perf_dict = self.test_perf_calc.generate_dict_of_metrics(logits, y)
-            # group_perf_dict = self.test_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
-            qk_group_perf_dict = self.test_qk_group_perf_calc.generate_dict_of_metrics(logits_qk_parent_class, y_group)
-
-            # self.log()
-            self.all_y.append(y)
-            self.all_pred.append(preds)
-            self.all_logit.append(logits)
-
-            os.makedirs(self.cfg.plotting_dir, exist_ok=True)
-            if len(os.listdir(self.cfg.plotting_dir)) != 0:
-                for old_plot in os.listdir(self.cfg.plotting_dir):
-                    old_plot_path = os.path.join(self.cfg.plotting_dir, old_plot)
-                    os.unlink(old_plot_path)
-
-            test_metric_info = 'test'
-            self.test_perf_calc.generate_plots(logits, y, save_dir=self.cfg.plotting_dir, suffix=test_metric_info)
-            self.test_qk_group_perf_calc.generate_plots(logits_qk_parent_class, y_group, save_dir=self.cfg.plotting_dir, suffix=test_metric_info)
-
+            self.test_step_outputs.append(logits)
+            self.test_step_targets.append(y)
+            self.test_step_outputs_group.append(logits_group)
+            self.test_step_targets_group.append(y_group)
+            self.test_step_outputs_qk_group.append(logits_qk_parent_class)
+            self.test_step_targets_qk_group.append(y_group)
 
         expl_loss = concepts_cost(concept_attn, expl) + spatial_concepts_cost( # PRED concept_attn.shape: (32, 1, 13), TARGET expl.shape: (32, 13); for glom crawl concept_attn.shape (990, 1, 630) and expl.shape (990, 630)
             spatial_concept_attn, spatial_expl # PRED spatial_concept_attn.shape: (32, 196, 95), TARGET spatial_expl.shpae: (32, 196, 95)
@@ -300,9 +288,6 @@ class CTCModel(pl.LightningModule):
             cls_loss,
             cls_loss_group,
             cls_loss_qk_group,
-            perf_dict,
-            group_perf_dict,
-            qk_group_perf_dict,
             expl_loss,
             l1_loss,
             unsup_concept_attn,
@@ -354,31 +339,25 @@ class CTCModel(pl.LightningModule):
         TODO: Both `validation_step` have the same arguments `batch` and `batch_idx`. Both do not use batch_idx
         Need to check if the required `batch` is actually the argument `batch`
         '''
-        logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, perf_dict, group_perf_dict, qk_group_perf_dict, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
+        logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
 
-        # merge 3 dicts
-        # all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
-        all_metrics_dict = {**perf_dict, **qk_group_perf_dict}
-        # add losses to the new merged dict
-        all_metrics_dict.update(
-            {
-                "val_ce_loss": cls_loss,
-                # "val_ce_loss_group": cls_loss_group,
-                "val_qk_loss_group": cls_loss_qk_group,
-                "val_expl_loss": expl_loss,
-                "val_l1_loss": l1_loss,
-            }
-        )
+        loss_dict = {
+            "val_ce_loss": cls_loss,
+            # "val_ce_loss_group": cls_loss_group,
+            "val_qk_loss_group": cls_loss_qk_group,
+            "val_expl_loss": expl_loss,
+            "val_l1_loss": l1_loss,
+        }
 
         self.log_dict(
-            all_metrics_dict,
+            loss_dict,
             on_step=False,
             on_epoch=True,
         )
 
-        return all_metrics_dict['val_main_cls_acc_multiclass_top1_micro']
+        return cls_loss
+        # return all_metrics_dict['val_main_cls_acc_multiclass_top1_micro']
         # return ce_loss # LaBo
-        # ==================== ConceptTransformer ends here ====================
 
 
     def test_step(self, batch, batch_idx):
@@ -386,31 +365,137 @@ class CTCModel(pl.LightningModule):
         '''
         TODO: do we need to append y and pred into overall lists?
         '''
-        logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, perf_dict, group_perf_dict, qk_group_perf_dict, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='test')
+        logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='test')
+
+        loss_dict = {
+            "test_ce_loss": cls_loss,
+            # "test_ce_loss_group": cls_loss_group,
+            "test_qk_loss_group": cls_loss_qk_group,
+            "test_expl_loss": expl_loss,
+            "test_l1_loss": l1_loss,
+        }
+
+        self.log_dict(
+            loss_dict
+        )
+
+        return cls_loss
+        # return all_metrics_dict['test_main_cls_acc_multiclass_top1_micro']
+        # return loss # LaBo
+        # ==================== ConceptTransformer ends here ====================
+
+    def on_train_epoch_end(self) :
+        train_all_outputs = torch.cat(self.train_step_outputs, dim=0)
+        train_all_targets = torch.cat(self.train_step_targets, dim=0)
+        train_all_outputs_group = torch.cat(self.train_step_outputs_group, dim=0) if self.train_step_outputs_group[0] is not None else None
+        train_all_targets_group = torch.cat(self.train_step_targets_group, dim=0)
+        train_all_outputs_qk_group = torch.cat(self.train_step_outputs_qk_group, dim=0) if self.train_step_outputs_qk_group[0] is not None else None
+        train_all_targets_qk_group = torch.cat(self.train_step_targets_qk_group, dim=0)
+
+        perf_dict = self.train_perf_calc.generate_dict_of_metrics(train_all_outputs, train_all_targets)
+        # group_perf_dict = self.train_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
+        qk_group_perf_dict = self.train_qk_group_perf_calc.generate_dict_of_metrics(train_all_outputs_qk_group, train_all_targets_qk_group)
 
         # merge 3 dicts
         # all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
         all_metrics_dict = {**perf_dict, **qk_group_perf_dict}
-        # add losses to the new merged dict
-        all_metrics_dict.update(
-            {
-                "test_ce_loss": cls_loss,
-                # "test_ce_loss_group": cls_loss_group,
-                "test_qk_loss_group": cls_loss_qk_group,
-                "test_expl_loss": expl_loss,
-                "test_l1_loss": l1_loss,
-            }
-        )
-
         self.log_dict(
-            all_metrics_dict
+            all_metrics_dict,
+            on_step=False,
+            on_epoch=True,
         )
 
-        return all_metrics_dict['test_main_cls_acc_multiclass_top1_micro']
-        # return loss # LaBo
-        # ==================== ConceptTransformer ends here ====================
+        # clear rem lists
+        self.train_step_outputs.clear()
+        self.train_step_targets.clear()
+        self.train_step_outputs_group.clear()
+        self.train_step_targets_group.clear()
+        self.train_step_outputs_qk_group.clear()
+        self.train_step_targets_qk_group.clear()
 
-    # def on_validation_epoch_end(self):
+    def on_validation_epoch_end(self):
+        val_all_outputs = torch.cat(self.val_step_outputs, dim=0)
+        val_all_targets = torch.cat(self.val_step_targets, dim=0)
+        val_all_outputs_group = torch.cat(self.val_step_outputs_group, dim=0) if self.val_step_outputs_group[0] is not None else None
+        val_all_targets_group = torch.cat(self.val_step_targets_group, dim=0)
+        val_all_outputs_qk_group = torch.cat(self.val_step_outputs_qk_group, dim=0) if self.val_step_outputs_qk_group[0] is not None else None
+        val_all_targets_qk_group = torch.cat(self.val_step_targets_qk_group, dim=0)
+
+        perf_dict = self.val_perf_calc.generate_dict_of_metrics(val_all_outputs, val_all_targets)
+        # group_perf_dict = self.val_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
+        qk_group_perf_dict = self.val_qk_group_perf_calc.generate_dict_of_metrics(val_all_outputs_qk_group, val_all_targets_qk_group)
+
+        # merge 3 dicts
+        # all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        all_metrics_dict = {**perf_dict, **qk_group_perf_dict}
+        self.log_dict(
+            all_metrics_dict,
+            on_step=False,
+            on_epoch=True,
+        )
+
+        if self.cfg.do_val_plotting:
+            # plotting
+            if self.best_val_metric is None or perf_dict[self.cfg.best_val_metric_name] >= self.best_val_metric:
+                os.makedirs(self.cfg.plotting_dir, exist_ok=True)
+                if len(os.listdir(self.cfg.plotting_dir)) != 0:
+                    for old_plot in os.listdir(self.cfg.plotting_dir):
+                        old_plot_path = os.path.join(self.cfg.plotting_dir, old_plot)
+                        os.unlink(old_plot_path)
+
+                val_metric_info = ''.join([self.cfg.best_val_metric_name, '_', str(perf_dict[self.cfg.best_val_metric_name].item())])
+                print(f'[**] Found new best val metric !! - {val_metric_info}')
+                self.val_perf_calc.generate_plots(val_all_outputs, val_all_targets, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
+                self.val_qk_group_perf_calc.generate_plots(val_all_outputs_qk_group, val_all_targets_qk_group, save_dir=self.cfg.plotting_dir, suffix=val_metric_info)
+
+                self.best_val_metric = perf_dict[self.cfg.best_val_metric_name]
+
+        # clear rem lists
+        self.val_step_outputs.clear()
+        self.val_step_targets.clear()
+        self.val_step_outputs_group.clear()
+        self.val_step_targets_group.clear()
+        self.val_step_outputs_qk_group.clear()
+        self.val_step_targets_qk_group.clear()
+    
+    def on_test_end(self):
+        test_all_outputs = torch.cat(self.test_step_outputs, dim=0)
+        test_all_targets = torch.cat(self.test_step_targets, dim=0)
+        test_all_outputs_group = torch.cat(self.test_step_outputs_group, dim=0) if self.test_step_outputs_group[0] is not None else None
+        test_all_targets_group = torch.cat(self.test_step_targets_group, dim=0)
+        test_all_outputs_qk_group = torch.cat(self.test_step_outputs_qk_group, dim=0) if self.test_step_outputs_qk_group[0] is not None else None
+        test_all_targets_qk_group = torch.cat(self.test_step_targets_qk_group, dim=0)
+
+        perf_dict = self.test_perf_calc.generate_dict_of_metrics(test_all_outputs, test_all_targets)
+        # group_perf_dict = self.test_group_perf_calc.generate_dict_of_metrics(logits_group, y_group)
+        qk_group_perf_dict = self.test_qk_group_perf_calc.generate_dict_of_metrics(test_all_outputs_qk_group, test_all_targets_qk_group)
+
+        # merge 3 dicts
+        # all_metrics_dict = {**perf_dict, **group_perf_dict, **qk_group_perf_dict}
+        all_metrics_dict = {**perf_dict, **qk_group_perf_dict}
+        self.log_dict(
+            all_metrics_dict,
+            on_step=False,
+            on_epoch=True,
+        )
+
+        os.makedirs(self.cfg.plotting_dir, exist_ok=True)
+        if len(os.listdir(self.cfg.plotting_dir)) != 0:
+            for old_plot in os.listdir(self.cfg.plotting_dir):
+                old_plot_path = os.path.join(self.cfg.plotting_dir, old_plot)
+                os.unlink(old_plot_path)
+
+        test_metric_info = 'test'
+        self.test_perf_calc.generate_plots(test_all_outputs, test_all_targets, save_dir=self.cfg.plotting_dir, suffix=test_metric_info)
+        self.test_qk_group_perf_calc.generate_plots(test_all_outputs_qk_group, test_all_targets_qk_group, save_dir=self.cfg.plotting_dir, suffix=test_metric_info)
+
+        # clear rem lists
+        self.test_step_outputs.clear()
+        self.test_step_targets.clear()
+        self.test_step_outputs_group.clear()
+        self.test_step_targets_group.clear()
+        self.test_step_outputs_qk_group.clear()
+        self.test_step_targets_qk_group.clear()
 
     # def test_epoch_end(self, outputs):
     #     # ==================== LaBo starts here ====================
