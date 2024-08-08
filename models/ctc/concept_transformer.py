@@ -60,29 +60,29 @@ class CTCModel(pl.LightningModule):
 
         # ---------- FOR CHILD CLASSES ----------
         ### train ###
-        self.train_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='train_main_cls', report_top5=False)
+        self.train_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='train_main_cls', report_top5=True, report_top7=True)
         ### val ###
-        self.val_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='val_main_cls', report_top5=False)
+        self.val_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='val_main_cls', report_top5=True, report_top7=True)
         ### test ###
-        self.test_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='test_main_cls', report_top5=False)
+        self.test_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='test_main_cls', report_top5=True, report_top7=True)
         # ----------------------------------------
 
         # ---------- FOR PARENT CLASSES ----------
         ### train ###
-        self.train_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_sup_cls', report_top5=False)
+        self.train_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_sup_cls', report_top5=True, report_top7=False)
         ### val ###
-        self.val_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_sup_cls', report_top5=False)
+        self.val_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_sup_cls', report_top5=True, report_top7=False)
         ### test ###
-        self.test_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_sup_cls', report_top5=False)
+        self.test_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_sup_cls', report_top5=True, report_top7=False)
         # ----------------------------------------
 
         # ---------- FOR QK OF PARENT CLASSES ----------
         ### train ###
-        self.train_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_qk_hierarchy', report_top5=False)
+        self.train_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_qk_hierarchy', report_top5=True, report_top7=False)
         ### val ###
-        self.val_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_qk_hierarchy', report_top5=False)
+        self.val_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_qk_hierarchy', report_top5=True, report_top7=False)
         ### test ###
-        self.test_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_qk_hierarchy', report_top5=False)
+        self.test_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_qk_hierarchy', report_top5=True, report_top7=False)
         # ----------------------------------------
 
         self.best_val_metric = None
@@ -482,10 +482,10 @@ class CTCModel(pl.LightningModule):
         )
 
         os.makedirs(self.plotting_dir, exist_ok=True)
-        if len(os.listdir(self.plotting_dir)) != 0:
-            for old_plot in os.listdir(self.plotting_dir):
-                old_plot_path = os.path.join(self.plotting_dir, old_plot)
-                os.unlink(old_plot_path)
+        # if len(os.listdir(self.plotting_dir)) != 0:
+        #     for old_plot in os.listdir(self.plotting_dir):
+        #         old_plot_path = os.path.join(self.plotting_dir, old_plot)
+        #         os.unlink(old_plot_path)
 
         test_metric_info = 'test'
         self.test_perf_calc.generate_plots(test_all_outputs, test_all_targets, save_dir=self.plotting_dir, suffix=test_metric_info)
