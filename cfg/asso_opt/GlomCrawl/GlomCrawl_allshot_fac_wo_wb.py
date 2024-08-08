@@ -3,8 +3,8 @@ n_shots = "all"
 data_root = 'exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac'
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_micro' # for plotting only when model checkpoint
 do_val_plotting=True
-lr = 1e-3
-bs = 512
+lr = 1e-2
+bs = 4096
 
 concept_type = "all_submodular"
 # concept_select_fn = "submodular"
@@ -51,6 +51,7 @@ aug_level = 2
 
 # ----- only for learnable prompts -----
 set_learnable_prompts = True
+use_parent_level_learnable_prompts = False # whether to use 5 (parent) or 42 (child) soft prompts
 csc = True # whether to use class-specific contexts or a general context
 n_ctx_pos = 48
 n_ctx_neg = 48

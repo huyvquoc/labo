@@ -29,7 +29,7 @@ def cub_cvit(cfg, class_names, concept2cls, baseline=False, *args, **kwargs):
             model_name=cfg.clip_model,
             num_classes=cfg.num_cls,
             class_names=class_names,
-            concept2cls=concept2cls,
+            concept2cls=concept2cls, # to child classes
             n_unsup_concepts=cfg.num_unsup_concept,
             n_concepts=cfg.num_concept,
             n_spatial_concepts=cfg.num_spatial_concept,
@@ -193,7 +193,7 @@ class CVIT(nn.Module):
             self.embed_dim = self.feature_extractor.ln_final.weight.shape[0]
 
         self.set_learnable_prompts = set_learnable_prompts
-        self.concept2cls = torch.squeeze(concept2cls)
+        self.concept2cls = torch.squeeze(concept2cls) # to child classes
 
         self.classifier = ConceptTransformerVIT(
             cfg,
@@ -211,7 +211,7 @@ class CVIT(nn.Module):
             concept_embeddings_save_dir=concept_embeddings_save_dir,
             only_visual_trunk=only_visual_trunk,
             set_learnable_prompts=self.set_learnable_prompts,
-            concept2cls=self.concept2cls,
+            concept2cls=self.concept2cls, # to child classes
             *args,
             **kwargs, # {'batch_size': 32, 'debug': False, 'data_dir': '/data/hqvo3/data/cub2011', 'finetune_unfreeze_epoch': 0, 'num_workers': 8, 'seed': 42, 'data_name': 'CUB2011Parts'}
         )
@@ -304,7 +304,7 @@ class ConceptTransformerVIT(nn.Module):
         concept_embeddings_save_dir=None,
         only_visual_trunk=False,
         set_learnable_prompts=False,
-        concept2cls=None,
+        concept2cls=None, # to child classes
         *args,
         **kwargs,
     ):
@@ -313,7 +313,7 @@ class ConceptTransformerVIT(nn.Module):
         self.model_name = model_name
         self.only_visual_trunk = only_visual_trunk
         self.class_names = class_names
-        self.concept2cls = concept2cls
+        self.concept2cls = concept2cls # to child classes
 
         self.model = None
         self.tokenizer = None
@@ -368,7 +368,7 @@ class ConceptTransformerVIT(nn.Module):
             if self.set_learnable_prompts:
                 self.prompt_learner = HierarchyAwarePromptLearner(cfg, classnames=self.class_names, groupname2clsname=cfg.groupname2clsname, 
                                                                   clip_model=self.model, tokenizer=self.tokenizer, 
-                                                                  use_group=True, multilabel_on=False)
+                                                                  use_group=cfg.use_parent_level_learnable_prompts, multilabel_on=False)
                 self.groupnames, self.groupname2clsname = self.prompt_learner.get_groupname2clsname()
                 self.clsname2groupname = {}
                 for grp_name, cls_names in self.groupname2clsname.items():
@@ -384,7 +384,10 @@ class ConceptTransformerVIT(nn.Module):
                     corr_parent_label_str = self.clsname2groupname[corr_label_str] # corresponding parent class in str
                     corr_parent_label_int = self.groupnames.index(corr_parent_label_str) # corresponding parent class in int
 
-                    dict_of_mapping_from_conceptid_to_softpromptid[concept_idx] = corr_parent_label_int
+                    if cfg.use_parent_level_learnable_prompts:
+                        dict_of_mapping_from_conceptid_to_softpromptid[concept_idx] = corr_parent_label_int
+                    else:
+                        dict_of_mapping_from_conceptid_to_softpromptid[concept_idx] = corr_label_int
 
                 self.dict_of_mapping_from_conceptid_to_softpromptid = collections.OrderedDict(sorted(dict_of_mapping_from_conceptid_to_softpromptid.items()))
             
@@ -592,9 +595,9 @@ class ConceptTransformerVIT(nn.Module):
 
             combined_embeddings = []
             for concept_idx in range(self.concept_embeddings.shape[1]): # 630
-                corr_parent_label_int = self.dict_of_mapping_from_conceptid_to_softpromptid[concept_idx]
+                corr_soft_label_int = self.dict_of_mapping_from_conceptid_to_softpromptid[concept_idx]
 
-                combined_embeddings.append(torch.cat((self.concept_embeddings[0, concept_idx], soft_prompt_embeddings[corr_parent_label_int]), 0))
+                combined_embeddings.append(torch.cat((self.concept_embeddings[0, concept_idx], soft_prompt_embeddings[corr_soft_label_int]), 0))
 
             combined_embeddings = torch.stack(combined_embeddings) # (630, 1024)
             combined_embeddings = combined_embeddings[None, :, :]

@@ -46,6 +46,8 @@ class HierarchyAwarePromptLearner(nn.Module):
         else:
             self.n_cls = len(classnames) # 42
 
+        print(f'Number of soft learnable prompts: {self.n_cls}')
+
         self.n_ctx_pos = cfg.n_ctx_pos # 16 TODO: what is it?
         self.n_ctx_neg = cfg.n_ctx_neg # 16
         ctx_init_pos = cfg.positive_prompt_init.strip() # '' (empty string)
