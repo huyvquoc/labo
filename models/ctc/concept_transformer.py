@@ -58,6 +58,11 @@ class CTCModel(pl.LightningModule):
         self.groupname2clsname = collections.OrderedDict(sorted(cfg.groupname2clsname.items()))
         self.groupnames = list(self.groupname2clsname.keys())
 
+        if cfg.use_parent_level_learnable_prompts:
+            self.num_cls_supp = len(self.groupnames)
+        else:
+            self.num_cls_supp = len(class_names)
+
         # ---------- FOR CHILD CLASSES ----------
         ### train ###
         self.train_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='train_main_cls', report_top5=True, report_top7=True)
@@ -69,20 +74,25 @@ class CTCModel(pl.LightningModule):
 
         # ---------- FOR PARENT CLASSES ----------
         ### train ###
-        self.train_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_sup_cls', report_top5=True, report_top7=False)
+        self.train_group_perf_calc = MetricsCalculator(num_cls=len(self.groupnames), class_names=self.groupnames, prefix_name='train_sup_cls', report_top5=True, report_top7=False)
         ### val ###
-        self.val_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_sup_cls', report_top5=True, report_top7=False)
+        self.val_group_perf_calc = MetricsCalculator(num_cls=len(self.groupnames), class_names=self.groupnames, prefix_name='val_sup_cls', report_top5=True, report_top7=False)
         ### test ###
-        self.test_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_sup_cls', report_top5=True, report_top7=False)
+        self.test_group_perf_calc = MetricsCalculator(num_cls=len(self.groupnames), class_names=self.groupnames, prefix_name='test_sup_cls', report_top5=True, report_top7=False)
         # ----------------------------------------
 
         # ---------- FOR QK OF PARENT CLASSES ----------
+        if cfg.use_parent_level_learnable_prompts:
+            self.class_names_supp = self.groupnames
+        else:
+            self.class_names_supp = class_names
+
         ### train ###
-        self.train_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='train_qk_hierarchy', report_top5=True, report_top7=False)
+        self.train_qk_group_perf_calc = MetricsCalculator(num_cls=self.num_cls_supp, class_names=self.class_names_supp, prefix_name='train_qk_hierarchy', report_top5=True, report_top7=False)
         ### val ###
-        self.val_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='val_qk_hierarchy', report_top5=True, report_top7=False)
+        self.val_qk_group_perf_calc = MetricsCalculator(num_cls=self.num_cls_supp, class_names=self.class_names_supp, prefix_name='val_qk_hierarchy', report_top5=True, report_top7=False)
         ### test ###
-        self.test_qk_group_perf_calc = MetricsCalculator(num_cls=cfg.num_cls_group, class_names=self.groupnames, prefix_name='test_qk_hierarchy', report_top5=True, report_top7=False)
+        self.test_qk_group_perf_calc = MetricsCalculator(num_cls=self.num_cls_supp, class_names=self.class_names_supp, prefix_name='test_qk_hierarchy', report_top5=True, report_top7=False)
         # ----------------------------------------
 
         self.best_val_metric = None
@@ -244,7 +254,7 @@ class CTCModel(pl.LightningModule):
         # ----- USE PARENT CLASSES -----
         if logits_group is not None:
             # cls_loss_group = F.nll_loss(logits_group, y_group) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
-            cls_loss_group, reg_loss_group = self.criterion(logits_group, F.one_hot(y_group, num_classes=5).float()) # for ANLS
+            cls_loss_group, reg_loss_group = self.criterion(logits_group, F.one_hot(y_group, num_classes=logits_group.shape[1]).float()) # for ANLS
         else:
             cls_loss_group = 0
         # -----------------------------
@@ -252,7 +262,7 @@ class CTCModel(pl.LightningModule):
         # ----- USE QK OF PARENT CLASSES -----
         if logits_qk_parent_class is not None:
             # cls_loss_qk_group = F.nll_loss(logits_qk_parent_class, y_group) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
-            cls_loss_qk_group, reg_loss_group = self.criterion(logits_qk_parent_class, F.one_hot(y_group, num_classes=5).float()) # for ANLS
+            cls_loss_qk_group, reg_loss_group = self.criterion(logits_qk_parent_class, F.one_hot(y_group, num_classes=logits_qk_parent_class.shape[1]).float()) # for ANLS
         else:
             cls_loss_qk_group = 0
         # -----------------------------

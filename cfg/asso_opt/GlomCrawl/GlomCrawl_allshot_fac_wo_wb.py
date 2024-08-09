@@ -53,13 +53,14 @@ aug_level = 2
 set_learnable_prompts = True
 use_parent_level_learnable_prompts = False # whether to use 5 (parent) or 42 (child) soft prompts
 csc = True # whether to use class-specific contexts or a general context
+
 n_ctx_pos = 48
 n_ctx_neg = 48
 positive_prompt_init = ''
 negative_prompt_init = ''
 use_child_classes=True
 use_parent_classes=False
-use_attn_parent_branch=False
+use_attn_parent_branch=True
 
 # --- weight balance for loss function ---
 balanced_weights = None
