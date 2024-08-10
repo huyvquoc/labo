@@ -1,9 +1,9 @@
 _base_ = '../base.py'
 # dataset
 proj_name = "GlomCrawl"
-concept_root = 'datasets/GlomCrawl/concepts/'
-img_split_path = 'datasets/GlomCrawl/splits'
-img_path = '/data/hqvo3/Datasets/vlm/ml-scripts/datasets/glom_refine_labo'
+concept_root = 'datasets/GlomCrawl/concepts/' # TODO: change datasets - relative path - manually generate `class2concepts.json`
+img_split_path = 'datasets/GlomCrawl/splits' # TODO: change datasets - relative path - manually generate pickle files (.p) of train/val/test
+img_path = '/data/hqvo3/Datasets/vlm/ml-scripts/datasets/glom_refine_labo' # TODO: change datasets - absolute path - the folder contains all images of the dataset (no subfolders of train/val/test)
 concept_type = "all"
 img_ext = '.png'
 raw_sen_path = concept_root + 'concepts_raw.npy'
@@ -18,7 +18,7 @@ use_txt_norm = True
 use_img_norm = True
 
 # concept select
-num_concept = num_cls * 15
+num_concept = num_cls * 15 # TODO: change datasets
 
 # weight matrix fitting
 lr = 1e-2

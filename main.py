@@ -321,6 +321,9 @@ def asso_opt_main(cfg):
         trainer = pl.Trainer(gpus=1, max_epochs=1000, \
             callbacks=[checkpoint_callback, ], check_val_every_n_epoch=50, default_root_dir=cfg.work_dir)
     trainer.fit(model, data_module)
+    
+    # automatically loads the best weights for you
+    trainer.test(model, data_module)
 
 
 def concept_trans_main(cfg):

@@ -550,7 +550,7 @@ class ConceptTransformerVIT(nn.Module):
         - Inputs:
           cls token (category feature): x_cls.shape: (32, 1, 1024)
           remaining tokens (image feature): x.shape: (32, 196, 1024)
-          x_concepts: can be original raw concepts `self.concept_raw` (630,) OR extracted embeddings `self.concepts` (630, 512)
+          x_concepts: original raw concepts (630,)
         '''
         unsup_concept_attn, concept_attn, spatial_concept_attn = None, None, None
 
