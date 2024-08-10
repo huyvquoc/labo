@@ -51,7 +51,7 @@ aug_level = 2
 
 # ----- only for learnable prompts -----
 set_learnable_prompts = True
-use_parent_level_learnable_prompts = False # whether to use 5 (parent) or 42 (child) soft prompts
+use_parent_level_learnable_prompts = True # whether to use 5 (parent) or 42 (child) soft prompts
 csc = True # whether to use class-specific contexts or a general context
 
 n_ctx_pos = 48
