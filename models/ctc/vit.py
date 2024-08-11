@@ -364,6 +364,8 @@ class ConceptTransformerVIT(nn.Module):
         # TODO: Do we still need nn.Parameter? Is nn.Parameter for soft prompting?
         self.concepts = nn.Parameter(torch.zeros(1, n_concepts, embedding_dim), requires_grad=True) # shape: (1, 13, 1024)
         nn.init.trunc_normal_(self.concepts, std=1.0 / math.sqrt(embedding_dim))
+
+        self.dict_of_mapping_from_conceptid_to_softpromptid = None
         if n_concepts > 0:
             self.set_learnable_prompts = set_learnable_prompts
 

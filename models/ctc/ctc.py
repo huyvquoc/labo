@@ -124,18 +124,23 @@ class CrossAttention(nn.Module):
         self.scale = head_dim ** -0.5 # 0.125
 
         self.q = nn.Linear(dim, dim, bias=False) # Linear(in_features=512, out_features=512, bias=False)
-        self.kv = nn.Linear(dim * 2, dim * 2, bias=False) # Linear(in_features=512, out_features=1024, bias=False)
+
+        if dict_of_mapping_from_conceptid_to_softpromptid is not None:
+            self.kv = nn.Linear(dim * 2, dim * 2, bias=False) # Linear(in_features=512, out_features=1024, bias=False)
+        else:
+            self.kv = nn.Linear(dim, dim * 2, bias=False) # Linear(in_features=512, out_features=1024, bias=False)
+
         # nn.init.xavier_uniform_(self.q.weight)
         # nn.init.xavier_uniform_(self.kv.weight)
         self.attn_drop = nn.Dropout(attention_dropout)
 
-        self.dict_of_mapping_from_conceptid_to_softpromptid = dict_of_mapping_from_conceptid_to_softpromptid # one-to-one
-        dict_of_mapping_from_softpromptid_to_conceptids = {} # one-to-many
-        for key_conceptid, value_softpromptid in self.dict_of_mapping_from_conceptid_to_softpromptid.items():
-            if value_softpromptid not in dict_of_mapping_from_softpromptid_to_conceptids:
-                dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid] = []
-            dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid].append(key_conceptid) # this list has been sorted, `collections.OrderedDict` is used in `models/ctc/vit.py`
-        self.dict_of_mapping_from_softpromptid_to_conceptids = collections.OrderedDict(sorted(dict_of_mapping_from_softpromptid_to_conceptids.items()))
+        if dict_of_mapping_from_conceptid_to_softpromptid is not None:
+            dict_of_mapping_from_softpromptid_to_conceptids = {} # one-to-many
+            for key_conceptid, value_softpromptid in self.dict_of_mapping_from_conceptid_to_softpromptid.items():
+                if value_softpromptid not in dict_of_mapping_from_softpromptid_to_conceptids:
+                    dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid] = []
+                dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid].append(key_conceptid) # this list has been sorted, `collections.OrderedDict` is used in `models/ctc/vit.py`
+            self.dict_of_mapping_from_softpromptid_to_conceptids = collections.OrderedDict(sorted(dict_of_mapping_from_softpromptid_to_conceptids.items()))
 
         # parent_in_dim_list = []
         # parent_out_dim_list = []
