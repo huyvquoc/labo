@@ -35,25 +35,38 @@ class CTCModel(pl.LightningModule):
         # ==================== LaBo starts here ====================
         self.cfg = cfg
         self.data_root = Path(cfg.data_root)
-        concept_feat_path = self.data_root.joinpath('concepts_feat_{}.pth'.format(self.cfg.clip_model.replace('/','-')))
-        concept_raw_path = self.data_root.joinpath('concepts_raw_selected.npy')
-        concept2cls_path = self.data_root.joinpath('concept2cls_selected.npy')
-        select_idx_path = self.data_root.joinpath('select_idx.pth')
-        suffix_work_dir = self.cfg.work_dir.split('/', 1)[-1]
-        self.plotting_dir = ''.join(['output/', suffix_work_dir]) 
+        self.concept_root = Path(cfg.concept_root)
 
-        if not concept_feat_path.exists():
-            raise RuntimeError('need to call datamodule precompute_txt before using the model')
+        if self.cfg.use_full_concepts:
+            print('[CTCModel] Use full concepts')
+            concept_raw_path = self.concept_root.joinpath('concepts_raw.npy')
+            concept2cls_path = self.concept_root.joinpath('concept2cls.npy')
+        else:
+            print('[CTCModel] Use LaBo concepts')
+            # concept_feat_path = self.data_root.joinpath('concepts_feat_{}.pth'.format(self.cfg.clip_model.replace('/','-'))) # --- NOT USED ---
+            concept_raw_path = self.data_root.joinpath('concepts_raw_selected.npy')
+            concept2cls_path = self.data_root.joinpath('concept2cls_selected.npy')
+            select_idx_path = self.data_root.joinpath('select_idx.pth')
+
+        suffix_work_dir = self.cfg.work_dir.split('/', 1)[-1]
+        self.plotting_dir = ''.join(['output/', suffix_work_dir])
+
+        # self.concepts = torch.load(concept_feat_path)[self.select_idx].cuda() # extracted text embeddings of all concepts
+        # if self.cfg.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
+
+        if self.cfg.use_full_concepts:
+            print('[CTCModel] Use full concepts')
+            self.concept_raw = np.load(concept_raw_path) # all raw concepts (sentences)
+            self.concept2cls = torch.from_numpy(np.load(concept2cls_path)).long().view(1, -1) # Mapping from a concept to its corresponding class
         else:
             if select_idx is None: self.select_idx = torch.load(select_idx_path)[:cfg.num_concept] # indices of all selected concepts
             else: self.select_idx = select_idx
 
-            self.concepts = torch.load(concept_feat_path)[self.select_idx].cuda() # extracted text embeddings of all concepts
-            if self.cfg.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
-
+            print('[CTCModel] Use LaBo concepts')
             self.concept_raw = np.load(concept_raw_path)[self.select_idx] # all raw concepts (sentences)
-            self.concept_raw = self.concept_raw.tolist()
             self.concept2cls = torch.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1) # Mapping from a concept to its corresponding class
+        self.concept_raw = self.concept_raw.tolist()
+        print('[CTCModel] Number of used concepts: ', self.concept2cls.shape[1])
 
         self.groupname2clsname = collections.OrderedDict(sorted(cfg.groupname2clsname.items()))
         self.groupnames = list(self.groupname2clsname.keys())
@@ -139,7 +152,6 @@ class CTCModel(pl.LightningModule):
         OR extrated embeddings with shape (train_batch_size, embedding_dim)
         '''
         # ==================== LaBo starts here ====================
-        # self.concepts # (#selected_concepts, embedding_dim) = (630, 512)
         # ==================== LaBo ends here ====================
         # ==================== ConceptTransformer starts here ====================
         '''

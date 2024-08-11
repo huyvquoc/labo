@@ -282,11 +282,12 @@ class ImgExplDataset(Dataset):
     
 class ImgExplDataModule(pl.LightningDataModule):
 
-    def __init__(self, cfg, data_root, img_root, img_split_path, cls_name_path, img_ext, num_concept, batch_size, num_workers, on_gpu=False, model_name='conch_ViT-B-16', use_txt_norm=False):
+    def __init__(self, cfg, data_root, concept_root, img_root, img_split_path, cls_name_path, img_ext, num_concept, batch_size, num_workers, on_gpu=False, model_name='conch_ViT-B-16', use_txt_norm=False):
         super().__init__()
 
         self.cfg = cfg
         self.data_root = Path(data_root)
+        self.concept_root = Path(concept_root)
         self.img_root = Path(img_root)
         self.img_split_path = Path(img_split_path)
         self.img_ext = img_ext
@@ -314,16 +315,20 @@ class ImgExplDataModule(pl.LightningDataModule):
                 self.dict_of_labels[mode].extend([self.cls_names.index(cls_name)] * len(img_names))
                 self.dict_of_img_paths[mode].extend([self.img_root.joinpath('{}{}'.format(img_name, self.img_ext)) for img_name in img_names])
 
-        # self.concept_feat_path = self.data_root.joinpath('concepts_feat_{}.pth'.format(model_name))
-        # self.concept_raw_path = self.data_root.joinpath('concepts_raw_selected.npy')
-        self.concept2cls_path = self.data_root.joinpath('concept2cls_selected.npy') # BEING USED
-        self.select_idx_path = self.data_root.joinpath('select_idx.pth') # BEING USED
-            
-        self.select_idx = torch.load(self.select_idx_path)[:self.num_concept] # (630, ) # BEING USED
-        # self.concepts = torch.load(self.concept_feat_path)[self.select_idx].cuda() # shape: (630, 512)
-        # if self.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
-        # self.concept_raw = np.load(self.concept_raw_path)[self.select_idx] # shape: (630, )
-        self.concept2cls = torch.from_numpy(np.load(self.concept2cls_path)[self.select_idx]).long().view(1, -1) # shape: (1, 630) # BEING USED
+        if self.cfg.use_full_concepts:
+            print('[datamodule] Use full concepts')
+            self.concept2cls_path = self.concept_root.joinpath('concept2cls.npy')
+
+            self.concept2cls = torch.from_numpy(np.load(self.concept2cls_path)).long().view(1, -1) # shape: (1, 630) # BEING USED
+            self.num_concept = self.concept2cls.shape[1]
+        else:
+            print('[datamodule] Use LaBo concepts')
+            self.concept2cls_path = self.data_root.joinpath('concept2cls_selected.npy') # BEING USED
+            self.select_idx_path = self.data_root.joinpath('select_idx.pth') # BEING USED
+
+            self.select_idx = torch.load(self.select_idx_path)[:self.num_concept] # (630, ) # BEING USED
+            self.concept2cls = torch.from_numpy(np.load(self.concept2cls_path)[self.select_idx]).long().view(1, -1) # shape: (1, 630) # BEING USED
+        print('[datamodule] Number of used concepts: ', self.concept2cls.shape[1])
 
         if model_name == 'conch_ViT-B-16':
             resized_img_dim = 448

@@ -194,6 +194,7 @@ class CVIT(nn.Module):
 
         self.set_learnable_prompts = set_learnable_prompts
         self.concept2cls = torch.squeeze(concept2cls) # to child classes
+        print('[CVIT] Number of used concepts: ', self.concept2cls.shape[0])
 
         self.classifier = ConceptTransformerVIT(
             cfg,
@@ -329,6 +330,7 @@ class ConceptTransformerVIT(nn.Module):
             self.concept_embeddings_save_dir = Path(concept_embeddings_save_dir)
             self.concept_embeddings = None
             if self.concept_embeddings_save_dir.exists():
+                print('!! Concept embeddings exist. Load to use ...')
                 self.concept_embeddings = torch.load(self.concept_embeddings_save_dir).cuda()
         else:
             # === OPENCLIP ===
@@ -338,6 +340,7 @@ class ConceptTransformerVIT(nn.Module):
             self.concept_embeddings_save_dir = Path(concept_embeddings_save_dir)
             self.concept_embeddings = None
             if self.concept_embeddings_save_dir.exists():
+                print('!! Concept embeddings exist. Load to use ...')
                 self.concept_embeddings = torch.load(self.concept_embeddings_save_dir).cuda()
 
         # Unsupervised concepts

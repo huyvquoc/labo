@@ -341,6 +341,7 @@ def concept_trans_main(cfg):
     data_module = ImgExplDataModule(
         cfg,
         data_root=cfg.data_root, 
+        concept_root=cfg.concept_root,
         img_root=cfg.img_path, 
         img_split_path=cfg.img_split_path, 
         cls_name_path=cfg.cls_name_path, 

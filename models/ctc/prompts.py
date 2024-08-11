@@ -42,8 +42,10 @@ class HierarchyAwarePromptLearner(nn.Module):
         self.groupnames = list(groupname2clsname.keys())
 
         if use_group:
+            print('[**] Use parent learnable prompts!')
             self.n_cls = len(self.groupnames) # 5
         else:
+            print('[**] Use children learnable prompts!')
             self.n_cls = len(classnames) # 42
 
         print(f'Number of soft learnable prompts: {self.n_cls}')

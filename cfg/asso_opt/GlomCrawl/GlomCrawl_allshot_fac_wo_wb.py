@@ -4,7 +4,7 @@ data_root = 'exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac'
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_micro' # for plotting only when model checkpoint
 do_val_plotting=True
 lr = 1e-2
-bs = 4096
+bs = 2048
 
 concept_type = "all_submodular"
 # concept_select_fn = "submodular"
@@ -35,9 +35,12 @@ num_workers = 4
 # concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_768_debug.pth'
 # img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_768_aug2_iters1_{}.pth' # TODO
 # labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_labels_768_aug2_iters1_{}.pth'
-concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512.pth' # CONCH
+
+# concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512.pth' # CONCH
+concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512_allconcepts.pth' # CONCH TODO: need to change if number of concepts changes
 img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_aug2_iters20_{}.pth' # CONCH
 labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_labels_512_aug2_iters20_{}.pth' # CONCH
+
 # concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_concept_embs_768.pth' # OPENCLIP
 # img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP
 # labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_labels_768_aug2_iters20_{}.pth' # OPENCLIP
@@ -52,7 +55,7 @@ aug_level = 2
 # ----- only for learnable prompts -----
 set_learnable_prompts = True
 use_parent_level_learnable_prompts = True # whether to use 5 (parent) or 42 (child) soft prompts
-csc = True # whether to use class-specific contexts or a general context
+csc = True # whether to use class-specific contexts or a general context, append class name to soft prompts
 
 n_ctx_pos = 48
 n_ctx_neg = 48
@@ -68,3 +71,6 @@ balanced_weights_parents = None
 
 # --- whether to extract patch-level embeddings for each input image (True) or unfreeze vision backbone (False) ---
 use_patches_embeddings = False
+
+# --- whether to use full concepts or partial 630 concept ---
+use_full_concepts = True
