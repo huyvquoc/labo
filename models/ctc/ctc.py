@@ -136,7 +136,7 @@ class CrossAttention(nn.Module):
 
         if dict_of_mapping_from_conceptid_to_softpromptid is not None:
             dict_of_mapping_from_softpromptid_to_conceptids = {} # one-to-many
-            for key_conceptid, value_softpromptid in self.dict_of_mapping_from_conceptid_to_softpromptid.items():
+            for key_conceptid, value_softpromptid in dict_of_mapping_from_conceptid_to_softpromptid.items():
                 if value_softpromptid not in dict_of_mapping_from_softpromptid_to_conceptids:
                     dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid] = []
                 dict_of_mapping_from_softpromptid_to_conceptids[value_softpromptid].append(key_conceptid) # this list has been sorted, `collections.OrderedDict` is used in `models/ctc/vit.py`
@@ -215,7 +215,7 @@ class CrossAttention(nn.Module):
         qk_parent_class = None
         if self.use_attn_parent_branch:
             # ----- reduce from (990, 8, 1, 630) to (990, 8, 1, 5) -----
-            # self.dict_of_mapping_from_conceptid_to_softpromptid
+            # dict_of_mapping_from_conceptid_to_softpromptid
         
             qk_parent_class = []
             for key_softpromptid, value_conceptids in self.dict_of_mapping_from_softpromptid_to_conceptids.items():
