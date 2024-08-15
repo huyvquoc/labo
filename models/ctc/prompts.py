@@ -55,11 +55,11 @@ class HierarchyAwarePromptLearner(nn.Module):
         ctx_init_pos = cfg.positive_prompt_init.strip() # '' (empty string)
         ctx_init_neg = cfg.negative_prompt_init.strip() # '' (empty string)
 
-        if cfg.clip_model == 'conch_ViT-B-16':
+        try:
             # dtype = clip_model.dtype # torch.float32
             dtype = clip_model.text.transformer.get_cast_dtype() # TODO: if the above does not work
             ctx_dim = clip_model.text.ln_final.weight.shape[0] # 512
-        else:
+        except:
             # === OPENCLIP ===
             dtype = clip_model.transformer.get_cast_dtype() # torch.float32
             ctx_dim = clip_model.ln_final.weight.shape[0] # 512
@@ -80,10 +80,10 @@ class HierarchyAwarePromptLearner(nn.Module):
                 prompt_neg = tokenizer(ctx_init_neg)[:, :-1].to(self.device)
 
             with torch.no_grad():
-                if cfg.clip_model == 'conch_ViT-B-16':
+                try:
                     embedding_pos = clip_model.text.token_embedding(prompt_pos).type(dtype) # --- CONCH ---
                     embedding_neg = clip_model.text.token_embedding(prompt_neg).type(dtype) # --- CONCH ---
-                else:
+                except:
                     embedding_pos = clip_model.token_embedding(prompt_pos).type(dtype)
                     embedding_neg = clip_model.token_embedding(prompt_neg).type(dtype)
 
@@ -155,10 +155,10 @@ class HierarchyAwarePromptLearner(nn.Module):
         tokenized_prompts_pos = torch.cat(tokenized_prompts_pos) # clip (42, 77) 77 is the number of tokens after using clip.tokenize, conch group: shape(5, 127)
         tokenized_prompts_neg = torch.cat(tokenized_prompts_neg) # clip (42, 77), conch group: shape(5, 127)
         with torch.no_grad():
-            if cfg.clip_model == 'conch_ViT-B-16':
+            try:
                 embedding_pos = clip_model.text.token_embedding(tokenized_prompts_pos).type(dtype) # clip (42, 77, 512); conch group (5, 127, 512), --- CONCH ---
                 embedding_neg = clip_model.text.token_embedding(tokenized_prompts_neg).type(dtype) # clip (42, 77, 512); conch group (5, 127, 512), --- CONCH ---
-            else:
+            except:
                 embedding_pos = clip_model.token_embedding(tokenized_prompts_pos).type(dtype) # clip
                 embedding_neg = clip_model.token_embedding(tokenized_prompts_neg).type(dtype) # clip
 

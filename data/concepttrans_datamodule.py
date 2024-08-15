@@ -167,6 +167,7 @@ class ImgPreExtEmbsDataset(Dataset):
 class ImgExplDataset(Dataset):
     def __init__(self, \
                  model_name=None, \
+                 model_weight_name=None, \
                  list_of_img_names=[], \
                  list_of_labels=[], \
                  cls_names=None, \
@@ -186,6 +187,7 @@ class ImgExplDataset(Dataset):
         self.loader = default_loader
 
         self.model_name = model_name
+        self.model_weight_name = model_weight_name
         self.img_names = list_of_img_names # train, val, or test. read pickle file in pl.DataModule
         self.labels = list_of_labels
         self.num_concept = num_concept
@@ -219,10 +221,10 @@ class ImgExplDataset(Dataset):
             else:
                 print('Not exist! Jump into a function to start the extraction')
                 if split_name == 'train':
-                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
                                                                                            transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
                 else:
-                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
                                                                                            transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=False, n_iters=self.n_iters)
                 torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
                 torch.save(self.labels, labels_save_dir.format(split_name))
@@ -381,6 +383,7 @@ class ImgExplDataModule(pl.LightningDataModule):
 
         self.datasets = {
             mode: ImgExplDataset(model_name=self.cfg.clip_model,
+                                 model_weight_name=self.cfg.clip_model_weight, # weight name from the OpenCLIP library
                                  list_of_img_names=self.dict_of_img_paths[mode], \
                                  list_of_labels=self.dict_of_labels[mode], \
                                  cls_names=self.cls_names, \

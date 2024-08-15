@@ -91,7 +91,7 @@ def one_forward_of_vlm_foundation_img_branch(feature_extractor, preprocessed_img
 
     return x
 
-def extract_img_embs_using_conch_visual_trunk(model_name, list_of_img_paths, list_of_labels, dataset_class, transform_compose, only_visual_trunk=False, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin', do_aug=False, n_iters=10):
+def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, list_of_img_paths, list_of_labels, dataset_class, transform_compose, only_visual_trunk=False, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin', do_aug=False, n_iters=10):
     '''
     This function is mostly used in the concepttrans data module file
 
@@ -113,8 +113,7 @@ def extract_img_embs_using_conch_visual_trunk(model_name, list_of_img_paths, lis
             feature_extractor = feature_extractor.visual.trunk
     else:
         # === OPENCLIP ===
-        feature_extractor, preprocess, _ = open_clip.create_model_and_transforms(model_name, pretrained='laion2b_s32b_b82k', device=device)
-
+        feature_extractor, preprocess, _ = open_clip.create_model_and_transforms(model_name, pretrained=model_weight_name, device=device)
 
     list_of_img_embs = []
     list_of_new_labels = [] # only change when there are augmentations
@@ -175,6 +174,7 @@ class CVIT(nn.Module):
         super().__init__()
 
         self.model_name = model_name
+        self.model_weight_name = cfg.clip_model_weight
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if self.model_name == 'vit_base_patch16_224':
@@ -189,8 +189,11 @@ class CVIT(nn.Module):
         else:
             # === OPENCLIP ===
             # model, preprocess_train, preprocess_val
-            self.feature_extractor, self.preprocess, _ = open_clip.create_model_and_transforms(self.model_name, pretrained='laion2b_s32b_b82k', device=device)
-            self.embed_dim = self.feature_extractor.ln_final.weight.shape[0]
+            self.feature_extractor, self.preprocess, _ = open_clip.create_model_and_transforms(self.model_name, pretrained=self.model_weight_name, device=device)
+            try:
+                self.embed_dim = self.feature_extractor.ln_final.weight.shape[0]
+            except:
+                self.embed_dim = self.feature_extractor.text.ln_final.weight.shape[0]
 
         self.set_learnable_prompts = set_learnable_prompts
         self.concept2cls = torch.squeeze(concept2cls) # to child classes
@@ -265,6 +268,8 @@ class CVIT(nn.Module):
 
                 x = F.normalize(x, dim=-1) # shape (990, 512)
                 x = x[:, None, :]
+        else:
+            x /= x.norm(dim=-1, keepdim=True)
  
 
         out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn, qk_parent_class = self.classifier(
@@ -312,6 +317,7 @@ class ConceptTransformerVIT(nn.Module):
         super().__init__()
 
         self.model_name = model_name
+        self.model_weight_name = cfg.clip_model_weight
         self.only_visual_trunk = only_visual_trunk
         self.class_names = class_names
         self.concept2cls = concept2cls # to child classes
@@ -334,8 +340,8 @@ class ConceptTransformerVIT(nn.Module):
                 self.concept_embeddings = torch.load(self.concept_embeddings_save_dir).cuda()
         else:
             # === OPENCLIP ===
-            self.tokenizer = open_clip.get_tokenizer(self.model_name) # 'ViT-L-14'
-            self.model, _, self.preprocess = open_clip.create_model_and_transforms(self.model_name, pretrained='laion2b_s32b_b82k', device=self.device) # 'ViT-L-14'
+            self.tokenizer = open_clip.get_tokenizer(self.model_name)
+            self.model, _, self.preprocess = open_clip.create_model_and_transforms(self.model_name, pretrained=self.model_weight_name, device=self.device)
 
             self.concept_embeddings_save_dir = Path(concept_embeddings_save_dir)
             self.concept_embeddings = None
@@ -526,27 +532,50 @@ class ConceptTransformerVIT(nn.Module):
         '''
         The function is from `open_clip/model.py`
         '''
-        seq_len = text_after_tokenize.shape[1] #
-        cast_dtype = self.model.transformer.get_cast_dtype()
+        seq_len = text_after_tokenize.shape[1]
+
+        try:
+            cast_dtype = self.model.transformer.get_cast_dtype()
+        except:
+            cast_dtype = self.model.text.transformer.get_cast_dtype()
 
         if text_after_token_emb is None:
-            x = self.model.token_embedding(text_after_tokenize).to(cast_dtype)  # [batch_size, n_ctx, d_model]
+            try:
+                x = self.model.token_embedding(text_after_tokenize).to(cast_dtype)  # [batch_size, n_ctx, d_model]
+            except:
+                x = self.model.text.token_embedding(text_after_tokenize).to(cast_dtype)  # [batch_size, n_ctx, d_model]
         else:
             x = text_after_token_emb # soft prompt
 
-        attn_mask = self.model.attn_mask
+        try:
+            attn_mask = self.model.attn_mask
+        except:
+            attn_mask = self.model.text.attn_mask
         attn_mask = attn_mask[:seq_len, :seq_len]
 
-        x = x + self.model.positional_embedding[:seq_len].to(cast_dtype)
-        x = self.model.transformer(x, attn_mask=attn_mask)
-        x = self.model.ln_final(x)  # [batch_size, n_ctx, transformer.width]
-        pooled, tokens = text_global_pool(x, text_after_tokenize, self.model.text_pool_type)
+        try:
+            x = x + self.model.positional_embedding[:seq_len].to(cast_dtype)
+            x = self.model.transformer(x, attn_mask=attn_mask)
+            x = self.model.ln_final(x)  # [batch_size, n_ctx, transformer.width]
+            pooled, tokens = text_global_pool(x, text_after_tokenize, self.model.text_pool_type)
+        except:
+            x = x + self.model.text.positional_embedding[:seq_len].to(cast_dtype)
+            x = self.model.text.transformer(x, attn_mask=attn_mask)
+            x = self.model.text.ln_final(x)  # [batch_size, n_ctx, transformer.width]
+            pooled, tokens = text_global_pool(x, text_after_tokenize, self.model.text.pool_type)
 
-        if self.model.text_projection is not None and use_text_projection:
-            if isinstance(self.model.text_projection, nn.Linear):
-                pooled = self.model.text_projection(pooled)
-            else:
-                pooled = pooled @ self.model.text_projection
+        try:
+            if self.model.text_projection is not None and use_text_projection:
+                if isinstance(self.model.text_projection, nn.Linear):
+                    pooled = self.model.text_projection(pooled)
+                else:
+                    pooled = pooled @ self.model.text_projection
+        except:
+            if self.model.text.text_projection is not None and use_text_projection:
+                if isinstance(self.model.text.text_projection, nn.Linear):
+                    pooled = self.model.text.text_projection(pooled)
+                else:
+                    pooled = pooled @ self.model.text.text_projection
 
         return pooled, tokens
 

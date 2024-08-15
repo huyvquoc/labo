@@ -2,12 +2,16 @@ import torch
 from PIL import Image
 import open_clip
 
+# model_name = 'ViT-L-14'
+# model_weights = 'laion2b_s32b_b82k'
+model_name = 'EVA02-L-14'
+model_weights = 'merged2b_s4b_b131k'
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-model, _, preprocess = open_clip.create_model_and_transforms('ViT-L-14', pretrained='laion2b_s32b_b82k', device=device)
+model, _, preprocess = open_clip.create_model_and_transforms(model_name, pretrained=model_weights, device=device)
 model.eval()
-tokenizer = open_clip.get_tokenizer('ViT-L-14')
+tokenizer = open_clip.get_tokenizer(model_name)
 
 image = preprocess(Image.open("/data/hqvo3/Datasets/vlm/ml-scripts/datasets/glom_refine_labo/mesangial_hypercellularity_ded5bc5d-d0f7-442b-9761-0770465831d4-1.png")).unsqueeze(0)
 text = tokenizer(["endocapillary hypercellularity", "mesangial hypercellularity", "fibrous crescent", "mesangial matrix expansion", \
