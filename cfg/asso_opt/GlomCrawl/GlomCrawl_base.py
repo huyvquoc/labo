@@ -39,10 +39,10 @@ lambda_div = 0
 # clip_model = 'ViT-L/14'
 # clip_model_name = 'clip'
 # clip_model = 'conch_ViT-B-16'
-# clip_model = 'ViT-L-14'
-# clip_model_name = 'laion2b_s32b_b82k'
-clip_model = 'EVA02-L-14'
-clip_model_weight = 'merged2b_s4b_b131k' # only for OpenCLIP library, set to None if do not use OpenCLIP
+clip_model = 'ViT-L-14'
+clip_model_weight = 'laion2b_s32b_b82k'
+# clip_model = 'EVA02-L-14'
+# clip_model_weight = 'merged2b_s4b_b131k' # only for OpenCLIP library, set to None if do not use OpenCLIP
 clip_model_name = 'conch'
  
 # main_loss = 'TwoWayLoss'

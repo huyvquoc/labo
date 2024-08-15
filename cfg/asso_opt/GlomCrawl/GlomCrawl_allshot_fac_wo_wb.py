@@ -3,7 +3,7 @@ n_shots = "all"
 data_root = 'exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac'
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_micro' # for plotting only when model checkpoint
 do_val_plotting=True
-lr = 1e-3
+lr = 1e-2
 bs = 2048
 
 concept_type = "all_submodular"
@@ -15,7 +15,7 @@ submodular_weights = [1e7, 1]
 # submodular_weights = [1e9, 0.7]
 
 # ----- only for ConceptTransformer -----
-weight_decay = 1e-7
+weight_decay = 1e-12
 disable_lr_scheduler = False
 warmup = 1000
 group_lambda = 3.0
@@ -41,13 +41,13 @@ num_workers = 4
 # img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_aug2_iters20_{}.pth' # CONCH
 # labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_labels_512_aug2_iters20_{}.pth' # CONCH
 
-# concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_concept_embs_768.pth' # OPENCLIP
-# img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP
-# labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_labels_768_aug2_iters20_{}.pth' # OPENCLIP
+concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_concept_embs_768.pth' # OPENCLIP
+img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP
+labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_labels_768_aug2_iters20_{}.pth' # OPENCLIP
 
-concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_evaL14_concept_embs_768.pth' # OPENCLIP: EVA
-img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_evaL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP: EVA
-labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_evaL14_labels_768_aug2_iters20_{}.pth' # OPENCLIP: EVA
+# concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_evaL14_concept_embs_768.pth' # OPENCLIP: EVA
+# img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_evaL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP: EVA
+# labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_evaL14_labels_768_aug2_iters20_{}.pth' # OPENCLIP: EVA
 
 
 # img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_noaug_{}.pth' # TODO

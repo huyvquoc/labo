@@ -1,10 +1,10 @@
 _base_ = 'GlomCrawl_base.py'
 n_shots = "all"
 data_root = 'exp/asso_opt/GlomCrawl/GlomCrawl_allshot_fac'
-plotting_dir = 'output/concept_trans/figs_all_with_weight_balance_lsmoothing1' # for plotting only when model checkpoint
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_micro' # for plotting only when model checkpoint
+do_val_plotting=True
 lr = 1e-2
-bs = 4096
+bs = 2048
 
 concept_type = "all_submodular"
 # concept_select_fn = "submodular"
@@ -35,11 +35,24 @@ num_workers = 4
 # concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_768_debug.pth'
 # img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_768_aug2_iters1_{}.pth' # TODO
 # labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_labels_768_aug2_iters1_{}.pth'
-concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512.pth' # TODO
-img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_aug2_iters20_{}.pth' # TODO
-labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_labels_512_aug2_iters20_{}.pth'
+
+# concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512.pth' # CONCH
+# concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512_allconcepts.pth' # CONCH TODO: need to change if number of concepts changes
+# img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_aug2_iters20_{}.pth' # CONCH
+# labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_labels_512_aug2_iters20_{}.pth' # CONCH
+
+concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_concept_embs_768.pth' # OPENCLIP
+img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP
+labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_labels_768_aug2_iters20_{}.pth' # OPENCLIP
+
+# concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_evaL14_concept_embs_768.pth' # OPENCLIP: EVA
+# img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_evaL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP: EVA
+# labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_evaL14_labels_768_aug2_iters20_{}.pth' # OPENCLIP: EVA
+
+
 # img_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_img_embs_512_noaug_{}.pth' # TODO
 # labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_labels_512_noaug_{}.pth'
+
 use_extracted_img_embs = True # TODO
 only_visual_trunk = False # TODO
 do_aug = True
@@ -48,14 +61,26 @@ aug_level = 2
 
 # ----- only for learnable prompts -----
 set_learnable_prompts = True
-csc = True # whether to use class-specific contexts or a general context
+use_parent_level_learnable_prompts = True # whether to use 5 (parent) or 42 (child) soft prompts
+csc = True # whether to use class-specific contexts or a general context, append class name to soft prompts
+
 n_ctx_pos = 48
 n_ctx_neg = 48
 positive_prompt_init = ''
 negative_prompt_init = ''
 use_child_classes=True
 use_parent_classes=False
-use_attn_parent_branch=True
+use_attn_parent_branch=False
+
+# --- weight balance for loss function ---
+balanced_weights = None
+balanced_weights_parents = None
+
+# --- whether to extract patch-level embeddings for each input image (True) or unfreeze vision backbone (False) ---
+use_patches_embeddings = False
+
+# --- whether to use full concepts or partial 630 concept ---
+use_full_concepts = False
 
 # --- weight balance for loss function ---
 balanced_weights = [0.6863153028201572, 2.8276190476190477, 0.9301378446115288, 0.6668912848158132, 2.0791316526610646, 3.7205513784461153, 0.4502578101304216, 5.049319727891157, \
