@@ -8,99 +8,119 @@ import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit
 
 
-INPUT_PATH = '/data/hqvo3/Datasets/histo_cls/2_PanCancerTCGA'
-OUTPUT_PATH = './datasets/2_PanCancerTCGA/splits'
-N_SPLITS = 1
-os.makedirs(OUTPUT_PATH, exist_ok=True)
+def find_nth(haystack: str, needle: str, n: int) -> int:
+    start = haystack.find(needle)
+    while start >= 0 and n > 1:
+        start = haystack.find(needle, start+len(needle))
+        n -= 1
+    return start
 
-# TODO: get list of image names (relative paths) in X and list of labels in y
-# TODO: case-stratified and label-stratified
-X, y = [], [] # X is the list of relative paths of wsi folders, y is the list of 
-
-class_name_folders = os.listdir(INPUT_PATH)
-class_name_folders.remove('LICENSE')
-class_name_folders.sort()
-for class_name_folder in class_name_folders:
-  cls_name_folder_path = os.path.join(INPUT_PATH, class_name_folder)
-  mag_subfolders = os.listdir(cls_name_folder_path)
-  mag_subfolders.sort()
-
-  for mag_subfolder in mag_subfolders:
-      print(f'===== {mag_subfolder} =====')
-      mag_subfolder_path = os.path.join(cls_name_folder_path, mag_subfolder)
-      list_of_wsis = os.listdir(mag_subfolder_path)
-      list_of_wsis.sort()
-      for wsi in list_of_wsis:
-          print('wsi: ', wsi)
-          wsi_subfolder_path = os.path.join(mag_subfolder_path, wsi)
-          list_of_imgs = os.listdir(wsi_subfolder_path)
-          print('=> Number of patches: ', len(list_of_imgs))
-          list_of_imgs.sort()
-          img_path = os.path.join(wsi_subfolder_path, list_of_imgs[0])
-
-dict_of_splits = {}
-sss = StratifiedShuffleSplit(n_splits=N_SPLITS, test_size=0.2, random_state=0)
-sss.get_n_splits(X, y)
-for i, (train_index, test_index) in enumerate(sss.split(X, y)):
-  print(f"Fold {i}: ")
-  print(f"Train: length={len(train_index)}")
-  print(f"Test: length={len(test_index)}")
-  dict_of_splits[f'split{i}'] = {}
-  dict_of_splits[f'split{i}']['train_indices'] =  train_index
-  dict_of_splits[f'split{i}']['test_indices'] =  test_index
-  print('=> Total unique indices: ', np.unique(np.concatenate((train_index, test_index), axis=0)).shape)
-
-print('common train indices between split 0 and 1: {}'.format(np.intersect1d(dict_of_splits['split0']['train_indices'], dict_of_splits['split1']['train_indices']).shape))
-print('common train indices between split 0 and 2: {}'.format(np.intersect1d(dict_of_splits['split0']['train_indices'], dict_of_splits['split2']['train_indices']).shape))
-print('common train indices between split 1 and 2: {}'.format(np.intersect1d(dict_of_splits['split1']['train_indices'], dict_of_splits['split2']['train_indices']).shape))
-
-X_array = np.array(X)
-y_array = np.array(y)
-for split_id in range(N_SPLITS):
-  train_indices = dict_of_splits[f'split{split_id}']['train_indices']
-  test_indices = dict_of_splits[f'split{split_id}']['test_indices']
-
-  X_sub_train = X_array[train_indices]
-  y_sub_train = y_array[train_indices]
-
-  X_sub_test = X_array[test_indices]
-  y_sub_test = y_array[test_indices]
-
-  X_train = []
-  y_train = []
-  for cur_X, cur_y in zip(X_sub_train, y_sub_train):
-    cur_dst_path = os.path.join(OUTPUT_PATH, f'split{split_id}', 'train', cur_y)
-    os.makedirs(cur_dst_path, exist_ok=True)
-    shutil.copy(cur_X, cur_dst_path)
-
-    cur_file_name = cur_X.rsplit('/', 1)[-1]
-    X_train.append(os.path.join(cur_dst_path, cur_file_name))
-    y_train.append(cur_y)
-  for cur_X, cur_y in zip(X_sub_test, y_sub_test):
-    cur_dst_path = os.path.join(OUTPUT_PATH, f'split{split_id}', 'test', cur_y)
-    os.makedirs(cur_dst_path, exist_ok=True)
-    shutil.copy(cur_X, cur_dst_path)
-
-  # === Create val folders from newly generated train folders ===
-  sss2 = StratifiedShuffleSplit(n_splits=1, test_size=0.25, random_state=1)
-  X_train_array = np.array(X_train)
-  y_train_array = np.array(y_train)
-  for j, (_, val_index) in enumerate(sss2.split(X_train, y_train)):
-    # X_sub_train_2 = X_train_array[train_index]
-    # y_sub_train_2 = y_train_array[train_index]
-    X_sub_val = X_train_array[val_index]
-    y_sub_val = y_train_array[val_index]
+if __name__ == '__main__':
+    INPUT_PATH = '/data/hqvo3/Datasets/histo_cls/2_PanCancerTCGA'
+    OUTPUT_PATH = './datasets/2_PanCancerTCGA/splits'
+    N_SPLITS = 1
+    CHOSEN_MAG_LEVEL = '0' # Consider resolution level 0, the UNI paper said that ROIs at around 0.5 micro per pixel
+    os.makedirs(OUTPUT_PATH, exist_ok=True)
     
-    # move files to val folders
-    for cur_X_val, cur_y_val in zip(X_sub_val, y_sub_val):
-      cur_dst_path = os.path.join(OUTPUT_PATH, f'split{split_id}', 'val', cur_y_val)
-      os.makedirs(cur_dst_path, exist_ok=True)
-      shutil.move(cur_X_val, cur_dst_path)
-
-
-# ===== create pickle split file for LaBo =====
-
-for split_name in ['train', 'val', 'test']:
-  # TODO: dict_of_classname_to_filenames[split_name] is a sub dictionary of mapping from a class name to list of filenames
-  with open(os.path.join(OUTPUT_PATH, 'class2images_{}.p'.format(split_name)), 'wb') as handle:
-    pickle.dump(dict_of_classname_to_filenames[split_name], handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # TODO: get list of image names (relative paths) in X and list of labels in y
+    # TODO: case-stratified and label-stratified
+    X, y = [], [] # X is the list of relative paths of wsi folders, y is the list of 
+    
+    
+    # === from IPython file ===
+    # 1) get class names
+    class_names = os.listdir(INPUT_PATH)
+    class_names.remove('LICENSE')
+    class_names.sort()
+    
+    # 2) create dict of mapping from class name and magnification to list of corresponding wsis
+    cnt_wsis_of_each_mag = {} # cls names, then mag, then the number of cases in that mag
+    all_wsis_of_each_mag = {} # whether same cases in different mags. cls names, then mag, then list of cases in that mag
+    
+    for cls_idx, class_name in enumerate(class_names):
+      print(f'--- {cls_idx} {class_name} ---')
+      cls_name_folder_path = os.path.join(INPUT_PATH, class_name)
+      mag_subfolders = os.listdir(cls_name_folder_path)
+      mag_subfolders.sort()
+    
+      cnt_wsis_of_each_mag[class_name] = {}
+      all_wsis_of_each_mag[class_name] = {}
+    
+      for mag_subfolder in mag_subfolders:
+          mag_subfolder_path = os.path.join(cls_name_folder_path, mag_subfolder)
+          list_of_wsis = os.listdir(mag_subfolder_path)
+          list_of_wsis.sort()
+    
+          cnt_wsis_of_each_mag[class_name][mag_subfolder] = len(list_of_wsis)
+          all_wsis_of_each_mag[class_name][mag_subfolder] = list_of_wsis.copy()
+    
+    # 3) create useful dictionaries to work with
+    all_wsis_at_0 = [] # Wsis among different classes have already been unique => Each wsi has only one corresponding class
+    all_cases_at_0 = [] # Case ids among different classes have already been unique => Each case id has only one corresponding class
+    dict_of_mapping_from_classname_to_caseids = {}
+    dict_of_mapping_from_caseid_to_classname = {}
+    dict_of_mapping_from_caseid_to_wsis = {}
+    dict_of_mapping_from_wsi_to_patchnames = {}
+    
+    for class_name in class_names:
+      cur_cnt_wsis = cnt_wsis_of_each_mag[class_name][CHOSEN_MAG_LEVEL] # only at mag level 0
+      cur_all_wsis = all_wsis_of_each_mag[class_name][CHOSEN_MAG_LEVEL] # only at mag level 0
+      cur_all_wsis_uniq = list(set(cur_all_wsis))
+      assert len(cur_all_wsis) == len(cur_all_wsis_uniq)
+      all_wsis_at_0.extend(cur_all_wsis_uniq)
+    
+      cur_all_cases = [cur_wsi[:find_nth(cur_wsi, '-', 3)] for cur_wsi in cur_all_wsis]
+      cur_all_cases_uniq = list(set(cur_all_cases))
+      # assert len(cur_all_cases) == len(cur_all_cases_uniq)
+      print(cur_all_cases)
+      all_cases_at_0.extend(cur_all_cases_uniq)
+    
+      dict_of_mapping_from_classname_to_caseids[class_name] = cur_all_cases_uniq
+      for case_id in cur_all_cases_uniq:
+        dict_of_mapping_from_caseid_to_classname[case_id] = class_name
+      for idx2, case_id in enumerate(cur_all_cases):
+        if case_id not in dict_of_mapping_from_caseid_to_wsis:
+          dict_of_mapping_from_caseid_to_wsis[case_id] = []
+        dict_of_mapping_from_caseid_to_wsis[case_id].append(cur_all_wsis[idx2])
+      for wsi_name in cur_all_wsis:
+        abs_wsi_path = os.path.join(INPUT_PATH, class_name, CHOSEN_MAG_LEVEL, wsi_name)
+        corr_patchnames = os.listdir(abs_wsi_path)
+        corr_patchnames.sort()
+        corr_abs_patchnames = [os.path.join(class_name, CHOSEN_MAG_LEVEL, wsi_name, corr_patchname) for corr_patchname in corr_patchnames]
+        dict_of_mapping_from_wsi_to_patchnames[wsi_name] = corr_abs_patchnames
+      
+    # 4)
+    total_patches = 0
+    for cls_idx, (classname, caseids) in enumerate(dict_of_mapping_from_classname_to_caseids.items()):
+        total_cur_wsis = 0
+        patch_names = []
+        for caseid in caseids:
+            cur_wsis = dict_of_mapping_from_caseid_to_wsis[caseid]
+            total_cur_wsis += len(cur_wsis)
+        
+            for cur_wsi in cur_wsis:
+                patch_names.extend(dict_of_mapping_from_wsi_to_patchnames[cur_wsi])
+        
+        total_patches += len(patch_names)
+    
+    # === from IPython file ===
+    
+    
+    dict_of_splits = {}
+    sss = StratifiedShuffleSplit(n_splits=N_SPLITS, test_size=0.2, random_state=0)
+    sss.get_n_splits(X, y)
+    for i, (train_indices, test_indices) in enumerate(sss.split(X, y)):
+      train_indices
+      test_indices
+    
+    # ===== create pickle split file for LaBo =====
+    
+    for split_name in ['train', 'val', 'test']:
+      # TODO: dict_of_classname_to_filenames[split_name] is a sub dictionary of mapping from a class name to list of filenames
+      with open(os.path.join(OUTPUT_PATH, 'class2images_{}.p'.format(split_name)), 'wb') as handle:
+        pickle.dump(dict_of_classname_to_filenames[split_name], handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    # TODO: Following UNI, we do case-stratified and then approximately label-stratified
+    # 1st step: consider each case as one sample and try to preserve the percentage of samples for each class
+    # 2nd step: consider each patch as one sample and try exchanging cases between splits so that the percentage of samples (now is patches) is preserved. Also guarantee that wsis that are already in one split will not appear in the other splits
+    # Because for each wsi, there will be exactly 30 patches, so balancing the number of wsis for each class will also lead to the balance of patches
