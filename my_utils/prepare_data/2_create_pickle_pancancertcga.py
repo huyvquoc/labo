@@ -1,3 +1,4 @@
+import collections
 import os
 import pickle
 import shutil
@@ -38,7 +39,6 @@ if __name__ == '__main__':
     all_wsis_of_each_mag = {} # whether same cases in different mags. cls names, then mag, then list of cases in that mag
     
     for cls_idx, class_name in enumerate(class_names):
-      print(f'--- {cls_idx} {class_name} ---')
       cls_name_folder_path = os.path.join(INPUT_PATH, class_name)
       mag_subfolders = os.listdir(cls_name_folder_path)
       mag_subfolders.sort()
@@ -72,7 +72,6 @@ if __name__ == '__main__':
       cur_all_cases = [cur_wsi[:find_nth(cur_wsi, '-', 3)] for cur_wsi in cur_all_wsis]
       cur_all_cases_uniq = list(set(cur_all_cases))
       # assert len(cur_all_cases) == len(cur_all_cases_uniq)
-      print(cur_all_cases)
       all_cases_at_0.extend(cur_all_cases_uniq)
     
       dict_of_mapping_from_classname_to_caseids[class_name] = cur_all_cases_uniq
@@ -102,23 +101,71 @@ if __name__ == '__main__':
                 patch_names.extend(dict_of_mapping_from_wsi_to_patchnames[cur_wsi])
         
         total_patches += len(patch_names)
-    
+        X.extend(caseids)
+        y.extend([classname]*len(caseids))
+
+        print(f'- {cls_idx}) Class {classname} has {len(caseids)} cases, {total_cur_wsis} wsis, {len(patch_names)} patches.')
+    print('=> Total patches: ', total_patches)
+    X = np.array(X)
+    y = np.array(y)
     # === from IPython file ===
     
-    
+    # === StratifiedShuffleSplit ===
+    print('========== CASE STRATIFIFED SPLIT ==========')
     dict_of_splits = {}
     sss = StratifiedShuffleSplit(n_splits=N_SPLITS, test_size=0.2, random_state=0)
     sss.get_n_splits(X, y)
+    dict_of_train_test_indices = {}
     for i, (train_indices, test_indices) in enumerate(sss.split(X, y)):
-      train_indices
-      test_indices
+      print(f'[**] len(train_indices): {len(train_indices)}')
+      print(f'[**] len(test_indices): {len(test_indices)}')
+      print('-> Total indices: ', len(train_indices) + len(test_indices))
+      dict_of_train_test_indices[i] = {}
+      dict_of_train_test_indices[i]['train'] = train_indices
+      dict_of_train_test_indices[i]['test'] = test_indices
+
+    # === distribution after first step ===
+    print('[*] train_indices: ', dict_of_train_test_indices[0]['train'])
+    train_case_samples = X[dict_of_train_test_indices[0]['train']]
+    train_case_labels = y[dict_of_train_test_indices[0]['train']]
+    test_case_samples = X[dict_of_train_test_indices[0]['test']]
+    test_case_labels = y[dict_of_train_test_indices[0]['test']]
+
+    dict_of_mapping_from_cls_name_to_num_samples_train = {}
+    dict_of_mapping_from_cls_name_to_num_samples_test = {}
+    for train_case_label in train_case_labels:
+      if train_case_label not in dict_of_mapping_from_cls_name_to_num_samples_train:
+        dict_of_mapping_from_cls_name_to_num_samples_train[train_case_label] = 0
+      dict_of_mapping_from_cls_name_to_num_samples_train[train_case_label] += 1
+    for test_case_label in test_case_labels:
+      if test_case_label not in dict_of_mapping_from_cls_name_to_num_samples_test:
+        dict_of_mapping_from_cls_name_to_num_samples_test[test_case_label] = 0
+      dict_of_mapping_from_cls_name_to_num_samples_test[test_case_label] += 1
+
+    train_case_ordered_dict = collections.OrderedDict(sorted(dict_of_mapping_from_cls_name_to_num_samples_train.items()))
+    test_case_ordered_dict = collections.OrderedDict(sorted(dict_of_mapping_from_cls_name_to_num_samples_test.items()))
+    print('== Train case counter ===')
+    check_cnt = 0
+    for cls_name, cnt_samples in train_case_ordered_dict.items():
+      num_train_indices = len(dict_of_train_test_indices[0]['train'])
+      print(f'- {cls_name}: {cnt_samples} with {cnt_samples/num_train_indices}%.')
+      check_cnt += cnt_samples
+    print(check_cnt)
+    print('== Test case counter ===')
+    check_cnt = 0
+    for cls_name, cnt_samples in test_case_ordered_dict.items():
+      num_test_indices = len(dict_of_train_test_indices[0]['test'])
+      print(f'- {cls_name}: {cnt_samples} with {cnt_samples/num_test_indices}%.')
+      check_cnt += cnt_samples
+    print(check_cnt)
+
     
     # ===== create pickle split file for LaBo =====
     
-    for split_name in ['train', 'val', 'test']:
-      # TODO: dict_of_classname_to_filenames[split_name] is a sub dictionary of mapping from a class name to list of filenames
-      with open(os.path.join(OUTPUT_PATH, 'class2images_{}.p'.format(split_name)), 'wb') as handle:
-        pickle.dump(dict_of_classname_to_filenames[split_name], handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # for split_name in ['train', 'val', 'test']:
+    #   # TODO: dict_of_classname_to_filenames[split_name] is a sub dictionary of mapping from a class name to list of filenames
+    #   with open(os.path.join(OUTPUT_PATH, 'class2images_{}.p'.format(split_name)), 'wb') as handle:
+    #     pickle.dump(dict_of_classname_to_filenames[split_name], handle, protocol=pickle.HIGHEST_PROTOCOL)
     
     # TODO: Following UNI, we do case-stratified and then approximately label-stratified
     # 1st step: consider each case as one sample and try to preserve the percentage of samples for each class
