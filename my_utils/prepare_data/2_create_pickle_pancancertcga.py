@@ -126,48 +126,187 @@ if __name__ == '__main__':
 
     # === distribution after first step ===
     print('[*] train_indices: ', dict_of_train_test_indices[0]['train'])
-    train_case_samples = X[dict_of_train_test_indices[0]['train']]
-    train_case_labels = y[dict_of_train_test_indices[0]['train']]
+    ori_train_case_samples = X[dict_of_train_test_indices[0]['train']]
+    ori_train_case_labels = y[dict_of_train_test_indices[0]['train']]
     test_case_samples = X[dict_of_train_test_indices[0]['test']]
     test_case_labels = y[dict_of_train_test_indices[0]['test']]
 
+    # === Further split train into train and val ===
+    dict_of_splits = {}
+    sss2 = StratifiedShuffleSplit(n_splits=N_SPLITS, test_size=0.2, random_state=0)
+    sss2.get_n_splits(ori_train_case_samples, ori_train_case_labels)
+    dict_of_train_val_indices = {}
+    for i, (train_indices, val_indices) in enumerate(sss2.split(ori_train_case_samples, ori_train_case_labels)):
+      dict_of_train_val_indices[i] = {}
+      dict_of_train_val_indices[i]['train'] = train_indices
+      dict_of_train_val_indices[i]['val'] = val_indices
+
+    train_case_samples = ori_train_case_samples[dict_of_train_val_indices[0]['train']]
+    train_case_labels = ori_train_case_labels[dict_of_train_val_indices[0]['train']]
+    val_case_samples = ori_train_case_samples[dict_of_train_val_indices[0]['val']]
+    val_case_labels = ori_train_case_labels[dict_of_train_val_indices[0]['val']]
+
     dict_of_mapping_from_cls_name_to_num_samples_train = {}
+    dict_of_mapping_from_cls_name_to_num_samples_val = {}
     dict_of_mapping_from_cls_name_to_num_samples_test = {}
     for train_case_label in train_case_labels:
       if train_case_label not in dict_of_mapping_from_cls_name_to_num_samples_train:
         dict_of_mapping_from_cls_name_to_num_samples_train[train_case_label] = 0
       dict_of_mapping_from_cls_name_to_num_samples_train[train_case_label] += 1
+    for val_case_label in val_case_labels:
+      if val_case_label not in dict_of_mapping_from_cls_name_to_num_samples_val:
+        dict_of_mapping_from_cls_name_to_num_samples_val[val_case_label] = 0
+      dict_of_mapping_from_cls_name_to_num_samples_val[val_case_label] += 1
     for test_case_label in test_case_labels:
       if test_case_label not in dict_of_mapping_from_cls_name_to_num_samples_test:
         dict_of_mapping_from_cls_name_to_num_samples_test[test_case_label] = 0
       dict_of_mapping_from_cls_name_to_num_samples_test[test_case_label] += 1
 
     train_case_ordered_dict = collections.OrderedDict(sorted(dict_of_mapping_from_cls_name_to_num_samples_train.items()))
+    val_case_ordered_dict = collections.OrderedDict(sorted(dict_of_mapping_from_cls_name_to_num_samples_val.items()))
     test_case_ordered_dict = collections.OrderedDict(sorted(dict_of_mapping_from_cls_name_to_num_samples_test.items()))
     print('== Train case counter ===')
     check_cnt = 0
     for cls_name, cnt_samples in train_case_ordered_dict.items():
-      num_train_indices = len(dict_of_train_test_indices[0]['train'])
+      num_train_indices = len(dict_of_train_val_indices[0]['train'])
       print(f'- {cls_name}: {cnt_samples} with {cnt_samples/num_train_indices}%.')
+      check_cnt += cnt_samples
+    print(check_cnt)
+    print('== Val case counter ===')
+    check_cnt = 0
+    for cls_name, cnt_samples in val_case_ordered_dict.items():
+      num_val_indices = len(dict_of_train_val_indices[0]['val'])
+      print(f'- {cls_name}: {cnt_samples} with {cnt_samples/num_val_indices}%.')
       check_cnt += cnt_samples
     print(check_cnt)
     print('== Test case counter ===')
     check_cnt = 0
     for cls_name, cnt_samples in test_case_ordered_dict.items():
       num_test_indices = len(dict_of_train_test_indices[0]['test'])
-      print(f'- {cls_name}: {cnt_samples} with {cnt_samples/num_test_indices}%.')
+      print(f'- {cls_name}: {cnt_samples} with {cnt_samples*100/num_test_indices}%.')
       check_cnt += cnt_samples
     print(check_cnt)
+
+    # === check patch-level distribution of classes ===
+    train_case_samples
+    val_case_samples
+    test_case_samples
+    train_case_labels
+    val_case_labels
+    test_case_labels
+
+    dict_of_mapping_from_classname_to_caseids
+    dict_of_mapping_from_caseid_to_classname
+    dict_of_mapping_from_caseid_to_wsis
+    dict_of_mapping_from_wsi_to_patchnames
+
+    dict_of_mapping_from_classname_to_wsis_train = {}
+    dict_of_mapping_from_classname_to_wsis_val = {}
+    dict_of_mapping_from_classname_to_wsis_test = {}
+
+    dict_of_classname_to_filenames = {}
+
+    dict_of_classname_to_filenames['train'] = {}
+    num_train_wsis = 0
+    num_train_patches = 0
+    for sample_idx, train_caseid in enumerate(train_case_samples):
+      assert dict_of_mapping_from_caseid_to_classname[train_caseid] == train_case_labels[sample_idx]
+      cur_train_wsis = dict_of_mapping_from_caseid_to_wsis[train_caseid]
+      num_train_wsis += len(cur_train_wsis)
+
+      if train_case_labels[sample_idx] not in dict_of_classname_to_filenames['train']:
+        dict_of_classname_to_filenames['train'][train_case_labels[sample_idx]] = []
+      for cur_train_wsi in cur_train_wsis:
+        cur_train_patches = dict_of_mapping_from_wsi_to_patchnames[cur_train_wsi]
+        # assert len(cur_train_patches) == 30
+        # print('[**] len(cur_train_patches): ', len(cur_train_patches))
+        num_train_patches += len(cur_train_patches)
+
+        dict_of_classname_to_filenames['train'][train_case_labels[sample_idx]].extend(dict_of_mapping_from_wsi_to_patchnames[cur_train_wsi])
+
+      if train_case_labels[sample_idx] not in dict_of_mapping_from_classname_to_wsis_train:
+        dict_of_mapping_from_classname_to_wsis_train[train_case_labels[sample_idx]] = []
+      dict_of_mapping_from_classname_to_wsis_train[train_case_labels[sample_idx]].extend(cur_train_wsis)
+
+
+    ordered_dict_of_mapping_from_classname_to_wsis_train = collections.OrderedDict(sorted(dict_of_mapping_from_classname_to_wsis_train.items()))
+    for classname, wsis in ordered_dict_of_mapping_from_classname_to_wsis_train.items():
+      cur_perc = round(len(wsis)*100/num_train_wsis, 2)
+      print(f'- {classname}: {len(wsis)} with {cur_perc}%.')
+
+    print(f'=> Pre, the total number of WSIs used for training: {num_train_wsis}')
+    print(f'=> Pre, the total number of patches used for training: {num_train_patches}')
+
+    dict_of_classname_to_filenames['val'] = {}
+    num_val_wsis = 0
+    num_val_patches = 0
+    for sample_idx, val_caseid in enumerate(val_case_samples):
+      assert dict_of_mapping_from_caseid_to_classname[val_caseid] == val_case_labels[sample_idx]
+      cur_val_wsis = dict_of_mapping_from_caseid_to_wsis[val_caseid]
+      num_val_wsis += len(cur_val_wsis)
+
+      if val_case_labels[sample_idx] not in dict_of_classname_to_filenames['val']:
+        dict_of_classname_to_filenames['val'][val_case_labels[sample_idx]] = []
+      for cur_val_wsi in cur_val_wsis:
+        cur_val_patches = dict_of_mapping_from_wsi_to_patchnames[cur_val_wsi]
+        # assert len(cur_val_patches) == 30
+        # print('[**] len(cur_val_patches): ', len(cur_val_patches))
+        num_val_patches += len(cur_val_patches)
+
+        dict_of_classname_to_filenames['val'][val_case_labels[sample_idx]].extend(dict_of_mapping_from_wsi_to_patchnames[cur_val_wsi])
+
+      if val_case_labels[sample_idx] not in dict_of_mapping_from_classname_to_wsis_val:
+        dict_of_mapping_from_classname_to_wsis_val[val_case_labels[sample_idx]] = []
+      dict_of_mapping_from_classname_to_wsis_val[val_case_labels[sample_idx]].extend(cur_val_wsis)
+
+    ordered_dict_of_mapping_from_classname_to_wsis_val = collections.OrderedDict(sorted(dict_of_mapping_from_classname_to_wsis_val.items()))
+    for classname, wsis in ordered_dict_of_mapping_from_classname_to_wsis_val.items():
+      cur_perc = round(len(wsis)*100/num_val_wsis, 2)
+      print(f'- {classname}: {len(wsis)} with {cur_perc}%.')
+
+    print(f'=> Pre, the total number of WSIs used for val: {num_val_wsis}')
+    print(f'=> Pre, the total number of patches used for val: {num_val_patches}')
+
+    dict_of_classname_to_filenames['test'] = {}
+    num_test_wsis = 0
+    num_test_patches = 0
+    for sample_idx, test_caseid in enumerate(test_case_samples):
+      assert dict_of_mapping_from_caseid_to_classname[test_caseid] == test_case_labels[sample_idx]
+      cur_test_wsis = dict_of_mapping_from_caseid_to_wsis[test_caseid]
+      num_test_wsis += len(cur_test_wsis)
+
+      if test_case_labels[sample_idx] not in dict_of_classname_to_filenames['test']:
+        dict_of_classname_to_filenames['test'][test_case_labels[sample_idx]] = []
+      for cur_test_wsi in cur_test_wsis:
+        cur_test_patches = dict_of_mapping_from_wsi_to_patchnames[cur_test_wsi]
+        # assert len(cur_test_patches) == 30
+        # print('[**] len(cur_test_patches): ', len(cur_test_patches))
+        num_test_patches += len(cur_test_patches)
+
+        dict_of_classname_to_filenames['test'][test_case_labels[sample_idx]].extend(dict_of_mapping_from_wsi_to_patchnames[cur_test_wsi])
+
+      if test_case_labels[sample_idx] not in dict_of_mapping_from_classname_to_wsis_test:
+        dict_of_mapping_from_classname_to_wsis_test[test_case_labels[sample_idx]] = []
+      dict_of_mapping_from_classname_to_wsis_test[test_case_labels[sample_idx]].extend(cur_test_wsis)
+
+    ordered_dict_of_mapping_from_classname_to_wsis_test = collections.OrderedDict(sorted(dict_of_mapping_from_classname_to_wsis_test.items()))
+    for classname, wsis in ordered_dict_of_mapping_from_classname_to_wsis_test.items():
+      cur_perc = round(len(wsis)*100/num_test_wsis, 2)
+      print(f'- {classname}: {len(wsis)} with {cur_perc}%.')
+
+    print(f'=> Pre, the total number of WSIs used for testing: {num_test_wsis}')
+    print(f'=> Pre, the total number of patches used for testing: {num_test_patches}')
+
 
     
     # ===== create pickle split file for LaBo =====
     
-    # for split_name in ['train', 'val', 'test']:
-    #   # TODO: dict_of_classname_to_filenames[split_name] is a sub dictionary of mapping from a class name to list of filenames
-    #   with open(os.path.join(OUTPUT_PATH, 'class2images_{}.p'.format(split_name)), 'wb') as handle:
-    #     pickle.dump(dict_of_classname_to_filenames[split_name], handle, protocol=pickle.HIGHEST_PROTOCOL)
+    for split_name in ['train', 'val', 'test']:
+      # TODO: dict_of_classname_to_filenames[split_name] is a sub dictionary of mapping from a class name to list of filenames
+      with open(os.path.join(OUTPUT_PATH, 'class2images_{}.p'.format(split_name)), 'wb') as handle:
+        pickle.dump(dict_of_classname_to_filenames[split_name], handle, protocol=pickle.HIGHEST_PROTOCOL)
     
     # TODO: Following UNI, we do case-stratified and then approximately label-stratified
     # 1st step: consider each case as one sample and try to preserve the percentage of samples for each class
     # 2nd step: consider each patch as one sample and try exchanging cases between splits so that the percentage of samples (now is patches) is preserved. Also guarantee that wsis that are already in one split will not appear in the other splits
-    # Because for each wsi, there will be exactly 30 patches, so balancing the number of wsis for each class will also lead to the balance of patches
+    # Because for each wsi, there will be exactly 30 patches (no, there is not exactly 30 patches, can be 40 patches or 60 patches), so balancing the number of wsis for each class will also lead to the balance of patches
