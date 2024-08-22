@@ -4,7 +4,7 @@
 
 export PYTHONPATH="${PYTHONPATH}:/data/hqvo3/codes/CONCH"
 shots='all'
-dataset="GlomCrawl"
+dataset="2_PanCancerTCGA"
 
 # CUDA_VISIBLE_DEVICES=7 python main.py --cfg cfg/asso_opt/${dataset}/${dataset}_${shots}shot_fac.py --work-dir exp/asso_opt/${dataset}/${dataset}_${shots}shot_fac --func asso_opt_main
 

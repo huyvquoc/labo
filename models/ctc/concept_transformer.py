@@ -85,14 +85,15 @@ class CTCModel(pl.LightningModule):
         self.test_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='test_main_cls', report_top5=True, report_top7=True)
         # ----------------------------------------
 
-        # ---------- FOR PARENT CLASSES ----------
-        ### train ###
-        self.train_group_perf_calc = MetricsCalculator(num_cls=len(self.groupnames), class_names=self.groupnames, prefix_name='train_sup_cls', report_top5=True, report_top7=False)
-        ### val ###
-        self.val_group_perf_calc = MetricsCalculator(num_cls=len(self.groupnames), class_names=self.groupnames, prefix_name='val_sup_cls', report_top5=True, report_top7=False)
-        ### test ###
-        self.test_group_perf_calc = MetricsCalculator(num_cls=len(self.groupnames), class_names=self.groupnames, prefix_name='test_sup_cls', report_top5=True, report_top7=False)
-        # ----------------------------------------
+        if cfg.use_parent_classes:
+            # ---------- FOR PARENT CLASSES ----------
+            ### train ###
+            self.train_group_perf_calc = MetricsCalculator(num_cls=len(self.groupnames), class_names=self.groupnames, prefix_name='train_sup_cls', report_top5=True, report_top7=False)
+            ### val ###
+            self.val_group_perf_calc = MetricsCalculator(num_cls=len(self.groupnames), class_names=self.groupnames, prefix_name='val_sup_cls', report_top5=True, report_top7=False)
+            ### test ###
+            self.test_group_perf_calc = MetricsCalculator(num_cls=len(self.groupnames), class_names=self.groupnames, prefix_name='test_sup_cls', report_top5=True, report_top7=False)
+            # ----------------------------------------
 
         # ---------- FOR QK OF PARENT CLASSES ----------
         if cfg.use_parent_level_learnable_prompts:

@@ -20,4 +20,3 @@ for split_name in ['train', 'val', 'test']:
   print('-> type(objects_list[0]): ', type(objects_list[0])) # dictionary of mapping from a class name to list of corresponding files
   for key, value in objects_list[0].items():
     print(key, ' ', value)
-

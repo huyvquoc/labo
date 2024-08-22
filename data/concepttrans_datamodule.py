@@ -226,6 +226,9 @@ class ImgExplDataset(Dataset):
                 else:
                     self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
                                                                                            transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=False, n_iters=self.n_iters)
+                                            
+                os.makedirs(img_embeddings_save_dir.format(split_name), exist_ok=True)
+                os.makedirs(labels_save_dir.format(split_name), exist_ok=True)
                 torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
                 torch.save(self.labels, labels_save_dir.format(split_name))
         

@@ -85,7 +85,7 @@ if __name__ == '__main__':
         abs_wsi_path = os.path.join(INPUT_PATH, class_name, CHOSEN_MAG_LEVEL, wsi_name)
         corr_patchnames = os.listdir(abs_wsi_path)
         corr_patchnames.sort()
-        corr_abs_patchnames = [os.path.join(class_name, CHOSEN_MAG_LEVEL, wsi_name, corr_patchname) for corr_patchname in corr_patchnames]
+        corr_abs_patchnames = [os.path.join(class_name, CHOSEN_MAG_LEVEL, wsi_name, corr_patchname.rsplit('.', 1)[0]) for corr_patchname in corr_patchnames]
         dict_of_mapping_from_wsi_to_patchnames[wsi_name] = corr_abs_patchnames
       
     # 4)
@@ -214,20 +214,21 @@ if __name__ == '__main__':
       cur_train_wsis = dict_of_mapping_from_caseid_to_wsis[train_caseid]
       num_train_wsis += len(cur_train_wsis)
 
-      if train_case_labels[sample_idx] not in dict_of_classname_to_filenames['train']:
-        dict_of_classname_to_filenames['train'][train_case_labels[sample_idx]] = []
+      label_wo_underscore = train_case_labels[sample_idx].replace('_', ' ')
+
+      if label_wo_underscore not in dict_of_classname_to_filenames['train']:
+        dict_of_classname_to_filenames['train'][label_wo_underscore] = []
       for cur_train_wsi in cur_train_wsis:
         cur_train_patches = dict_of_mapping_from_wsi_to_patchnames[cur_train_wsi]
         # assert len(cur_train_patches) == 30
         # print('[**] len(cur_train_patches): ', len(cur_train_patches))
         num_train_patches += len(cur_train_patches)
 
-        dict_of_classname_to_filenames['train'][train_case_labels[sample_idx]].extend(dict_of_mapping_from_wsi_to_patchnames[cur_train_wsi])
+        dict_of_classname_to_filenames['train'][label_wo_underscore].extend(dict_of_mapping_from_wsi_to_patchnames[cur_train_wsi])
 
       if train_case_labels[sample_idx] not in dict_of_mapping_from_classname_to_wsis_train:
         dict_of_mapping_from_classname_to_wsis_train[train_case_labels[sample_idx]] = []
       dict_of_mapping_from_classname_to_wsis_train[train_case_labels[sample_idx]].extend(cur_train_wsis)
-
 
     ordered_dict_of_mapping_from_classname_to_wsis_train = collections.OrderedDict(sorted(dict_of_mapping_from_classname_to_wsis_train.items()))
     for classname, wsis in ordered_dict_of_mapping_from_classname_to_wsis_train.items():
@@ -245,15 +246,17 @@ if __name__ == '__main__':
       cur_val_wsis = dict_of_mapping_from_caseid_to_wsis[val_caseid]
       num_val_wsis += len(cur_val_wsis)
 
-      if val_case_labels[sample_idx] not in dict_of_classname_to_filenames['val']:
-        dict_of_classname_to_filenames['val'][val_case_labels[sample_idx]] = []
+      label_wo_underscore = val_case_labels[sample_idx].replace('_', ' ')
+
+      if label_wo_underscore not in dict_of_classname_to_filenames['val']:
+        dict_of_classname_to_filenames['val'][label_wo_underscore] = []
       for cur_val_wsi in cur_val_wsis:
         cur_val_patches = dict_of_mapping_from_wsi_to_patchnames[cur_val_wsi]
         # assert len(cur_val_patches) == 30
         # print('[**] len(cur_val_patches): ', len(cur_val_patches))
         num_val_patches += len(cur_val_patches)
 
-        dict_of_classname_to_filenames['val'][val_case_labels[sample_idx]].extend(dict_of_mapping_from_wsi_to_patchnames[cur_val_wsi])
+        dict_of_classname_to_filenames['val'][label_wo_underscore].extend(dict_of_mapping_from_wsi_to_patchnames[cur_val_wsi])
 
       if val_case_labels[sample_idx] not in dict_of_mapping_from_classname_to_wsis_val:
         dict_of_mapping_from_classname_to_wsis_val[val_case_labels[sample_idx]] = []
@@ -275,15 +278,17 @@ if __name__ == '__main__':
       cur_test_wsis = dict_of_mapping_from_caseid_to_wsis[test_caseid]
       num_test_wsis += len(cur_test_wsis)
 
-      if test_case_labels[sample_idx] not in dict_of_classname_to_filenames['test']:
-        dict_of_classname_to_filenames['test'][test_case_labels[sample_idx]] = []
+      label_wo_underscore = test_case_labels[sample_idx].replace('_', ' ')
+
+      if label_wo_underscore not in dict_of_classname_to_filenames['test']:
+        dict_of_classname_to_filenames['test'][label_wo_underscore] = []
       for cur_test_wsi in cur_test_wsis:
         cur_test_patches = dict_of_mapping_from_wsi_to_patchnames[cur_test_wsi]
         # assert len(cur_test_patches) == 30
         # print('[**] len(cur_test_patches): ', len(cur_test_patches))
         num_test_patches += len(cur_test_patches)
 
-        dict_of_classname_to_filenames['test'][test_case_labels[sample_idx]].extend(dict_of_mapping_from_wsi_to_patchnames[cur_test_wsi])
+        dict_of_classname_to_filenames['test'][label_wo_underscore].extend(dict_of_mapping_from_wsi_to_patchnames[cur_test_wsi])
 
       if test_case_labels[sample_idx] not in dict_of_mapping_from_classname_to_wsis_test:
         dict_of_mapping_from_classname_to_wsis_test[test_case_labels[sample_idx]] = []
@@ -296,7 +301,6 @@ if __name__ == '__main__':
 
     print(f'=> Pre, the total number of WSIs used for testing: {num_test_wsis}')
     print(f'=> Pre, the total number of patches used for testing: {num_test_patches}')
-
 
     
     # ===== create pickle split file for LaBo =====

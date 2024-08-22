@@ -174,7 +174,6 @@ class CVIT(nn.Module):
         super().__init__()
 
         self.model_name = model_name
-        self.model_weight_name = cfg.clip_model_weight
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if self.model_name == 'vit_base_patch16_224':
@@ -189,6 +188,7 @@ class CVIT(nn.Module):
         else:
             # === OPENCLIP ===
             # model, preprocess_train, preprocess_val
+            self.model_weight_name = cfg.clip_model_weight
             self.feature_extractor, self.preprocess, _ = open_clip.create_model_and_transforms(self.model_name, pretrained=self.model_weight_name, device=device)
             try:
                 self.embed_dim = self.feature_extractor.ln_final.weight.shape[0]
@@ -317,7 +317,6 @@ class ConceptTransformerVIT(nn.Module):
         super().__init__()
 
         self.model_name = model_name
-        self.model_weight_name = cfg.clip_model_weight
         self.only_visual_trunk = only_visual_trunk
         self.class_names = class_names
         self.concept2cls = concept2cls # to child classes
@@ -340,6 +339,7 @@ class ConceptTransformerVIT(nn.Module):
                 self.concept_embeddings = torch.load(self.concept_embeddings_save_dir).cuda()
         else:
             # === OPENCLIP ===
+            self.model_weight_name = cfg.clip_model_weight
             self.tokenizer = open_clip.get_tokenizer(self.model_name)
             self.model, _, self.preprocess = open_clip.create_model_and_transforms(self.model_name, pretrained=self.model_weight_name, device=self.device)
 
@@ -391,9 +391,11 @@ class ConceptTransformerVIT(nn.Module):
                 dict_of_mapping_from_conceptid_to_softpromptid = {} # concept index (630 concepts) to parent class index (5 soft prompts for)
                 for concept_idx in range(self.concept2cls.shape[0]): # 630
                     corr_label_int = int(self.concept2cls[concept_idx]) # corresponding child class in int
-                    corr_label_str = self.class_names[corr_label_int] # corresponding child class in str
-                    corr_parent_label_str = self.clsname2groupname[corr_label_str] # corresponding parent class in str
-                    corr_parent_label_int = self.groupnames.index(corr_parent_label_str) # corresponding parent class in int
+                    
+                    if cfg.use_parent_level_learnable_prompts:
+                        corr_label_str = self.class_names[corr_label_int] # corresponding child class in str
+                        corr_parent_label_str = self.clsname2groupname[corr_label_str] # corresponding parent class in str
+                        corr_parent_label_int = self.groupnames.index(corr_parent_label_str) # corresponding parent class in int
 
                     if cfg.use_parent_level_learnable_prompts:
                         dict_of_mapping_from_conceptid_to_softpromptid[concept_idx] = corr_parent_label_int
