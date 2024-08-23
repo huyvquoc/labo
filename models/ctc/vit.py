@@ -614,9 +614,11 @@ class ConceptTransformerVIT(nn.Module):
                     if self.only_visual_trunk:
                         with torch.inference_mode():
                             concept_embeddings, _ = self._encode_text(text_tokens)
+                            concept_embeddings /= concept_embeddings.norm(dim=-1, keepdim=True)
                     else:
                         with torch.inference_mode(): # for both CONCH and OPENCLIP
                             concept_embeddings = self.model.encode_text(text_tokens) # shape: conch (630, 512); openclip (630, 768)
+                            concept_embeddings /= concept_embeddings.norm(dim=-1, keepdim=True)
 
                     self.concept_embeddings = concept_embeddings[None, :, :]
                     torch.save(self.concept_embeddings, self.concept_embeddings_save_dir)
@@ -647,8 +649,6 @@ class ConceptTransformerVIT(nn.Module):
             out = out + out_unsup.squeeze(1)  # squeeze token dimension
 
         if self.n_concepts > 0:  # Non-spatial stream, self.n_concepts = 13 # TODO: global concepts
-            # if self.model_name == 'conch_ViT-B-16':
-            self.concept_embeddings /= self.concept_embeddings.norm(dim=-1, keepdim=True)
 
             if soft_prompt_embeddings is not None and self.concept_embeddings is not None:
                 out_n, out_group_n, concept_attn, qk_parent_class = self.concept_tranformer(x_cls, combined_embeddings) # out_n.shape: (32, 1, 200), concept_attn.shape: (32, 2, 1, 13); qk_parent_class.shape: (990, 5) 5 parent classes of glomcrawl
