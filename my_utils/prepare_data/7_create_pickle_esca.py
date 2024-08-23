@@ -45,15 +45,20 @@ if __name__ == '__main__':
   test_cls_sub_folders.sort()
   print(test_cls_sub_folders)
 
+  total_test_files = 0
   dict_of_classname_to_filenames['test'] = {}
   for cls_sub_folder in test_cls_sub_folders:
       cls_sub_path = os.path.join(test_set_path, cls_sub_folder)
       list_of_files = os.listdir(cls_sub_path)
       list_of_files.sort()
       print(f'{cls_sub_folder}: {len(list_of_files)} files.')
+      total_test_files += len(list_of_files)
 
       actual_cls_name = dict_of_alias_clsname_to_actual_clsname[cls_sub_folder]
-      dict_of_classname_to_filenames['test'][actual_cls_name] = [os.path.join(TEST_SET, cls_sub_folder, file_name) for file_name in list_of_files]
+      # for file_name in list_of_files:
+      #     if '._' in file_name:
+      #         print(f'!! {file_name}')
+      dict_of_classname_to_filenames['test'][actual_cls_name] = [os.path.join(TEST_SET, cls_sub_folder, file_name.rsplit('.', 1)[0]) for file_name in list_of_files]
 
   # === For train set, 3 subsets: ['VALSET1_UKK', 'VALSET2_WNS', 'VALSET3_TCGA'] ===
   # TODO: split the official train set into train set and val set
@@ -73,7 +78,12 @@ if __name__ == '__main__':
           print(f'{cls_sub_folder}: {len(list_of_files)} files.')
 
           actual_cls_name = dict_of_alias_clsname_to_actual_clsname[cls_sub_folder]
-          relative_img_paths = [os.path.join(train_set, cls_sub_folder, file_name) for file_name in list_of_files]
+
+          # for file_name in list_of_files:
+          #     if '._' in file_name:
+          #         print(f'!! {file_name}')
+
+          relative_img_paths = [os.path.join(train_set, cls_sub_folder, file_name.rsplit('.', 1)[0]) for file_name in list_of_files]
 
           X.extend(relative_img_paths)
           y.extend([actual_cls_name]*len(relative_img_paths))
@@ -98,6 +108,10 @@ if __name__ == '__main__':
   train_labels = y[dict_of_train_val_indices[0]['train']]
   val_samples = X[dict_of_train_val_indices[0]['val']]
   val_labels = y[dict_of_train_val_indices[0]['val']]
+
+  print('[*] train_samples: ', train_samples)
+  print('[*] val_samples: ', val_samples)
+  print('=> train + val + test: ', len(train_samples) + len(val_samples) + total_test_files)
 
   dict_of_classname_to_filenames['train'] = {}
   dict_of_classname_to_filenames['val'] = {}
