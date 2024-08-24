@@ -184,7 +184,6 @@ class ImgExplDataset(Dataset):
                  transform=None):
         super().__init__()
 
-        print('[**] Init ImgExplDataset !!')
         self.loader = default_loader
 
         self.model_name = model_name
@@ -383,11 +382,8 @@ class ImgExplDataModule(pl.LightningDataModule):
         - if allowing grad to image, provide (image, label)
         - if allowing grad to text, compute concept_feat inside the model        
         """
-        print('[**] Setup datamodule')
-        print('[**] check if val and test set are completely different')
         # for img_val_path in self.dict_of_img_paths['val']:
         #     assert img_val_path not in self.dict_of_img_paths['test']
-        print('[**] complete checking')
 
         self.datasets = {
             mode: ImgExplDataset(model_name=self.cfg.clip_model,

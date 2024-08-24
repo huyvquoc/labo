@@ -147,6 +147,7 @@ class CTCModel(pl.LightningModule):
         self.model = getattr(models.ctc, self.cfg.ctc_model)(self.cfg, class_names, self.concept2cls) # self.model is CTC
         # ctc_model='mnist_ctc' for MNIST odd/even
         # ==================== ConceptTransformer ends here ====================
+        self.first_val_complete = False
 
     def forward(self, x):
         '''
@@ -464,7 +465,7 @@ class CTCModel(pl.LightningModule):
             on_epoch=True,
         )
 
-        if self.cfg.do_val_plotting:
+        if self.first_val_complete and self.cfg.do_val_plotting:
             # plotting
             if self.best_val_metric is None or perf_dict[self.cfg.best_val_metric_name] >= self.best_val_metric:
                 os.makedirs(self.plotting_dir, exist_ok=True)
@@ -479,6 +480,8 @@ class CTCModel(pl.LightningModule):
                 self.val_qk_group_perf_calc.generate_plots(val_all_outputs_qk_group, val_all_targets_qk_group, save_dir=self.plotting_dir, suffix=val_metric_info)
 
                 self.best_val_metric = perf_dict[self.cfg.best_val_metric_name]
+        else:
+            self.first_val_complete = True
 
         # clear rem lists
         self.val_step_outputs.clear()
