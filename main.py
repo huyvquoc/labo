@@ -453,6 +453,7 @@ def concept_trans_main(cfg):
             callbacks=[checkpoint_callback, ], check_val_every_n_epoch=check_interval, default_root_dir=cfg.work_dir)
     trainer.fit(model, data_module)
 
+    print('[*] Complete training, start testing !!')
     # automatically loads the best weights for you
     trainer.test(model, data_module)
 

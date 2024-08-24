@@ -1,7 +1,7 @@
 _base_ = 'PanCancerTCGA_base.py'
 n_shots = "all"
 data_root = 'exp/asso_opt/2_PanCancerTCGA/PanCancerTCGA_allshot_fac'
-best_val_metric_name = 'val_main_cls_acc_multiclass_top1_micro' # for plotting only when model checkpoint
+best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting only when model checkpoint
 do_val_plotting=True
 lr = 1e-2
 bs = 2048
@@ -17,7 +17,7 @@ submodular_weights = [1e7, 1]
 # ----- only for ConceptTransformer -----
 weight_decay = 1e-12
 disable_lr_scheduler = False
-warmup = 1000
+warmup = 500
 group_lambda = 3.0
 qk_group_lambda = 3.0
 expl_lambda = 2.0
