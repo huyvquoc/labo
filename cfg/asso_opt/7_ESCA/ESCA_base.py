@@ -55,4 +55,14 @@ clip_model_name = 'conch'
 # main_loss = 'APLLoss'
 main_loss = 'ANLSLoss'
 
-groupname2clsname = {}
+groupname2clsname = {'adventitia': ['adventitia'],
+                     'lamina propria mucosae': ['lamina propria mucosae'],
+                     'muscularis mucosae': ['muscularis mucosae'],
+                     'muscularis propria': ['muscularis propria'],
+                     'regression tissue': ['regression tissue'],
+                     'mucosa gastric': ['mucosa gastric'],
+                     'mucosa oesophagus': ['mucosa oesophagus'],
+                     'submucosa': ['submucosa'],
+                     'submucosal glands': ['submucosal glands'],
+                     'tumour': ['tumour'],
+                     'ulceration': ['ulceration']}
