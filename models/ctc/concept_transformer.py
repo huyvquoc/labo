@@ -276,8 +276,8 @@ class CTCModel(pl.LightningModule):
         # ----- USE PARENT CLASSES -----
         if logits_group is not None:
             cls_loss_group = F.cross_entropy(logits_group, F.one_hot(y_group, num_classes=logits_group.shape[1]).float(), weight=self.balanced_weights_parents)
-            # cls_loss_group = F.nll_loss(logits_group, y_group) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
             # cls_loss_group, reg_loss_group = self.criterion(logits_group, F.one_hot(y_group, num_classes=logits_group.shape[1]).float()) # for ANLS
+            # cls_loss_group = F.nll_loss(logits_group, y_group) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
         else:
             cls_loss_group = 0
         # -----------------------------
@@ -285,8 +285,8 @@ class CTCModel(pl.LightningModule):
         # ----- USE QK OF PARENT CLASSES -----
         if logits_qk_parent_class is not None:
             cls_loss_qk_group = F.cross_entropy(logits_qk_parent_class, F.one_hot(y_group, num_classes=logits_qk_parent_class.shape[1]).float(), weight=self.balanced_weights_parents)
+            # cls_loss_qk_group, reg_loss_qk_group = self.criterion(logits_qk_parent_class, F.one_hot(y_group, num_classes=logits_qk_parent_class.shape[1]).float()) # for ANLS
             # cls_loss_qk_group = F.nll_loss(logits_qk_parent_class, y_group) # MNIST: logits.shape: (32, 2), y.shape: (32); CUB: logits.shape: (32, 200), y.shape: (32)
-            # cls_loss_qk_group, reg_loss_group = self.criterion(logits_qk_parent_class, F.one_hot(y_group, num_classes=logits_qk_parent_class.shape[1]).float()) # for ANLS
         else:
             cls_loss_qk_group = 0
         # -----------------------------

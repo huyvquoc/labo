@@ -31,18 +31,31 @@ def build_transform_dict(input_size=224,
     2: more augmentations,
     3: most augmentations, 
     '''
-    if level == 1:
+    if level == 0:
+        print('!! No augmentation')
+        transform_dict = {'train': A.Compose([A.Resize(input_size, input_size),
+                                              A.Normalize(norm_mean, norm_std),
+                                              ToTensorV2()]),
+                          'val': A.Compose([A.Resize(input_size, input_size),
+                                            A.Normalize(norm_mean, norm_std),
+                                            ToTensorV2()]),
+                          'test': A.Compose([A.Resize(input_size, input_size),
+                                             A.Normalize(norm_mean, norm_std),
+                                             ToTensorV2()])
+        }
+
+    elif level == 1:
         # from ConceptTransformer code
         transform_dict = {'train': A.Compose([A.Resize(input_size, input_size),
                                               A.HorizontalFlip(p=0.5),
                                               A.Rotate(limit=(-30,30),p=1.0),
-                                              A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                              A.Normalize(norm_mean, norm_std),
                                               ToTensorV2()]),
                           'val': A.Compose([A.Resize(input_size, input_size),
-                                            A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                            A.Normalize(norm_mean, norm_std),
                                             ToTensorV2()]),
                           'test': A.Compose([A.Resize(input_size, input_size),
-                                             A.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+                                             A.Normalize(norm_mean, norm_std),
                                              ToTensorV2()])
         }
 

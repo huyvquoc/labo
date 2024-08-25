@@ -34,8 +34,8 @@ num_workers = 4
 
 # concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512.pth' # CONCH
 concept_embeddings_save_dir = 'datasets/7_ESCA/embs/concepttrans_concept_embs_512_allconcepts.pth' # CONCH TODO: need to change if number of concepts changes
-img_embeddings_save_dir = 'datasets/7_ESCA/embs/concepttrans_img_embs_512_aug1_iters1_{}.pth' # CONCH
-labels_save_dir = 'datasets/7_ESCA/embs/concepttrans_labels_512_aug1_iters1_{}.pth' # CONCH
+img_embeddings_save_dir = 'datasets/7_ESCA/embs/concepttrans_img_embs_512_aug0_iters1_{}.pth' # CONCH
+labels_save_dir = 'datasets/7_ESCA/embs/concepttrans_labels_512_aug0_iters1_{}.pth' # CONCH
 
 # concept_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_vitL14_concept_embs_768.pth' # OPENCLIP
 # img_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_vitL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP
@@ -45,7 +45,7 @@ use_extracted_img_embs = True # TODO
 only_visual_trunk = False # TODO
 do_aug = True
 n_iters = 1
-aug_level = 1
+aug_level = 0
 
 # ----- only for learnable prompts -----
 set_learnable_prompts = True
@@ -61,15 +61,11 @@ use_parent_classes=False
 use_attn_parent_branch=True
 
 # --- weight balance for loss function ---
-balanced_weights = None
-balanced_weights_parents = None
+balanced_weights = [0.5394825975655845, 20.288683293108072, 0.5914661079557669, 1.8476463764576592, 8.251786006435077, 0.3598903059161549, 1.009891144022265, 1.3571159503479946, 28.777672118676303, 0.4568036154726289, 69.47337006427915]
+balanced_weights_parents = [0.5394825975655845, 20.288683293108072, 0.5914661079557669, 1.8476463764576592, 8.251786006435077, 0.3598903059161549, 1.009891144022265, 1.3571159503479946, 28.777672118676303, 0.4568036154726289, 69.47337006427915]
 
 # --- whether to extract patch-level embeddings for each input image (True) or unfreeze vision backbone (False) ---
 use_patches_embeddings = False
 
 # --- whether to use full concepts or partial 630 concept ---
 use_full_concepts = True
-
-# --- weight balance for loss function ---
-balanced_weights = [0.5394825975655845, 20.288683293108072, 0.5914661079557669, 1.8476463764576592, 8.251786006435077, 0.3598903059161549, 1.009891144022265, 1.3571159503479946, 28.777672118676303, 0.4568036154726289, 69.47337006427915]
-balanced_weights_parents = [0.5394825975655845, 20.288683293108072, 0.5914661079557669, 1.8476463764576592, 8.251786006435077, 0.3598903059161549, 1.009891144022265, 1.3571159503479946, 28.777672118676303, 0.4568036154726289, 69.47337006427915]

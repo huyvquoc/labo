@@ -102,7 +102,7 @@ def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, lis
     '''
     if do_aug:
         predict_dataset = dataset_class(img_filepaths=list_of_img_paths, labels=list_of_labels, transform=transform_compose)
-        predict_loader = DataLoader(predict_dataset, batch_size=1, shuffle=False, num_workers=4, pin_memory=True) # TODO: change batch size
+        predict_loader = DataLoader(predict_dataset, batch_size=8, shuffle=False, num_workers=4, pin_memory=True) # TODO: change batch size
 
     print('- Start extract img embeddings...')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -125,8 +125,12 @@ def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, lis
               images = images.to(device, non_blocking=True)
               # labels = labels.to(device, non_blocking=True)
               img_embs = one_forward_of_vlm_foundation_img_branch(feature_extractor, images, only_visual_trunk)
+              # print('[**] img_embs.shape', img_embs.shape)
+              # print('[**] img_embs.tocpu.tolist', type(img_embs.to("cpu").tolist()[0]))
+              # print('[**] labels.shape', labels.shape)
+              # print('[**] labels.tolist', type(labels.tolist()[0]))
               list_of_img_embs.append(img_embs.to("cpu")) # TODO: when batch size is greater than 1, do we need to change from append to extend
-              list_of_new_labels.append(labels.item())
+              list_of_new_labels.extend(labels.tolist())
     else:
       for img_path in list_of_img_paths:
           preprocessed_img = preprocess(Image.open(img_path)).unsqueeze(0).to(device)
