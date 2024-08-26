@@ -78,11 +78,11 @@ class CTCModel(pl.LightningModule):
 
         # ---------- FOR CHILD CLASSES ----------
         ### train ###
-        self.train_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='train_main_cls', report_top5=True, report_top7=True)
+        self.train_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='train_main_cls', report_top5=True, report_top7=False)
         ### val ###
-        self.val_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='val_main_cls', report_top5=True, report_top7=True)
+        self.val_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='val_main_cls', report_top5=True, report_top7=False)
         ### test ###
-        self.test_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='test_main_cls', report_top5=True, report_top7=True)
+        self.test_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='test_main_cls', report_top5=True, report_top7=False)
         # ----------------------------------------
 
         if cfg.use_parent_classes:

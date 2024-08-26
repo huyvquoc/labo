@@ -87,6 +87,8 @@ class MetricsCalculator:
         self.dict_of_metrics_top1 = {
             'acc_multiclass_top1_micro': torchmetrics.Accuracy(num_classes=num_cls, average='micro', task='multiclass', top_k=1).to(self.device),
             'acc_multiclass_top1_macro': torchmetrics.Accuracy(num_classes=num_cls, average='macro', task='multiclass', top_k=1).to(self.device),
+            'f1_multiclass_top1_weighted': torchmetrics.F1Score(num_classes=num_cls, average='weighted', task='multiclass', top_k=1).to(self.device), # https://www.kdnuggets.com/2023/01/micro-macro-weighted-averages-f1-score-clearly-explained.html
+            'auroc_score_multiclass_macro': torchmetrics.AUROC(num_classes=num_cls, average='macro', task='multiclass').to(self.device),
         }
 
         # self.dict_of_metrics_top5 = {
