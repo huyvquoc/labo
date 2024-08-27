@@ -69,7 +69,3 @@ use_patches_embeddings = False
 
 # --- whether to use full concepts or partial 630 concept ---
 use_full_concepts = True
-
-
-
-

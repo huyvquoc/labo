@@ -375,8 +375,6 @@ def concept_trans_main(cfg):
     # for param in model.parameters():
     #     print('[param] ', param)
     #     param.requires_grad = False
-    # model.CVIT.VisionTransformer.requires_grad_(False)
-    # model.CVIT.ConceptTransformerVIT.CoCa.requires_grad_(False)
     model.model.feature_extractor.requires_grad_(False)
     # model.model.feature_extractor.visual.attn_pool_contrast.requires_grad_(True)
     # model.model.feature_extractor.visual.ln_contrast.requires_grad_(True)
@@ -385,7 +383,7 @@ def concept_trans_main(cfg):
     # model.model.feature_extractor.visual.trunk.head_drop.requires_grad_(True)
     # model.model.feature_extractor.visual.trunk.head.requires_grad_(True)
     # model.model.feature_extractor.visual.trunk.blocks[11].requires_grad_(True)
-    model.model.classifier.model.requires_grad_(False)
+    model.model.classifier.model.requires_grad_(False) # 2nd call of VLM in ConceptTransformerVIT
     # for name, module in model.model.named_children():
     #     print('[name]', name)
     #     if name == 'feature_extractor':

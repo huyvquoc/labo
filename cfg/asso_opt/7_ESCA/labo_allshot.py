@@ -1,0 +1,66 @@
+_base_ = 'ESCA_base.py'
+n_shots = "all"
+data_root = 'exp/asso_opt/7_ESCA/ESCA_allshot_fac'
+best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting only when model checkpoint
+do_val_plotting=True
+lr = 1e-3
+bs = 2048
+
+concept_type = "all_submodular"
+# concept_select_fn = "submodular"
+concept_select_fn = "clip"
+use_mi = False
+group_select = True
+submodular_weights = [1e7, 1]
+# submodular_weights = [1e9, 0.7]
+
+# ----- only for ConceptTransformer -----
+weight_decay = 0
+disable_lr_scheduler = False
+warmup = 500
+group_lambda = 3.0
+qk_group_lambda = 3.0
+expl_lambda = 2.0
+attention_sparsity = 0
+ctc_model = 'cub_cvit'
+
+num_unsup_concept = 0
+num_spatial_concept = 0
+num_heads = 8
+attention_dropout = 0.1
+projection_dropout = 0.1
+ckpt_path = '/data/hqvo3/weights/CONCH/pytorch_model.bin' # for CONCH
+num_workers = 4
+
+concept_embeddings_save_dir = None # CONCH TODO: need to change if number of concepts changes
+img_embeddings_save_dir = None # CONCH
+labels_save_dir = None # CONCH
+
+use_extracted_img_embs = True # TODO
+only_visual_trunk = False # TODO
+do_aug = True
+n_iters = 1
+aug_level = 0
+
+# ----- only for learnable prompts -----
+set_learnable_prompts = True
+use_parent_level_learnable_prompts = False # whether to use 5 (parent) or 42 (child) soft prompts
+csc = True # whether to use class-specific contexts or a general context, append class name to soft prompts
+
+n_ctx_pos = 48
+n_ctx_neg = 48
+positive_prompt_init = ''
+negative_prompt_init = ''
+use_child_classes=True
+use_parent_classes=False
+use_attn_parent_branch=True
+
+# --- weight balance for loss function ---
+balanced_weights = [0.5394825975655845, 20.288683293108072, 0.5914661079557669, 1.8476463764576592, 8.251786006435077, 0.3598903059161549, 1.009891144022265, 1.3571159503479946, 28.777672118676303, 0.4568036154726289, 69.47337006427915]
+balanced_weights_parents = [0.5394825975655845, 20.288683293108072, 0.5914661079557669, 1.8476463764576592, 8.251786006435077, 0.3598903059161549, 1.009891144022265, 1.3571159503479946, 28.777672118676303, 0.4568036154726289, 69.47337006427915]
+
+# --- whether to extract patch-level embeddings for each input image (True) or unfreeze vision backbone (False) ---
+use_patches_embeddings = False
+
+# --- whether to use full concepts or partial 630 concept ---
+use_full_concepts = True

@@ -36,7 +36,6 @@ lambda_div = 0
 # lambda_div = 0.0005
 
 # CLIP Backbone
-# clip_model = 'ViT-L/14'
 clip_model = 'conch_ViT-B-16'
 clip_model_weight = None
 
