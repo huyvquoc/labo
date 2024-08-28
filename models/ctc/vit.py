@@ -616,7 +616,7 @@ class ConceptTransformerVIT(nn.Module):
                         text_tokens = self.tokenizer(x_concepts).to(self.device)
 
                     if self.only_visual_trunk:
-                        with torch.inference_mode():
+                        with torch.no_grad(): # https://stackoverflow.com/questions/75517324/runtimeerror-inference-tensors-cannot-be-saved-for-backward-to-work-around-you
                             concept_embeddings, _ = self._encode_text(text_tokens)
                             concept_embeddings /= concept_embeddings.norm(dim=-1, keepdim=True)
                     else:
