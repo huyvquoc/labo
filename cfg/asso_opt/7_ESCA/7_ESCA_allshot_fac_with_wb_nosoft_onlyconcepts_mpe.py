@@ -5,6 +5,7 @@ best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting o
 do_val_plotting=True
 lr = 1e-3
 bs = 512
+max_epochs = 50
 
 concept_type = "all_submodular"
 # concept_select_fn = "submodular"
