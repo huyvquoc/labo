@@ -99,7 +99,8 @@ class DataModule(pl.LightningDataModule):
             force_select_concepts=True,
             use_cls_name_init='none',
             use_cls_sim_prior='none',
-            remove_cls_name=False,
+            remove_cls_name=True,
+            filter_uniq_concepts=True,
             submodular_weights=None,
             clip_model_name='conch'):
         super().__init__()
@@ -112,6 +113,7 @@ class DataModule(pl.LightningDataModule):
         self.use_cls_name_init = use_cls_name_init
         self.use_cls_sim_prior = use_cls_sim_prior
         self.remove_cls_name = remove_cls_name
+        self.filter_uniq_concepts = filter_uniq_concepts
         self.data_root = Path(data_root)
         self.data_root.mkdir(exist_ok=True)
         self.img_split_path = Path(img_split_path)
@@ -186,7 +188,10 @@ class DataModule(pl.LightningDataModule):
         
         # TODO: remove duplication
         self.concepts_raw, idx = self.preprocess(self.concepts_raw, self.cls_names)
-        self.concept2cls = self.concept2cls[idx] 
+        print('[in init] self.concept2cls.shape: ', self.concept2cls.shape)
+        if idx is not None:
+            self.concept2cls = self.concept2cls[idx]
+        print('[in init] self.concept2cls.shape: ', self.concept2cls.shape)
         self.concept_select_fn = concept_select_fn
 
         if self.n_shots != "all":
@@ -235,7 +240,11 @@ class DataModule(pl.LightningDataModule):
         This function checks all input concepts, remove duplication, and 
         remove class names if necessary
         """
-        concepts, left_idx = np.unique(concepts, return_index=True)
+        print('[in preprocess] Before preprocess, concepts.shape: ', concepts.shape)
+        left_idx = None
+        if self.filter_uniq_concepts:
+            concepts, left_idx = np.unique(concepts, return_index=True)
+        print('[in preprocess] After preprocess, concepts.shape: ', concepts.shape)
         if self.remove_cls_name: 
             print('remove cls name')
             is_good = self.check_no_cls_names(concepts, cls_names)

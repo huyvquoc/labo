@@ -14,6 +14,7 @@ class AssoConcept(pl.LightningModule):
         self.init_weight = th.zeros((self.cfg.num_cls, len(self.select_idx))) #init with the actual number of selected index
         # self.init_weight = th.zeros((384, len(self.select_idx))) #init with the actual number of selected index
 
+        print('[**] concept2cls.shape: ', concept2cls.shape)
         if self.cfg.use_rand_init: th.nn.init.kaiming_normal_(self.init_weight)
         else: self.init_weight.scatter_(0, concept2cls, self.cfg.init_val)
             
@@ -31,7 +32,7 @@ class AssoConcept(pl.LightningModule):
         super().__init__()
         self.cfg = cfg
         self.data_root = Path(cfg.data_root)
-        concept_feat_path = self.data_root.joinpath('concepts_feat_{}.pth'.format(self.cfg.clip_model.replace('/','-')))
+        concept_feat_path = self.data_root.joinpath('concepts_feat_normalized_{}.pth'.format(self.cfg.clip_model.replace('/','-')))
         concept_raw_path = self.data_root.joinpath('concepts_raw_selected.npy')
         concept2cls_path = self.data_root.joinpath('concept2cls_selected.npy')
         select_idx_path = self.data_root.joinpath('select_idx.pth')
@@ -39,16 +40,24 @@ class AssoConcept(pl.LightningModule):
         cls_sim_path = self.data_root.joinpath('cls_sim.pth')
 
         if not concept_feat_path.exists():
+            print('[**] concept_feat_path: ', concept_feat_path)
             raise RuntimeError('need to call datamodule precompute_txt before using the model')
         else:
             if select_idx is None: self.select_idx = th.load(select_idx_path)[:cfg.num_concept]
             else: self.select_idx = select_idx
+            print('[**] self.select_idx.shape: ', self.select_idx.shape)
 
             self.concepts = th.load(concept_feat_path)[self.select_idx].cuda() # shape: (630, 512)
             if self.cfg.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
+            print('[**] self.concepts.shape: ', self.concepts.shape)
 
             self.concept_raw = np.load(concept_raw_path)[self.select_idx] # shape: (630, )
-            self.concept2cls = th.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1) # shape: (1, 630)
+            print('[**] self.concept_raw.shape: ', self.concept_raw.shape)
+            self.concept2cls = th.from_numpy(np.load(concept2cls_path)[self.select_idx]) # shape: (1, 630)
+            print('[**] self.concept2cls.shape 1: ', np.load(concept2cls_path).shape)
+            print('[**] self.concept2cls.shape: ', self.concept2cls.shape)
+            self.concept2cls = self.concept2cls.long().view(1, -1)
+            print('[**] self.concept2cls.shape: ', self.concept2cls.shape)
 
         if init_weight is None:
             self.init_weight_concept(self.concept2cls) # shape: (42, 630)
@@ -115,7 +124,8 @@ class AssoConcept(pl.LightningModule):
 
         # classification accuracy
         # === REMEMBER TO CHANGE LOSS FUNCTION IN `val_step` and `test_step` ===
-        cls_loss = F.cross_entropy(pred, label)
+        # cls_loss = F.cross_entropy(pred, label)
+        cls_loss = F.cross_entropy(pred, F.one_hot(label, num_classes=self.cfg.num_cls).float(), weight=self.balanced_weights)
         # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         # cls_loss, _ = self.criterion(pred, F.one_hot(label, num_classes=42).float())
         # cls_loss, reg_loss = self.criterion(pred, F.one_hot(label, num_classes=42).float()) # for ANLS

@@ -221,6 +221,7 @@ def asso_opt_main(cfg):
             use_cls_name_init=cfg.cls_name_init if 'cls_name_init' in cfg else 'none',
             use_cls_sim_prior=cfg.cls_sim_prior if 'cls_sim_prior' in cfg else 'none',
             remove_cls_name=cfg.remove_cls_name if 'remove_cls_name' in cfg else True,
+            filter_uniq_concepts=cfg.filter_uniq_concepts if 'filter_uniq_concepts' in cfg else True,
             submodular_weights=cfg.submodular_weights
             )
     
@@ -247,6 +248,7 @@ def asso_opt_main(cfg):
             use_cls_name_init=cfg.cls_name_init if 'cls_name_init' in cfg else 'none',
             use_cls_sim_prior=cfg.cls_sim_prior if 'cls_sim_prior' in cfg else 'none',
             remove_cls_name=cfg.remove_cls_name if 'remove_cls_name' in cfg else True,
+            filter_uniq_concepts=cfg.filter_uniq_concepts if 'filter_uniq_concepts' in cfg else True,
             submodular_weights=cfg.submodular_weights,
             force_compute=False,
             force_select_concepts=True,
@@ -288,7 +290,7 @@ def asso_opt_main(cfg):
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
                 filename='{epoch}-{step}-{val_acc:.4f}',
-                monitor='val_acc',
+                monitor=cfg.best_val_metric_name,
                 mode='max',
                 save_top_k=1,
                 every_n_epochs=check_interval)
@@ -313,7 +315,7 @@ def asso_opt_main(cfg):
             checkpoint_callback = pl.callbacks.ModelCheckpoint(
                 dirpath=cfg.work_dir,
                 filename='{epoch}-{step}-{val_acc:.4f}',
-                monitor='val_acc',
+                monitor=cfg.best_val_metric_name,
                 mode='max',
                 save_top_k=1,
                 every_n_epochs=50)
@@ -322,6 +324,7 @@ def asso_opt_main(cfg):
             callbacks=[checkpoint_callback, ], check_val_every_n_epoch=50, default_root_dir=cfg.work_dir)
     trainer.fit(model, data_module)
     
+    print('[*] Complete training, start testing !!')
     # automatically loads the best weights for you
     trainer.test(model, data_module)
 

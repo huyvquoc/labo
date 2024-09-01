@@ -1,9 +1,9 @@
-_base_ = 'PanCancerTCGA_base.py'
+_base_ = 'labo_base.py'
 n_shots = "all"
-data_root = 'exp/asso_opt/2_PanCancerTCGA/PanCancerTCGA_allshot_fac'
-best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting only when model checkpoint
+data_root = 'exp/asso_opt/2_PanCancerTCGA/2_PanCancerTCGA_allshot_fac'
+best_val_metric_name = 'val_acc' # for plotting only when model checkpoint
 do_val_plotting=True
-lr = 1e-3
+lr = 1e-5
 bs = 2048
 
 concept_type = "all_submodular"
@@ -13,6 +13,8 @@ use_mi = False
 group_select = True
 submodular_weights = [1e7, 1]
 # submodular_weights = [1e9, 0.7]
+remove_cls_name = False
+filter_uniq_concepts = False
 
 # ----- only for ConceptTransformer -----
 weight_decay = 0
