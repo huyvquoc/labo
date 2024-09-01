@@ -188,10 +188,8 @@ class DataModule(pl.LightningDataModule):
         
         # TODO: remove duplication
         self.concepts_raw, idx = self.preprocess(self.concepts_raw, self.cls_names)
-        print('[in init] self.concept2cls.shape: ', self.concept2cls.shape)
         if idx is not None:
             self.concept2cls = self.concept2cls[idx]
-        print('[in init] self.concept2cls.shape: ', self.concept2cls.shape)
         self.concept_select_fn = concept_select_fn
 
         if self.n_shots != "all":

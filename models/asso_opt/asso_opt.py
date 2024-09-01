@@ -14,7 +14,6 @@ class AssoConcept(pl.LightningModule):
         self.init_weight = th.zeros((self.cfg.num_cls, len(self.select_idx))) #init with the actual number of selected index
         # self.init_weight = th.zeros((384, len(self.select_idx))) #init with the actual number of selected index
 
-        print('[**] concept2cls.shape: ', concept2cls.shape)
         if self.cfg.use_rand_init: th.nn.init.kaiming_normal_(self.init_weight)
         else: self.init_weight.scatter_(0, concept2cls, self.cfg.init_val)
             
@@ -40,24 +39,17 @@ class AssoConcept(pl.LightningModule):
         cls_sim_path = self.data_root.joinpath('cls_sim.pth')
 
         if not concept_feat_path.exists():
-            print('[**] concept_feat_path: ', concept_feat_path)
             raise RuntimeError('need to call datamodule precompute_txt before using the model')
         else:
             if select_idx is None: self.select_idx = th.load(select_idx_path)[:cfg.num_concept]
             else: self.select_idx = select_idx
-            print('[**] self.select_idx.shape: ', self.select_idx.shape)
 
             self.concepts = th.load(concept_feat_path)[self.select_idx].cuda() # shape: (630, 512)
             if self.cfg.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
-            print('[**] self.concepts.shape: ', self.concepts.shape)
 
             self.concept_raw = np.load(concept_raw_path)[self.select_idx] # shape: (630, )
-            print('[**] self.concept_raw.shape: ', self.concept_raw.shape)
             self.concept2cls = th.from_numpy(np.load(concept2cls_path)[self.select_idx]) # shape: (1, 630)
-            print('[**] self.concept2cls.shape 1: ', np.load(concept2cls_path).shape)
-            print('[**] self.concept2cls.shape: ', self.concept2cls.shape)
             self.concept2cls = self.concept2cls.long().view(1, -1)
-            print('[**] self.concept2cls.shape: ', self.concept2cls.shape)
 
         if init_weight is None:
             self.init_weight_concept(self.concept2cls) # shape: (42, 630)

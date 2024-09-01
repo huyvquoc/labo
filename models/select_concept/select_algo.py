@@ -15,7 +15,6 @@ def clip_score(img_feat, concept_feat, n_shots, num_images_per_class):
     print('!!! In clip_score !!!')
     num_cls = len(num_images_per_class)
     scores_mean = th.empty((concept_feat.shape[0], num_cls))
-    print('[in clip_score] scores_mean.shape: ', scores_mean.shape)
     start_loc = 0
     for i in range(num_cls):
         if isinstance(num_images_per_class, np.ndarray):
