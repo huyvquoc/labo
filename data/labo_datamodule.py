@@ -351,6 +351,8 @@ class DataModule(pl.LightningDataModule):
             self.img_feat[mode] = img_feat
             self.label[mode] = label
             
+    def get_cls_names(self):
+        return self.cls_names
 
     def setup(self, stage):
         """

@@ -255,6 +255,8 @@ def asso_opt_main(cfg):
             clip_model_name=cfg.clip_model_name
             )
 
+    class_names = data_module.get_cls_names()
+
     if cfg.test:
         ckpt_path = cfg.ckpt_path
         print('load ckpt: {}'.format(ckpt_path))
@@ -270,10 +272,10 @@ def asso_opt_main(cfg):
 
     if cfg.proj_name == "ImageNet" and (cfg.n_shots == "all" or cfg.n_shots == 16):
             print("use asso concept with image feature loader")
-            model = AssoConcept(cfg, init_weight=th.load(cfg.init_weight_path) if 'init_weight_path' in cfg else None)
+            model = AssoConcept(cfg, class_names, init_weight=th.load(cfg.init_weight_path) if 'init_weight_path' in cfg else None)
     else:
         print("use asso concept with dot product loader, faster")
-        model = AssoConceptFast(cfg, init_weight=th.load(cfg.init_weight_path) if 'init_weight_path' in cfg else None)
+        model = AssoConceptFast(cfg, class_names, init_weight=th.load(cfg.init_weight_path) if 'init_weight_path' in cfg else None)
 
     if cfg.proj_name == "ImageNet" and cfg.n_shots == "all": check_interval = 5
     else: check_interval = 10

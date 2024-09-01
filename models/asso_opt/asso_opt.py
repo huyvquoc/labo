@@ -1,3 +1,4 @@
+import os
 import torchmetrics
 import wandb
 import torch as th
@@ -7,6 +8,8 @@ import numpy as np
 from pathlib import Path
 
 from loss.criterion import get_criterion
+
+from metrics.cls import MetricsCalculator
 
 
 class AssoConcept(pl.LightningModule):
@@ -27,7 +30,7 @@ class AssoConcept(pl.LightningModule):
                 th.nn.init.kaiming_normal_(self.init_weight)
 
 
-    def __init__(self, cfg, init_weight=None, select_idx=None) -> None:
+    def __init__(self, cfg, class_names, init_weight=None, select_idx=None) -> None:
         super().__init__()
         self.cfg = cfg
         self.data_root = Path(cfg.data_root)
@@ -37,6 +40,9 @@ class AssoConcept(pl.LightningModule):
         select_idx_path = self.data_root.joinpath('select_idx.pth')
         self.init_weight_save_dir = self.data_root.joinpath('init_weight.pth')
         cls_sim_path = self.data_root.joinpath('cls_sim.pth')
+
+        suffix_work_dir = self.cfg.work_dir.split('/', 1)[-1]
+        self.plotting_dir = ''.join(['output/', suffix_work_dir])
 
         if not concept_feat_path.exists():
             raise RuntimeError('need to call datamodule precompute_txt before using the model')
@@ -69,21 +75,32 @@ class AssoConcept(pl.LightningModule):
             # self.weight_mask = cls_sim @ self.init_weight
 
         self.asso_mat = th.nn.Parameter(self.init_weight.clone()) # shape (42, 630), initialized with 0. and 1.
-        self.train_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        self.val_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, average='micro', task='multiclass') # micro, macro, or weighted
-        # self.test_acc = torchmetrics.Accuracy(num_classes=cfg.num_cls, task='multiclass')
-        self.test_f1 = torchmetrics.F1Score(num_classes=cfg.num_cls, average='macro', task='multiclass')
-        self.test_ap = torchmetrics.AveragePrecision(num_classes=cfg.num_cls, average='macro', task='multiclass')
 
-        self.all_y = []
-        self.all_pred = []
-        self.all_logit = []
+        ### train ###
+        self.train_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='train_main_cls', report_top5=True, report_top7=False)
+        ### val ###
+        self.val_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='val_main_cls', report_top5=True, report_top7=False)
+        ### test ###
+        self.test_perf_calc = MetricsCalculator(num_cls=cfg.num_cls, class_names=class_names, prefix_name='test_main_cls', report_top5=True, report_top7=False)
+
+        self.best_val_metric = None
+
+        self.train_step_outputs = []
+        self.train_step_targets = []
+
+        self.val_step_outputs = []
+        self.val_step_targets = []
+
+        self.test_step_outputs = []
+        self.test_step_targets = []
+
         self.confmat = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=self.cfg.num_cls)
         self.balanced_weights = th.DoubleTensor(cfg.balanced_weights).cuda()
         self.criterion = get_criterion(cfg)
         self.criterion.cuda()
         self.save_hyperparameters()
+
+        self.first_val_complete = False
 
 
     def _get_weight_mat(self):
@@ -109,18 +126,22 @@ class AssoConcept(pl.LightningModule):
 
 
     def training_step(self, train_batch, batch_idx):
-        image, label = train_batch
+        image, y = train_batch
 
         sim = self.forward(image)
-        pred = 100 * sim  # scaling as standard CLIP does
+        logits = 100 * sim  # scaling as standard CLIP does
 
         # classification accuracy
         # === REMEMBER TO CHANGE LOSS FUNCTION IN `val_step` and `test_step` ===
         # cls_loss = F.cross_entropy(pred, label)
-        cls_loss = F.cross_entropy(pred, F.one_hot(label, num_classes=self.cfg.num_cls).float(), weight=self.balanced_weights)
+        cls_loss = F.cross_entropy(logits, F.one_hot(y, num_classes=self.cfg.num_cls).float(), weight=self.balanced_weights)
         # cls_loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(label, num_classes=42).float(), weight=self.balanced_weights)
         # cls_loss, _ = self.criterion(pred, F.one_hot(label, num_classes=42).float())
         # cls_loss, reg_loss = self.criterion(pred, F.one_hot(label, num_classes=42).float()) # for ANLS
+
+        self.train_step_outputs.append(logits)
+        self.train_step_targets.append(y)
+
         if th.isnan(cls_loss):
             import pdb; pdb.set_trace() # yapf: disable
 
@@ -140,8 +161,6 @@ class AssoConcept(pl.LightningModule):
         self.log('mean l1 norm', row_l1_norm)
         self.log('div', div)
 
-        self.train_acc(pred, label)
-        self.log('train_acc', self.train_acc, on_step=False, on_epoch=True)
         final_loss = cls_loss
         if self.cfg.use_l1_loss:
             final_loss += self.cfg.lambda_l1 * row_l1_norm
@@ -161,43 +180,95 @@ class AssoConcept(pl.LightningModule):
                 wandb.define_metric('val_acc', summary='max')
         image, y = batch
         sim = self.forward(image)
-        pred = 100 * sim
-        loss = F.cross_entropy(pred, y)
+        logits = 100 * sim
+        loss = F.cross_entropy(logits, F.one_hot(y, num_classes=self.cfg.num_cls).float(), weight=self.balanced_weights)
+        self.val_step_outputs.append(logits)
+        self.val_step_targets.append(y)
         self.log('val_loss', loss)
-        self.val_acc(pred, y)
-        self.log('val_acc', self.val_acc, on_step=False, on_epoch=True)
         return loss
 
 
     def test_step(self, batch, batch_idx):
         image, y = batch
         sim = self.forward(image)
-        pred = 100 * sim
-        loss = F.cross_entropy(pred, y)
-        y_pred = pred.argmax(dim=-1)
+        logits = 100 * sim
+        loss = F.cross_entropy(logits, y)
+        y_pred = logits.argmax(dim=-1)
         self.confmat(y_pred, y)
-        self.all_y.append(y)
-        self.all_pred.append(y_pred)
-        self.all_logit.append(pred)
+        self.test_step_outputs.append(logits)
+        self.test_step_targets.append(y)
         self.log('test_loss', loss)
-        self.test_acc(pred, y)
-        self.log('test_acc', self.test_acc, on_step=False, on_epoch=True)
-        self.test_f1(pred, y)
-        self.log('test_macro_f1', self.test_f1, on_step=False, on_epoch=True)
-        self.test_ap(pred, y)
-        self.log('test_ap', self.test_ap, on_step=False, on_epoch=True)
         return loss
 
+    def on_train_epoch_end(self):
+        train_all_outputs = th.cat(self.train_step_outputs, dim=0)
+        train_all_targets = th.cat(self.train_step_targets, dim=0)
+        perf_dict = self.train_perf_calc.generate_dict_of_metrics(train_all_outputs, train_all_targets)
 
-    def test_epoch_end(self, outputs):
-        all_y = th.hstack(self.all_y)
-        all_pred = th.hstack(self.all_pred)
-        all_logit = th.hstack(self.all_logit)
-        self.total_test_acc = self.test_acc(all_logit, all_y)
-        self.total_test_f1 = self.test_f1(all_pred, all_y)
-        self.total_test_ap = self.test_ap(all_logit, all_y)
-        pass
+        # merge 3 dicts
+        self.log_dict(
+            perf_dict,
+            on_step=False,
+            on_epoch=True,
+        )
 
+        # clear rem lists
+        self.train_step_outputs.clear()
+        self.train_step_targets.clear()
+
+    def on_validation_epoch_end(self):
+        val_all_outputs = th.cat(self.val_step_outputs, dim=0)
+        val_all_targets = th.cat(self.val_step_targets, dim=0)
+
+        perf_dict = self.val_perf_calc.generate_dict_of_metrics(val_all_outputs, val_all_targets)
+
+        # merge 3 dicts
+        self.log_dict(
+            perf_dict,
+            on_step=False,
+            on_epoch=True,
+        )
+
+        if self.first_val_complete and self.cfg.do_val_plotting:
+            # plotting
+            if self.best_val_metric is None or perf_dict[self.cfg.best_val_metric_name] >= self.best_val_metric:
+                os.makedirs(self.plotting_dir, exist_ok=True)
+                if len(os.listdir(self.plotting_dir)) != 0:
+                    for old_plot in os.listdir(self.plotting_dir):
+                        old_plot_path = os.path.join(self.plotting_dir, old_plot)
+                        os.unlink(old_plot_path)
+
+                val_metric_info = ''.join([self.cfg.best_val_metric_name, '_', str(perf_dict[self.cfg.best_val_metric_name].item())])
+                print(f'[**] Found new best val metric !! - {val_metric_info}')
+                self.val_perf_calc.generate_plots(val_all_outputs, val_all_targets, save_dir=self.plotting_dir, suffix=val_metric_info)
+
+                self.best_val_metric = perf_dict[self.cfg.best_val_metric_name]
+        else:
+            self.first_val_complete = True
+
+        # clear rem lists
+        self.val_step_outputs.clear()
+        self.val_step_targets.clear()
+
+    def on_test_epoch_end(self):
+        test_all_targets = th.cat(self.test_step_targets, dim=0)
+        test_all_outputs = th.cat(self.test_step_outputs, dim=0)
+        perf_dict = self.test_perf_calc.generate_dict_of_metrics(test_all_outputs, test_all_targets)
+
+        self.log_dict(
+            perf_dict,
+            on_step=False,
+            on_epoch=True,
+        )
+
+        os.makedirs(self.plotting_dir, exist_ok=True)
+
+        test_metric_info = 'test'
+        self.test_perf_calc.generate_plots(test_all_outputs, test_all_targets, save_dir=self.plotting_dir, suffix=test_metric_info)
+
+        # clear rem lists
+        self.test_step_outputs.clear()
+        self.test_step_targets.clear()
 
     def on_predict_epoch_start(self):
         self.num_pred = 4

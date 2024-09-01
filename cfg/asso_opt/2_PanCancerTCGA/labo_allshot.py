@@ -1,9 +1,9 @@
 _base_ = 'labo_base.py'
 n_shots = "all"
 data_root = 'exp/asso_opt/2_PanCancerTCGA/2_PanCancerTCGA_allshot_fac'
-best_val_metric_name = 'val_acc' # for plotting only when model checkpoint
+best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting only when model checkpoint
 do_val_plotting=True
-lr = 1e-5
+lr = 1e-6
 bs = 2048
 
 concept_type = "all_submodular"

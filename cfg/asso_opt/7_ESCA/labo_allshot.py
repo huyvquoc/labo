@@ -1,7 +1,7 @@
 _base_ = 'labo_base.py'
 n_shots = "all"
 data_root = 'exp/asso_opt/7_ESCA/7_ESCA_allshot_fac'
-best_val_metric_name = 'val_acc' # for plotting only when model checkpoint
+best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting only when model checkpoint
 do_val_plotting=True
 lr = 1e-3
 bs = 2048
