@@ -54,8 +54,7 @@ class AssoConcept(pl.LightningModule):
             if self.cfg.use_txt_norm: self.concepts = self.concepts / self.concepts.norm(dim=-1, keepdim=True)
 
             self.concept_raw = np.load(concept_raw_path)[self.select_idx] # shape: (630, )
-            self.concept2cls = th.from_numpy(np.load(concept2cls_path)[self.select_idx]) # shape: (1, 630)
-            self.concept2cls = self.concept2cls.long().view(1, -1)
+            self.concept2cls = th.from_numpy(np.load(concept2cls_path)[self.select_idx]).long().view(1, -1) # shape: (1, 630)
 
         if init_weight is None:
             self.init_weight_concept(self.concept2cls) # shape: (42, 630)

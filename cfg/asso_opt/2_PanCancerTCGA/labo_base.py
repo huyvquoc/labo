@@ -22,7 +22,7 @@ num_concept = num_cls * 10 # TODO: change datasets
 
 # weight matrix fitting
 lr = 1e-2
-max_epochs = 1000
+max_epochs = 100
 
 # weight matrix
 use_rand_init = False
