@@ -4,7 +4,7 @@ data_root = 'exp/asso_opt/2_PanCancerTCGA/2_PanCancerTCGA_allshot_fac'
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting only when model checkpoint
 do_val_plotting=True
 lr = 1e-3
-bs = 1024
+bs = 2048
 
 concept_type = "all_submodular"
 # concept_select_fn = "submodular"

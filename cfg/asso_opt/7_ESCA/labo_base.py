@@ -18,11 +18,11 @@ use_txt_norm = True
 use_img_norm = True
 
 # concept select
-num_concept = num_cls * 15 # TODO: change datasets
+num_concept = num_cls * 8 # TODO: change datasets
 
 # weight matrix fitting
 lr = 1e-2
-max_epochs = 200
+max_epochs = 100
 
 # weight matrix
 use_rand_init = False
