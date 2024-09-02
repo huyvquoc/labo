@@ -620,7 +620,7 @@ class ConceptTransformerVIT(nn.Module):
                             concept_embeddings, _ = self._encode_text(text_tokens)
                             concept_embeddings /= concept_embeddings.norm(dim=-1, keepdim=True)
                     else:
-                        with torch.inference_mode(): # for both CONCH and OPENCLIP
+                        with torch.no_grad(): # for both CONCH and OPENCLIP
                             concept_embeddings = self.model.encode_text(text_tokens) # shape: conch (630, 512); openclip (630, 768)
                             concept_embeddings /= concept_embeddings.norm(dim=-1, keepdim=True)
 

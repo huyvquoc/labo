@@ -1,7 +1,7 @@
 _base_ = '../base.py'
 # dataset
 proj_name = "2_PanCancerTCGA"
-concept_root = 'datasets/2_PanCancerTCGA/concepts/' # TODO: change datasets - relative path - manually generate `class2concepts.json`
+concept_root = 'datasets/2_PanCancerTCGA/concepts_bl1/' # TODO: change datasets - relative path - manually generate `class2concepts.json`
 img_split_path = 'datasets/2_PanCancerTCGA/splits' # TODO: change datasets - relative path - manually generate pickle files (.p) of train/val/test
 img_path = '/data/hqvo3/Datasets/histo_cls/2_PanCancerTCGA' # TODO: change datasets - absolute path - the folder contains all images of the dataset (no subfolders of train/val/test)
 concept_type = "all"
