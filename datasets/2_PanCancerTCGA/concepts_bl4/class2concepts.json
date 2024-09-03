@@ -1,0 +1,226 @@
+{
+    "Adrenocortical carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Bladder Urothelial Carcinoma": [
+        "pseudo concept 6",
+        "pseudo concept 7",
+        "pseudo concept 8",
+        "pseudo concept 9",
+        "pseudo concept 10"
+    ],
+    "Brain Lower Grade Glioma": [
+        "pseudo concept 11",
+        "pseudo concept 12",
+        "pseudo concept 13",
+        "pseudo concept 14",
+        "pseudo concept 15"
+    ],
+    "Breast invasive carcinoma": [
+        "pseudo concept 16",
+        "pseudo concept 17",
+        "pseudo concept 18",
+        "pseudo concept 19",
+        "pseudo concept 20"
+    ],
+    "Cervical squamous cell carcinoma and endocervical adenocarcinoma": [
+        "pseudo concept 21",
+        "pseudo concept 22",
+        "pseudo concept 23",
+        "pseudo concept 24",
+        "pseudo concept 25"
+    ],
+    "Cholangiocarcinoma": [
+        "pseudo concept 26",
+        "pseudo concept 27",
+        "pseudo concept 28",
+        "pseudo concept 29",
+        "pseudo concept 30"
+    ],
+    "Colon adenocarcinoma": [
+        "pseudo concept 31",
+        "pseudo concept 32",
+        "pseudo concept 33",
+        "pseudo concept 34",
+        "pseudo concept 35"
+    ],
+    "Esophageal carcinoma": [
+        "pseudo concept 36",
+        "pseudo concept 37",
+        "pseudo concept 38",
+        "pseudo concept 39",
+        "pseudo concept 40"
+    ],
+    "Glioblastoma multiforme": [
+        "pseudo concept 41",
+        "pseudo concept 42",
+        "pseudo concept 43",
+        "pseudo concept 44",
+        "pseudo concept 45"
+    ],
+    "Head and Neck squamous cell carcinoma": [
+        "pseudo concept 46",
+        "pseudo concept 47",
+        "pseudo concept 48",
+        "pseudo concept 49",
+        "pseudo concept 50"
+    ],
+    "Kidney Chromophobe": [
+        "pseudo concept 51",
+        "pseudo concept 52",
+        "pseudo concept 53",
+        "pseudo concept 54",
+        "pseudo concept 55"
+    ],
+    "Kidney renal clear cell carcinoma": [
+        "pseudo concept 56",
+        "pseudo concept 57",
+        "pseudo concept 58",
+        "pseudo concept 59",
+        "pseudo concept 60"
+    ],
+    "Kidney renal papillary cell carcinoma": [
+        "pseudo concept 61",
+        "pseudo concept 62",
+        "pseudo concept 63",
+        "pseudo concept 64",
+        "pseudo concept 65"
+    ],
+    "Liver hepatocellular carcinoma": [
+        "pseudo concept 66",
+        "pseudo concept 67",
+        "pseudo concept 68",
+        "pseudo concept 69",
+        "pseudo concept 70"
+    ],
+    "Lung adenocarcinoma": [
+        "pseudo concept 71",
+        "pseudo concept 72",
+        "pseudo concept 73",
+        "pseudo concept 74",
+        "pseudo concept 75"
+    ],
+    "Lung squamous cell carcinoma": [
+        "pseudo concept 76",
+        "pseudo concept 77",
+        "pseudo concept 78",
+        "pseudo concept 79",
+        "pseudo concept 80"
+    ],
+    "Lymphoid Neoplasm Diffuse Large B-cell Lymphoma": [
+        "pseudo concept 81",
+        "pseudo concept 82",
+        "pseudo concept 83",
+        "pseudo concept 84",
+        "pseudo concept 85"
+    ],
+    "Mesothelioma": [
+        "pseudo concept 86",
+        "pseudo concept 87",
+        "pseudo concept 88",
+        "pseudo concept 89",
+        "pseudo concept 90"
+    ],
+    "Ovarian serous cystadenocarcinoma": [
+        "pseudo concept 91",
+        "pseudo concept 92",
+        "pseudo concept 93",
+        "pseudo concept 94",
+        "pseudo concept 95"
+    ],
+    "Pancreatic adenocarcinoma": [
+        "pseudo concept 96",
+        "pseudo concept 97",
+        "pseudo concept 98",
+        "pseudo concept 99",
+        "pseudo concept 100"
+    ],
+    "Pheochromocytoma and Paraganglioma": [
+        "pseudo concept 101",
+        "pseudo concept 102",
+        "pseudo concept 103",
+        "pseudo concept 104",
+        "pseudo concept 105"
+    ],
+    "Prostate adenocarcinoma": [
+        "pseudo concept 106",
+        "pseudo concept 107",
+        "pseudo concept 108",
+        "pseudo concept 109",
+        "pseudo concept 110"
+    ],
+    "Rectum adenocarcinoma": [
+        "pseudo concept 111",
+        "pseudo concept 112",
+        "pseudo concept 113",
+        "pseudo concept 114",
+        "pseudo concept 115"
+    ],
+    "Sarcoma": [
+        "pseudo concept 116",
+        "pseudo concept 117",
+        "pseudo concept 118",
+        "pseudo concept 119",
+        "pseudo concept 120"
+    ],
+    "Skin Cutaneous Melanoma": [
+        "pseudo concept 121",
+        "pseudo concept 122",
+        "pseudo concept 123",
+        "pseudo concept 124",
+        "pseudo concept 125"
+    ],
+    "Stomach adenocarcinoma": [
+        "pseudo concept 126",
+        "pseudo concept 127",
+        "pseudo concept 128",
+        "pseudo concept 129",
+        "pseudo concept 130"
+    ],
+    "Testicular Germ Cell Tumors": [
+        "pseudo concept 131",
+        "pseudo concept 132",
+        "pseudo concept 133",
+        "pseudo concept 134",
+        "pseudo concept 135"
+    ],
+    "Thymoma": [
+        "pseudo concept 136",
+        "pseudo concept 137",
+        "pseudo concept 138",
+        "pseudo concept 139",
+        "pseudo concept 140"
+    ],
+    "Thyroid carcinoma": [
+        "pseudo concept 141",
+        "pseudo concept 142",
+        "pseudo concept 143",
+        "pseudo concept 144",
+        "pseudo concept 145"
+    ],
+    "Uterine Carcinosarcoma": [
+        "pseudo concept 146",
+        "pseudo concept 147",
+        "pseudo concept 148",
+        "pseudo concept 149",
+        "pseudo concept 150"
+    ],
+    "Uterine Corpus Endometrial Carcinoma": [
+        "pseudo concept 151",
+        "pseudo concept 152",
+        "pseudo concept 153",
+        "pseudo concept 154",
+        "pseudo concept 155"
+    ],
+    "Uveal Melanoma": [
+        "pseudo concept 156",
+        "pseudo concept 157",
+        "pseudo concept 158",
+        "pseudo concept 159",
+        "pseudo concept 160"
+    ]
+}

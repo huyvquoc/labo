@@ -1,0 +1,226 @@
+{
+    "Adrenocortical carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Bladder Urothelial Carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Brain Lower Grade Glioma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Breast invasive carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Cervical squamous cell carcinoma and endocervical adenocarcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Cholangiocarcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Colon adenocarcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Esophageal carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Glioblastoma multiforme": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Head and Neck squamous cell carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Kidney Chromophobe": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Kidney renal clear cell carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Kidney renal papillary cell carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Liver hepatocellular carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Lung adenocarcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Lung squamous cell carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Lymphoid Neoplasm Diffuse Large B-cell Lymphoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Mesothelioma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Ovarian serous cystadenocarcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Pancreatic adenocarcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Pheochromocytoma and Paraganglioma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Prostate adenocarcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Rectum adenocarcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Sarcoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Skin Cutaneous Melanoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Stomach adenocarcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Testicular Germ Cell Tumors": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Thymoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Thyroid carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Uterine Carcinosarcoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Uterine Corpus Endometrial Carcinoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "Uveal Melanoma": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ]
+}

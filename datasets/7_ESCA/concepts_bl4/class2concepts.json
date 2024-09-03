@@ -1,0 +1,79 @@
+{
+    "adventitia": [
+        "pseudo concept 1",
+        "pseudo concept 2",
+        "pseudo concept 3",
+        "pseudo concept 4",
+        "pseudo concept 5"
+    ],
+    "lamina propria mucosae": [
+        "pseudo concept 6",
+        "pseudo concept 7",
+        "pseudo concept 8",
+        "pseudo concept 9",
+        "pseudo concept 10"
+    ],
+    "muscularis mucosae": [
+        "pseudo concept 11",
+        "pseudo concept 12",
+        "pseudo concept 13",
+        "pseudo concept 14",
+        "pseudo concept 15"
+    ],
+    "muscularis propria": [
+        "pseudo concept 16",
+        "pseudo concept 17",
+        "pseudo concept 18",
+        "pseudo concept 19",
+        "pseudo concept 20"
+    ],
+    "regression tissue": [
+        "pseudo concept 21",
+        "pseudo concept 22",
+        "pseudo concept 23",
+        "pseudo concept 24",
+        "pseudo concept 25"
+    ],
+    "mucosa gastric": [
+        "pseudo concept 26",
+        "pseudo concept 27",
+        "pseudo concept 28",
+        "pseudo concept 29",
+        "pseudo concept 30"
+    ],
+    "mucosa oesophagus": [
+        "pseudo concept 31",
+        "pseudo concept 32",
+        "pseudo concept 33",
+        "pseudo concept 34",
+        "pseudo concept 35"
+    ],
+    "submucosa": [
+        "pseudo concept 36",
+        "pseudo concept 37",
+        "pseudo concept 38",
+        "pseudo concept 39",
+        "pseudo concept 40"
+    ],
+    "submucosal glands": [
+        "pseudo concept 41",
+        "pseudo concept 42",
+        "pseudo concept 43",
+        "pseudo concept 44",
+        "pseudo concept 45"
+    ],
+    "tumour": [
+        "pseudo concept 46",
+        "pseudo concept 47",
+        "pseudo concept 48",
+        "pseudo concept 49",
+        "pseudo concept 50"
+    ],
+    "ulceration": [
+        "pseudo concept 51",
+        "pseudo concept 52",
+        "pseudo concept 53",
+        "pseudo concept 54",
+        "pseudo concept 55"
+    ]
+}

@@ -33,6 +33,7 @@ ckpt_path = '/data/hqvo3/weights/CONCH/pytorch_model.bin' # for CONCH
 num_workers = 4
 
 # concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512.pth' # CONCH
+concept_root = 'datasets/7_ESCA/concepts_bl1/'
 concept_embeddings_save_dir = 'datasets/7_ESCA/embs/concepttrans_concept_embs_512_allconcepts_bl1.pth' # CONCH TODO: need to change if number of concepts changes
 img_embeddings_save_dir = 'datasets/7_ESCA/embs/concepttrans_img_embs_512_aug0_iters1_{}.pth' # CONCH
 labels_save_dir = 'datasets/7_ESCA/embs/concepttrans_labels_512_aug0_iters1_{}.pth' # CONCH
