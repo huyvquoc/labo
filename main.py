@@ -487,5 +487,6 @@ if __name__ == "__main__":
     cfg.DEBUG = args.DEBUG
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
+    print('[*] cfg.concept_root: ', cfg.concept_root)
     main = eval(args.func)
     main(cfg)
