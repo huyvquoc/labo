@@ -122,6 +122,8 @@ def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, lis
           print('[**] aug idx: ', idx)
           stream = tqdm.tqdm(predict_loader)
           for jdx, (images, labels) in enumerate(stream, start=1):
+              # if jdx == 2000:
+              #     break
               images = images.to(device, non_blocking=True)
               # labels = labels.to(device, non_blocking=True)
               img_embs = one_forward_of_vlm_foundation_img_branch(feature_extractor, images, only_visual_trunk)
@@ -134,14 +136,29 @@ def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, lis
     else:
       for img_path in list_of_img_paths:
           preprocessed_img = preprocess(Image.open(img_path)).unsqueeze(0).to(device)
-          list_of_img_embs.append(one_forward_of_vlm_foundation_img_branch(feature_extractor, preprocessed_img, only_visual_trunk))
+          list_of_img_embs.append(one_forward_of_vlm_foundation_img_branch(feature_extractor, preprocessed_img, only_visual_trunk).to("cpu"))
       list_of_new_labels = list_of_labels.copy()
 
     print('- Complete extract img embeddings!')
     
-    ret = torch.cat(list_of_img_embs)
-    if ret.ndim == 2:
-        ret = ret[:, None, :]
+    # TODO: having multiple sub concatenations
+    if only_visual_trunk:
+      ret = []
+      n_embs = len(list_of_img_embs)
+      for emb_start_idx in range(0, n_embs, 1000):
+          emb_end_idx = emb_start_idx + 1000
+          if emb_end_idx >= n_embs:
+              emb_end_idx = n_embs - 1
+          img_embs_chunk = torch.cat(list_of_img_embs[emb_start_idx:emb_end_idx+1])
+          if img_embs_chunk.ndim == 2:
+              img_embs_chunk = img_embs_chunk[:, None, :]
+
+          ret.append(img_embs_chunk)
+    else:
+      ret = torch.cat(list_of_img_embs) 
+      if ret.ndim == 2:
+          ret = ret[:, None, :]
+
     return ret, list_of_new_labels
 
 # def conch_coca_text_tower():

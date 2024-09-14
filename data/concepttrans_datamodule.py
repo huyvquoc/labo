@@ -205,6 +205,7 @@ class ImgExplDataset(Dataset):
         self.labels = list_of_labels
         self.num_concept = num_concept
         self.concept2cls = concept2cls.tolist()[0]
+        self.only_visual_trunk = only_visual_trunk
         self.do_aug = do_aug
         self.n_iters = n_iters
         self.transform = transform
@@ -227,7 +228,16 @@ class ImgExplDataset(Dataset):
         # ----- pre-extraction of image embeddings -----
         if use_extracted_embs:
             print('- Use img_embeddings_save_dir: ', img_embeddings_save_dir)
-            if Path(img_embeddings_save_dir.format(split_name)).exists():
+            if Path(img_embeddings_save_dir.format(split_name)).is_dir():
+                # self.img_embs is a list
+                img_embs_names = os.listdir(img_embeddings_save_dir.format(split_name))
+                img_embs_names.sort()
+                self.img_embs = []
+                for img_embs_name in img_embs_names:
+                    self.img_embs.append(torch.load(os.path.join(img_embeddings_save_dir.format(split_name), img_embs_name)))
+                # self.img_embs = torch.cat(self.img_embs, dim=0)
+                self.labels = torch.load(labels_save_dir.format(split_name))
+            elif Path(img_embeddings_save_dir.format(split_name)).exists():
                 print('Exist! Just load to use')
                 self.img_embs = torch.load(img_embeddings_save_dir.format(split_name))
                 self.labels = torch.load(labels_save_dir.format(split_name))
@@ -235,20 +245,35 @@ class ImgExplDataset(Dataset):
                 print('Not exist! Jump into a function to start the extraction')
                 if split_name == 'train':
                     self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
-                                                                                           transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
+                                                                                           transform_compose=self.transform, only_visual_trunk=self.only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
                 else:
                     self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
-                                                                                           transform_compose=self.transform, only_visual_trunk=only_visual_trunk, do_aug=False, n_iters=self.n_iters)
-                                            
-                os.makedirs(img_embeddings_save_dir.rsplit('/', 1)[0], exist_ok=True)
-                torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
+                                                                                           transform_compose=self.transform, only_visual_trunk=self.only_visual_trunk, do_aug=False, n_iters=self.n_iters)
+
+                if self.only_visual_trunk:
+                    # self.img_embs is a list
+                    os.makedirs(img_embeddings_save_dir.format(split_name), exist_ok=True)
+                    for img_emb_idx, img_embs in enumerate(self.img_embs):
+                        torch.save(img_embs, os.path.join(img_embeddings_save_dir.format(split_name), ''.join(['feat', str(img_emb_idx), '.pth'])))
+                else:
+                    os.makedirs(img_embeddings_save_dir.rsplit('/', 1)[0], exist_ok=True)
+                    torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
+
                 torch.save(self.labels, labels_save_dir.format(split_name))
         
         self.use_extracted_embs = use_extracted_embs
 
     def __len__(self):
         if self.use_extracted_embs:
-            return len(self.img_embs)
+            if self.only_visual_trunk:
+                # self.img_embs is a list of embedding tensors
+                cumulative_len = 0
+                for img_embs in self.img_embs:
+                    cumulative_len += len(img_embs)
+                self.cumulative_len = cumulative_len
+                return cumulative_len
+            else:
+                return len(self.img_embs)
         else:
             return len(self.img_names)
 
@@ -273,7 +298,12 @@ class ImgExplDataset(Dataset):
             target_group = torch.tensor(-1, dtype=torch.long)
 
         if self.use_extracted_embs:
-            img = self.img_embs[idx]
+            if self.only_visual_trunk:
+                pr_idx = int(idx/1000)
+                ch_idx = int(idx%1000)
+                img = self.img_embs[pr_idx][ch_idx]
+            else:
+                img = self.img_embs[idx]
         else:
             img_path = self.img_names[idx] # Absolute path to a specific image
             img = self.loader(img_path) # PIL image object

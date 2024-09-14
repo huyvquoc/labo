@@ -39,14 +39,14 @@ raw_sen_path = concept_root + 'concepts_raw.npy'
 concept2cls_path = concept_root + 'concept2cls.npy'
 cls_name_path = concept_root + 'cls_names.npy'
 concept_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_concept_embs_512_allconcepts_mpe.pth' # CONCH TODO: need to change if number of concepts changes
-img_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_img_embs_512_aug0_iters1_mpe_{}.pth' # CONCH
+img_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_img_embs_512_aug0_iters1_mpe_{}' # CONCH
 labels_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_labels_512_aug0_iters1_mpe_{}.pth' # CONCH
 
 # concept_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_vitL14_concept_embs_768.pth' # OPENCLIP
 # img_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_vitL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP
 # labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_labels_768_aug2_iters20_{}.pth' # OPENCLIP
 
-use_extracted_img_embs = False # TODO
+use_extracted_img_embs = True # TODO
 only_visual_trunk = True # TODO
 do_aug = True
 n_iters = 1
