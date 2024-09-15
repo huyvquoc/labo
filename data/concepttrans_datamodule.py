@@ -236,7 +236,6 @@ class ImgExplDataset(Dataset):
                 self.img_embs = []
                 for chunk_id, img_embs_name in enumerate(img_embs_names):
                     img_emb_chunk = torch.load(os.path.join(img_embeddings_save_dir.format(split_name), img_embs_name))
-                    print(f'- {img_emb_chunk.shape}')
                     if chunk_id == 0:
                         self.chunk_size = int(img_emb_chunk.shape[0])
                     self.img_embs.append(img_emb_chunk)
