@@ -1,5 +1,6 @@
 import collections
 import math
+import os
 
 from pathlib import Path
 from PIL import Image
@@ -91,7 +92,7 @@ def one_forward_of_vlm_foundation_img_branch(feature_extractor, preprocessed_img
 
     return x
 
-def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, list_of_img_paths, list_of_labels, dataset_class, transform_compose, only_visual_trunk=False, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin', do_aug=False, n_iters=10):
+def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, list_of_img_paths, list_of_labels, dataset_class, transform_compose, img_embeddings_save_dir, labels_save_dir, split_name, only_visual_trunk=False, ckpt_path='/data/hqvo3/weights/CONCH/pytorch_model.bin', do_aug=False, n_iters=10):
     '''
     This function is mostly used in the concepttrans data module file
 
@@ -100,9 +101,10 @@ def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, lis
     - do_aug (bool): whether using augmentation or not
     - n_iters (int): if do augmentation, how many iters to simulate epochs? For each original sample, we will have n_iters augmented versions of it
     '''
+    batch_size = 32
     if do_aug:
         predict_dataset = dataset_class(img_filepaths=list_of_img_paths, labels=list_of_labels, transform=transform_compose)
-        predict_loader = DataLoader(predict_dataset, batch_size=8, shuffle=False, num_workers=4, pin_memory=True) # TODO: change batch size
+        predict_loader = DataLoader(predict_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True) # TODO: change batch size
 
     print('- Start extract img embeddings...')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -122,15 +124,9 @@ def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, lis
           print('[**] aug idx: ', idx)
           stream = tqdm.tqdm(predict_loader)
           for jdx, (images, labels) in enumerate(stream, start=1):
-              # if jdx == 2000:
-              #     break
               images = images.to(device, non_blocking=True)
               # labels = labels.to(device, non_blocking=True)
               img_embs = one_forward_of_vlm_foundation_img_branch(feature_extractor, images, only_visual_trunk)
-              # print('[**] img_embs.shape', img_embs.shape)
-              # print('[**] img_embs.tocpu.tolist', type(img_embs.to("cpu").tolist()[0]))
-              # print('[**] labels.shape', labels.shape)
-              # print('[**] labels.tolist', type(labels.tolist()[0]))
               list_of_img_embs.append(img_embs.to("cpu")) # TODO: when batch size is greater than 1, do we need to change from append to extend
               list_of_new_labels.extend(labels.tolist())
     else:
@@ -141,17 +137,24 @@ def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, lis
 
     print('- Complete extract img embeddings!')
     
-    # TODO: having multiple sub concatenations
     if only_visual_trunk:
+      os.makedirs(img_embeddings_save_dir.format(split_name), exist_ok=True)
       ret = []
-      n_embs = len(list_of_img_embs)
-      for emb_start_idx in range(0, n_embs, 1000):
-          emb_end_idx = emb_start_idx + 1000
-          if emb_end_idx >= n_embs:
-              emb_end_idx = n_embs - 1
-          img_embs_chunk = torch.cat(list_of_img_embs[emb_start_idx:emb_end_idx+1])
+
+      img_emb_idx = 0
+      step_size = 16
+      while list_of_img_embs:
+          chunk_size = len(list_of_img_embs) if len(list_of_img_embs) < step_size else step_size
+
+          img_embs_chunk = torch.cat(list_of_img_embs[0:chunk_size])
           if img_embs_chunk.ndim == 2:
               img_embs_chunk = img_embs_chunk[:, None, :]
+
+          torch.save(img_embs_chunk, os.path.join(img_embeddings_save_dir.format(split_name), ''.join(['feat', str(img_emb_idx), '.pth'])))
+          img_emb_idx += 1
+
+          for deleted_idx in sorted(list(range(chunk_size)), reverse=True):
+              del list_of_img_embs[deleted_idx]
 
           ret.append(img_embs_chunk)
     else:
@@ -159,7 +162,16 @@ def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, lis
       if ret.ndim == 2:
           ret = ret[:, None, :]
 
-    return ret, list_of_new_labels
+      os.makedirs(img_embeddings_save_dir.rsplit('/', 1)[0], exist_ok=True)
+      torch.save(ret, img_embeddings_save_dir.format(split_name))
+
+
+    torch.save(list_of_new_labels, labels_save_dir.format(split_name))
+
+    if only_visual_trunk:
+        return ret, list_of_new_labels, batch_size*step_size
+    else:
+        return ret, list_of_new_labels, None
 
 # def conch_coca_text_tower():
 

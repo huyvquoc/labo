@@ -209,6 +209,7 @@ class ImgExplDataset(Dataset):
         self.do_aug = do_aug
         self.n_iters = n_iters
         self.transform = transform
+        self.split_name = split_name
 
         # Mapping class label to selected concepts'new indices. These new indices are not the indices in `self.select_idx`, but are the new indices have been assigned to the selected indices (0 -> 629)
         self.cls_names = cls_names
@@ -227,14 +228,18 @@ class ImgExplDataset(Dataset):
 
         # ----- pre-extraction of image embeddings -----
         if use_extracted_embs:
-            print('- Use img_embeddings_save_dir: ', img_embeddings_save_dir)
+            print('- Use img_embeddings_save_dir: ', img_embeddings_save_dir.format(split_name))
             if Path(img_embeddings_save_dir.format(split_name)).is_dir():
                 # self.img_embs is a list
                 img_embs_names = os.listdir(img_embeddings_save_dir.format(split_name))
-                img_embs_names.sort()
+                img_embs_names.sort(key=lambda x: int(x.split('feat')[1].split('.')[0]))
                 self.img_embs = []
-                for img_embs_name in img_embs_names:
-                    self.img_embs.append(torch.load(os.path.join(img_embeddings_save_dir.format(split_name), img_embs_name)))
+                for chunk_id, img_embs_name in enumerate(img_embs_names):
+                    img_emb_chunk = torch.load(os.path.join(img_embeddings_save_dir.format(split_name), img_embs_name))
+                    print(f'- {img_emb_chunk.shape}')
+                    if chunk_id == 0:
+                        self.chunk_size = int(img_emb_chunk.shape[0])
+                    self.img_embs.append(img_emb_chunk)
                 # self.img_embs = torch.cat(self.img_embs, dim=0)
                 self.labels = torch.load(labels_save_dir.format(split_name))
             elif Path(img_embeddings_save_dir.format(split_name)).exists():
@@ -244,34 +249,30 @@ class ImgExplDataset(Dataset):
             else:
                 print('Not exist! Jump into a function to start the extraction')
                 if split_name == 'train':
-                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
-                                                                                           transform_compose=self.transform, only_visual_trunk=self.only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
+                    self.img_embs, self.labels, self.chunk_size = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                                                                                           transform_compose=self.transform, \
+                                                                                           img_embeddings_save_dir=img_embeddings_save_dir, labels_save_dir=labels_save_dir, split_name=split_name, \
+                                                                                           only_visual_trunk=self.only_visual_trunk, do_aug=self.do_aug, n_iters=self.n_iters)
                 else:
-                    self.img_embs, self.labels = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
-                                                                                           transform_compose=self.transform, only_visual_trunk=self.only_visual_trunk, do_aug=False, n_iters=self.n_iters)
+                    self.img_embs, self.labels, self.chunk_size = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
+                                                                                           transform_compose=self.transform, \
+                                                                                           img_embeddings_save_dir=img_embeddings_save_dir, labels_save_dir=labels_save_dir, split_name=split_name, \
+                                                                                           only_visual_trunk=self.only_visual_trunk, do_aug=False, n_iters=self.n_iters)
 
-                if self.only_visual_trunk:
-                    # self.img_embs is a list
-                    os.makedirs(img_embeddings_save_dir.format(split_name), exist_ok=True)
-                    for img_emb_idx, img_embs in enumerate(self.img_embs):
-                        torch.save(img_embs, os.path.join(img_embeddings_save_dir.format(split_name), ''.join(['feat', str(img_emb_idx), '.pth'])))
-                else:
-                    os.makedirs(img_embeddings_save_dir.rsplit('/', 1)[0], exist_ok=True)
-                    torch.save(self.img_embs, img_embeddings_save_dir.format(split_name))
+            if self.only_visual_trunk:
+                self.cumulative_len = 0
+                for img_emb_chunk in self.img_embs:
+                    self.cumulative_len += int(img_emb_chunk.shape[0])
 
-                torch.save(self.labels, labels_save_dir.format(split_name))
-        
         self.use_extracted_embs = use_extracted_embs
 
     def __len__(self):
         if self.use_extracted_embs:
             if self.only_visual_trunk:
                 # self.img_embs is a list of embedding tensors
-                cumulative_len = 0
-                for img_embs in self.img_embs:
-                    cumulative_len += len(img_embs)
-                self.cumulative_len = cumulative_len
-                return cumulative_len
+                print(f'** {self.split_name} **')
+                print(f'********************************************************************************************************** self.cumulative_len: {self.cumulative_len} **********************************************************************************************************')
+                return self.cumulative_len
             else:
                 return len(self.img_embs)
         else:
@@ -299,9 +300,10 @@ class ImgExplDataset(Dataset):
 
         if self.use_extracted_embs:
             if self.only_visual_trunk:
-                pr_idx = int(idx/1000)
-                ch_idx = int(idx%1000)
-                img = self.img_embs[pr_idx][ch_idx]
+                pr_idx = int(idx/self.chunk_size)
+                ch_idx = int(idx%self.chunk_size)
+                imgs_chunk = self.img_embs[pr_idx] 
+                img = imgs_chunk[ch_idx]
             else:
                 img = self.img_embs[idx]
         else:
