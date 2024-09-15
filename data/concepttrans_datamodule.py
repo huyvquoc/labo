@@ -1,4 +1,6 @@
 import os
+import multiprocessing
+from multiprocessing import get_context
 import pickle
 
 import albumentations as A
@@ -149,6 +151,10 @@ def build_transform_dict(input_size=224,
 
     return transform_dict
 
+def load_pickle(file_path):
+    print(f'Loading pickle {file_path}')
+    return torch.load(file_path)
+
 class ImgPreExtEmbsDataset(Dataset):
     '''
     Only for pre extraction of image embeddings
@@ -234,12 +240,22 @@ class ImgExplDataset(Dataset):
                 img_embs_names = os.listdir(img_embeddings_save_dir.format(split_name))
                 img_embs_names.sort(key=lambda x: int(x.split('feat')[1].split('.')[0]))
                 self.img_embs = []
+                pickle_file_paths = []
                 for chunk_id, img_embs_name in enumerate(img_embs_names):
-                    img_emb_chunk = torch.load(os.path.join(img_embeddings_save_dir.format(split_name), img_embs_name))
-                    if chunk_id == 0:
-                        self.chunk_size = int(img_emb_chunk.shape[0])
-                    self.img_embs.append(img_emb_chunk)
-                # self.img_embs = torch.cat(self.img_embs, dim=0)
+                    # img_emb_chunk = torch.load(os.path.join(img_embeddings_save_dir.format(split_name), img_embs_name))
+                    # if chunk_id == 0:
+                    #     self.chunk_size = int(img_emb_chunk.shape[0])
+                    # self.img_embs.append(img_emb_chunk)
+                    pickle_file_paths.append(os.path.join(img_embeddings_save_dir.format(split_name), img_embs_name))
+
+                print('...multiprocessing for loading multiple pickle files')
+                with get_context("spawn").Pool(processes=4) as pool:
+                    print('inside pool')
+                    self.img_embs = pool.map(load_pickle, pickle_file_paths)
+                    print('complete pool') # TODO: not worked yet, cannot jump out of context
+                print('OK...complete multiprocessing')
+                self.chunk_size = int(self.img_embs[0].shape[0])
+
                 self.labels = torch.load(labels_save_dir.format(split_name))
             elif Path(img_embeddings_save_dir.format(split_name)).exists():
                 print('Exist! Just load to use')

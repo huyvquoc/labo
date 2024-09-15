@@ -5,7 +5,7 @@ best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting o
 do_val_plotting=True
 lr = 1e-3
 bs = 512
-max_epochs = 50
+max_epochs = 20
 
 concept_type = "all_submodular"
 # concept_select_fn = "submodular"
@@ -46,7 +46,7 @@ labels_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_labels_512_aug0_it
 # img_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_vitL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP
 # labels_save_dir = 'datasets/GlomCrawl/embs/concepttrans_vitL14_labels_768_aug2_iters20_{}.pth' # OPENCLIP
 
-use_extracted_img_embs = True # TODO
+use_extracted_img_embs = False # TODO
 only_visual_trunk = True # TODO
 do_aug = True
 n_iters = 1
