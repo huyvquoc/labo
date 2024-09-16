@@ -3,7 +3,7 @@ _base_ = '../base.py'
 proj_name = "CUB"
 concept_root = 'datasets/CUB/concepts/'
 img_split_path = 'datasets/CUB/splits'
-img_path = 'datasets/CUB/images'
+img_path = '/data/hqvo3/data/cub2011/CUB_200_2011/images'
 
 concept_type = "all"
 
@@ -35,3 +35,11 @@ lambda_div = 0.005
 
 # CLIP Backbone
 clip_model = 'ViT-L/14'
+clip_model_name = 'clip'
+
+# main_loss = 'TwoWayLoss'
+# main_loss = 'AsymmetricLoss'
+# main_loss = 'AsymmetricLossOptimized'
+# main_loss = 'FocalLoss'
+# main_loss = 'APLLoss'
+main_loss = 'ANLSLoss'
