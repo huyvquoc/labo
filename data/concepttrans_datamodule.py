@@ -153,7 +153,9 @@ def build_transform_dict(input_size=224,
 
 def load_pickle(file_path):
     print(f'Loading pickle {file_path}')
-    return torch.load(file_path)
+    img_embs = torch.load(file_path)
+    print(f'Complete loading a pickle file: {file_path}')
+    return img_embs
 
 class ImgPreExtEmbsDataset(Dataset):
     '''
@@ -272,7 +274,7 @@ class ImgExplDataset(Dataset):
                     self.img_embs, self.labels, self.chunk_size = extract_img_embs_using_conch_visual_trunk(model_name=self.model_name, model_weight_name=self.model_weight_name, list_of_img_paths=self.img_names, list_of_labels=self.labels, dataset_class=ImgPreExtEmbsDataset, \
                                                                                            transform_compose=self.transform, \
                                                                                            img_embeddings_save_dir=img_embeddings_save_dir, labels_save_dir=labels_save_dir, split_name=split_name, \
-                                                                                           only_visual_trunk=self.only_visual_trunk, do_aug=False, n_iters=self.n_iters)
+                                                                                           only_visual_trunk=self.only_visual_trunk, do_aug=True, n_iters=self.n_iters)
 
             if self.only_visual_trunk:
                 self.cumulative_len = 0
@@ -285,8 +287,8 @@ class ImgExplDataset(Dataset):
         if self.use_extracted_embs:
             if self.only_visual_trunk:
                 # self.img_embs is a list of embedding tensors
-                print(f'** {self.split_name} **')
-                print(f'********************************************************************************************************** self.cumulative_len: {self.cumulative_len} **********************************************************************************************************')
+                # print(f'** {self.split_name} **')
+                # print(f'********************************************************************************************************** self.cumulative_len: {self.cumulative_len} **********************************************************************************************************')
                 return self.cumulative_len
             else:
                 return len(self.img_embs)

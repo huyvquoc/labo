@@ -278,7 +278,7 @@ def asso_opt_main(cfg):
         model = AssoConceptFast(cfg, class_names, init_weight=th.load(cfg.init_weight_path) if 'init_weight_path' in cfg else None)
 
     if cfg.proj_name == "ImageNet" and cfg.n_shots == "all": check_interval = 5
-    else: check_interval = 10
+    else: check_interval = 100
 
     print("check interval = {}".format(check_interval))
 

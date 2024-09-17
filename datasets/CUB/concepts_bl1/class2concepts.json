@@ -1,0 +1,602 @@
+{
+    "acadian flycatcher": [
+        "acadian flycatcher"
+    ],
+    "american crow": [
+        "american crow"
+    ],
+    "american goldfinch": [
+        "american goldfinch"
+    ],
+    "american pipit": [
+        "american pipit"
+    ],
+    "american redstart": [
+        "american redstart"
+    ],
+    "american three toed woodpecker": [
+        "american three toed woodpecker"
+    ],
+    "anna hummingbird": [
+        "anna hummingbird"
+    ],
+    "artic tern": [
+        "artic tern"
+    ],
+    "baird sparrow": [
+        "baird sparrow"
+    ],
+    "baltimore oriole": [
+        "baltimore oriole"
+    ],
+    "bank swallow": [
+        "bank swallow"
+    ],
+    "barn swallow": [
+        "barn swallow"
+    ],
+    "bay breasted warbler": [
+        "bay breasted warbler"
+    ],
+    "belted kingfisher": [
+        "belted kingfisher"
+    ],
+    "bewick wren": [
+        "bewick wren"
+    ],
+    "black and white warbler": [
+        "black and white warbler"
+    ],
+    "black billed cuckoo": [
+        "black billed cuckoo"
+    ],
+    "black capped vireo": [
+        "black capped vireo"
+    ],
+    "black footed albatross": [
+        "black footed albatross"
+    ],
+    "black tern": [
+        "black tern"
+    ],
+    "black throated blue warbler": [
+        "black throated blue warbler"
+    ],
+    "black throated sparrow": [
+        "black throated sparrow"
+    ],
+    "blue grosbeak": [
+        "blue grosbeak"
+    ],
+    "blue headed vireo": [
+        "blue headed vireo"
+    ],
+    "blue jay": [
+        "blue jay"
+    ],
+    "blue winged warbler": [
+        "blue winged warbler"
+    ],
+    "boat tailed grackle": [
+        "boat tailed grackle"
+    ],
+    "bobolink": [
+        "bobolink"
+    ],
+    "bohemian waxwing": [
+        "bohemian waxwing"
+    ],
+    "brandt cormorant": [
+        "brandt cormorant"
+    ],
+    "brewer blackbird": [
+        "brewer blackbird"
+    ],
+    "brewer sparrow": [
+        "brewer sparrow"
+    ],
+    "bronzed cowbird": [
+        "bronzed cowbird"
+    ],
+    "brown creeper": [
+        "brown creeper"
+    ],
+    "brown pelican": [
+        "brown pelican"
+    ],
+    "brown thrasher": [
+        "brown thrasher"
+    ],
+    "cactus wren": [
+        "cactus wren"
+    ],
+    "california gull": [
+        "california gull"
+    ],
+    "canada warbler": [
+        "canada warbler"
+    ],
+    "cape glossy starling": [
+        "cape glossy starling"
+    ],
+    "cape may warbler": [
+        "cape may warbler"
+    ],
+    "cardinal": [
+        "cardinal"
+    ],
+    "carolina wren": [
+        "carolina wren"
+    ],
+    "caspian tern": [
+        "caspian tern"
+    ],
+    "cedar waxwing": [
+        "cedar waxwing"
+    ],
+    "cerulean warbler": [
+        "cerulean warbler"
+    ],
+    "chestnut sided warbler": [
+        "chestnut sided warbler"
+    ],
+    "chipping sparrow": [
+        "chipping sparrow"
+    ],
+    "chuck will widow": [
+        "chuck will widow"
+    ],
+    "clark nutcracker": [
+        "clark nutcracker"
+    ],
+    "clay colored sparrow": [
+        "clay colored sparrow"
+    ],
+    "cliff swallow": [
+        "cliff swallow"
+    ],
+    "common raven": [
+        "common raven"
+    ],
+    "common tern": [
+        "common tern"
+    ],
+    "common yellowthroat": [
+        "common yellowthroat"
+    ],
+    "crested auklet": [
+        "crested auklet"
+    ],
+    "dark eyed junco": [
+        "dark eyed junco"
+    ],
+    "downy woodpecker": [
+        "downy woodpecker"
+    ],
+    "eared grebe": [
+        "eared grebe"
+    ],
+    "eastern towhee": [
+        "eastern towhee"
+    ],
+    "elegant tern": [
+        "elegant tern"
+    ],
+    "european goldfinch": [
+        "european goldfinch"
+    ],
+    "evening grosbeak": [
+        "evening grosbeak"
+    ],
+    "field sparrow": [
+        "field sparrow"
+    ],
+    "fish crow": [
+        "fish crow"
+    ],
+    "florida jay": [
+        "florida jay"
+    ],
+    "forsters tern": [
+        "forsters tern"
+    ],
+    "fox sparrow": [
+        "fox sparrow"
+    ],
+    "frigatebird": [
+        "frigatebird"
+    ],
+    "gadwall": [
+        "gadwall"
+    ],
+    "geococcyx": [
+        "geococcyx"
+    ],
+    "glaucous winged gull": [
+        "glaucous winged gull"
+    ],
+    "golden winged warbler": [
+        "golden winged warbler"
+    ],
+    "grasshopper sparrow": [
+        "grasshopper sparrow"
+    ],
+    "gray catbird": [
+        "gray catbird"
+    ],
+    "gray crowned rosy finch": [
+        "gray crowned rosy finch"
+    ],
+    "gray kingbird": [
+        "gray kingbird"
+    ],
+    "great crested flycatcher": [
+        "great crested flycatcher"
+    ],
+    "great grey shrike": [
+        "great grey shrike"
+    ],
+    "green jay": [
+        "green jay"
+    ],
+    "green kingfisher": [
+        "green kingfisher"
+    ],
+    "green tailed towhee": [
+        "green tailed towhee"
+    ],
+    "green violetear": [
+        "green violetear"
+    ],
+    "groove billed ani": [
+        "groove billed ani"
+    ],
+    "harris sparrow": [
+        "harris sparrow"
+    ],
+    "heermann gull": [
+        "heermann gull"
+    ],
+    "henslow sparrow": [
+        "henslow sparrow"
+    ],
+    "herring gull": [
+        "herring gull"
+    ],
+    "hooded merganser": [
+        "hooded merganser"
+    ],
+    "hooded oriole": [
+        "hooded oriole"
+    ],
+    "hooded warbler": [
+        "hooded warbler"
+    ],
+    "horned grebe": [
+        "horned grebe"
+    ],
+    "horned lark": [
+        "horned lark"
+    ],
+    "horned puffin": [
+        "horned puffin"
+    ],
+    "house sparrow": [
+        "house sparrow"
+    ],
+    "house wren": [
+        "house wren"
+    ],
+    "indigo bunting": [
+        "indigo bunting"
+    ],
+    "ivory gull": [
+        "ivory gull"
+    ],
+    "kentucky warbler": [
+        "kentucky warbler"
+    ],
+    "laysan albatross": [
+        "laysan albatross"
+    ],
+    "lazuli bunting": [
+        "lazuli bunting"
+    ],
+    "le conte sparrow": [
+        "le conte sparrow"
+    ],
+    "least auklet": [
+        "least auklet"
+    ],
+    "least flycatcher": [
+        "least flycatcher"
+    ],
+    "least tern": [
+        "least tern"
+    ],
+    "lincoln sparrow": [
+        "lincoln sparrow"
+    ],
+    "loggerhead shrike": [
+        "loggerhead shrike"
+    ],
+    "long tailed jaeger": [
+        "long tailed jaeger"
+    ],
+    "louisiana waterthrush": [
+        "louisiana waterthrush"
+    ],
+    "magnolia warbler": [
+        "magnolia warbler"
+    ],
+    "mallard": [
+        "mallard"
+    ],
+    "mangrove cuckoo": [
+        "mangrove cuckoo"
+    ],
+    "marsh wren": [
+        "marsh wren"
+    ],
+    "mockingbird": [
+        "mockingbird"
+    ],
+    "mourning warbler": [
+        "mourning warbler"
+    ],
+    "myrtle warbler": [
+        "myrtle warbler"
+    ],
+    "nashville warbler": [
+        "nashville warbler"
+    ],
+    "nelson sharp tailed sparrow": [
+        "nelson sharp tailed sparrow"
+    ],
+    "nighthawk": [
+        "nighthawk"
+    ],
+    "northern flicker": [
+        "northern flicker"
+    ],
+    "northern fulmar": [
+        "northern fulmar"
+    ],
+    "northern waterthrush": [
+        "northern waterthrush"
+    ],
+    "olive sided flycatcher": [
+        "olive sided flycatcher"
+    ],
+    "orange crowned warbler": [
+        "orange crowned warbler"
+    ],
+    "orchard oriole": [
+        "orchard oriole"
+    ],
+    "ovenbird": [
+        "ovenbird"
+    ],
+    "pacific loon": [
+        "pacific loon"
+    ],
+    "painted bunting": [
+        "painted bunting"
+    ],
+    "palm warbler": [
+        "palm warbler"
+    ],
+    "parakeet auklet": [
+        "parakeet auklet"
+    ],
+    "pelagic cormorant": [
+        "pelagic cormorant"
+    ],
+    "philadelphia vireo": [
+        "philadelphia vireo"
+    ],
+    "pied billed grebe": [
+        "pied billed grebe"
+    ],
+    "pied kingfisher": [
+        "pied kingfisher"
+    ],
+    "pigeon guillemot": [
+        "pigeon guillemot"
+    ],
+    "pileated woodpecker": [
+        "pileated woodpecker"
+    ],
+    "pine grosbeak": [
+        "pine grosbeak"
+    ],
+    "pine warbler": [
+        "pine warbler"
+    ],
+    "pomarine jaeger": [
+        "pomarine jaeger"
+    ],
+    "prairie warbler": [
+        "prairie warbler"
+    ],
+    "prothonotary warbler": [
+        "prothonotary warbler"
+    ],
+    "purple finch": [
+        "purple finch"
+    ],
+    "red bellied woodpecker": [
+        "red bellied woodpecker"
+    ],
+    "red breasted merganser": [
+        "red breasted merganser"
+    ],
+    "red cockaded woodpecker": [
+        "red cockaded woodpecker"
+    ],
+    "red eyed vireo": [
+        "red eyed vireo"
+    ],
+    "red faced cormorant": [
+        "red faced cormorant"
+    ],
+    "red headed woodpecker": [
+        "red headed woodpecker"
+    ],
+    "red legged kittiwake": [
+        "red legged kittiwake"
+    ],
+    "red winged blackbird": [
+        "red winged blackbird"
+    ],
+    "rhinoceros auklet": [
+        "rhinoceros auklet"
+    ],
+    "ring billed gull": [
+        "ring billed gull"
+    ],
+    "ringed kingfisher": [
+        "ringed kingfisher"
+    ],
+    "rock wren": [
+        "rock wren"
+    ],
+    "rose breasted grosbeak": [
+        "rose breasted grosbeak"
+    ],
+    "ruby throated hummingbird": [
+        "ruby throated hummingbird"
+    ],
+    "rufous hummingbird": [
+        "rufous hummingbird"
+    ],
+    "rusty blackbird": [
+        "rusty blackbird"
+    ],
+    "sage thrasher": [
+        "sage thrasher"
+    ],
+    "savannah sparrow": [
+        "savannah sparrow"
+    ],
+    "sayornis": [
+        "sayornis"
+    ],
+    "scarlet tanager": [
+        "scarlet tanager"
+    ],
+    "scissor tailed flycatcher": [
+        "scissor tailed flycatcher"
+    ],
+    "scott oriole": [
+        "scott oriole"
+    ],
+    "seaside sparrow": [
+        "seaside sparrow"
+    ],
+    "shiny cowbird": [
+        "shiny cowbird"
+    ],
+    "slaty backed gull": [
+        "slaty backed gull"
+    ],
+    "song sparrow": [
+        "song sparrow"
+    ],
+    "sooty albatross": [
+        "sooty albatross"
+    ],
+    "spotted catbird": [
+        "spotted catbird"
+    ],
+    "summer tanager": [
+        "summer tanager"
+    ],
+    "swainson warbler": [
+        "swainson warbler"
+    ],
+    "tennessee warbler": [
+        "tennessee warbler"
+    ],
+    "tree sparrow": [
+        "tree sparrow"
+    ],
+    "tree swallow": [
+        "tree swallow"
+    ],
+    "tropical kingbird": [
+        "tropical kingbird"
+    ],
+    "vermilion flycatcher": [
+        "vermilion flycatcher"
+    ],
+    "vesper sparrow": [
+        "vesper sparrow"
+    ],
+    "warbling vireo": [
+        "warbling vireo"
+    ],
+    "western grebe": [
+        "western grebe"
+    ],
+    "western gull": [
+        "western gull"
+    ],
+    "western meadowlark": [
+        "western meadowlark"
+    ],
+    "western wood pewee": [
+        "western wood pewee"
+    ],
+    "whip poor will": [
+        "whip poor will"
+    ],
+    "white breasted kingfisher": [
+        "white breasted kingfisher"
+    ],
+    "white breasted nuthatch": [
+        "white breasted nuthatch"
+    ],
+    "white crowned sparrow": [
+        "white crowned sparrow"
+    ],
+    "white eyed vireo": [
+        "white eyed vireo"
+    ],
+    "white necked raven": [
+        "white necked raven"
+    ],
+    "white pelican": [
+        "white pelican"
+    ],
+    "white throated sparrow": [
+        "white throated sparrow"
+    ],
+    "wilson warbler": [
+        "wilson warbler"
+    ],
+    "winter wren": [
+        "winter wren"
+    ],
+    "worm eating warbler": [
+        "worm eating warbler"
+    ],
+    "yellow bellied flycatcher": [
+        "yellow bellied flycatcher"
+    ],
+    "yellow billed cuckoo": [
+        "yellow billed cuckoo"
+    ],
+    "yellow breasted chat": [
+        "yellow breasted chat"
+    ],
+    "yellow headed blackbird": [
+        "yellow headed blackbird"
+    ],
+    "yellow throated vireo": [
+        "yellow throated vireo"
+    ],
+    "yellow warbler": [
+        "yellow warbler"
+    ]
+}

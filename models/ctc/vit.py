@@ -124,6 +124,8 @@ def extract_img_embs_using_conch_visual_trunk(model_name, model_weight_name, lis
           print('[**] aug idx: ', idx)
           stream = tqdm.tqdm(predict_loader)
           for jdx, (images, labels) in enumerate(stream, start=1):
+              if jdx == 2000:
+                  break
               images = images.to(device, non_blocking=True)
               # labels = labels.to(device, non_blocking=True)
               img_embs = one_forward_of_vlm_foundation_img_branch(feature_extractor, images, only_visual_trunk)
