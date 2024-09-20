@@ -1,6 +1,6 @@
 _base_ = 'CUB_base.py'
 n_shots = "all"
-data_root = 'exp/asso_opt/CUB/CUB_allshot_fac'
+data_root = 'exp/asso_opt/CUB/CUB_allshot_fac_bl2'
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_micro' # for plotting only when model checkpoint
 do_val_plotting=True
 lr = 5e-5
