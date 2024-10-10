@@ -708,7 +708,7 @@ class ConceptTransformerVIT(nn.Module):
         if self.n_spatial_concepts > 0:  # Spatial stream, self.n_spatial_concepts = 95
             out_s, spatial_concept_attn = self.spatial_concept_tranformer(x, self.spatial_concepts) # out_s.shape: (32, 196, 200), spatial_concept_attn.shape: (32, 2, 196, 95)
             spatial_concept_attn = spatial_concept_attn.mean(1)  # average over heads, shape: (32, 196, 95)
-            out = out + out_s.mean(1)  # pool tokens sequence, shape: (32, 200)
+            out = out + out_s.mean(1) # pool tokens sequence, shape: (32, 200)
 
         return out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn, qk_parent_class
 
