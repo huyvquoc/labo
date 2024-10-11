@@ -2,6 +2,7 @@ import collections
 import math
 import os
 
+import numpy as np
 from pathlib import Path
 from PIL import Image
 import timm
@@ -18,6 +19,19 @@ from conch.open_clip_custom import create_model_from_pretrained, tokenize, get_t
 from models.ctc.prompts import HierarchyAwarePromptLearner
 import open_clip
 
+
+def batchify_run(process_fn, data_lst, res, batch_size, use_tqdm=False):
+    data_lst_len = data_lst.shape[0]
+    num_batch = np.ceil(data_lst_len / batch_size).astype(int)
+    iterator = range(num_batch)
+    if use_tqdm:
+        iterator = tqdm.tqdm(iterator)
+    for i in iterator:
+        batch_data = data_lst[i * batch_size:(i + 1) * batch_size]
+        batch_res = process_fn(batch_data)
+        batch_res /= batch_res.norm(dim=-1, keepdim=True)
+        res[i * batch_size:(i + 1) * batch_size] = batch_res
+        del batch_res
 
 def cub_cvit(cfg, class_names, concept2cls, baseline=False, *args, **kwargs):
     """
@@ -355,6 +369,7 @@ class ConceptTransformerVIT(nn.Module):
         self.only_visual_trunk = only_visual_trunk
         self.class_names = class_names
         self.concept2cls = concept2cls # to child classes
+        self.embedding_dim = embedding_dim
 
         self.model = None
         self.tokenizer = None
@@ -387,12 +402,12 @@ class ConceptTransformerVIT(nn.Module):
         # Unsupervised concepts
         self.n_unsup_concepts = n_unsup_concepts
         self.unsup_concepts = nn.Parameter(
-            torch.zeros(1, n_unsup_concepts, embedding_dim), requires_grad=True
+            torch.zeros(1, n_unsup_concepts, self.embedding_dim), requires_grad=True
         )
-        nn.init.trunc_normal_(self.unsup_concepts, std=1.0 / math.sqrt(embedding_dim))
+        nn.init.trunc_normal_(self.unsup_concepts, std=1.0 / math.sqrt(self.embedding_dim))
         if n_unsup_concepts > 0:
             self.unsup_concept_tranformer = CrossAttention(
-                dim=embedding_dim,
+                dim=self.embedding_dim,
                 n_outputs=num_classes,
                 num_heads=num_heads,
                 attention_dropout=attention_dropout,
@@ -403,8 +418,8 @@ class ConceptTransformerVIT(nn.Module):
         self.n_concepts = n_concepts
         # TODO: remove the next 2 lines, initialized with text embedding from CONCH text encoder shape (, 512)
         # TODO: Do we still need nn.Parameter? Is nn.Parameter for soft prompting?
-        self.concepts = nn.Parameter(torch.zeros(1, n_concepts, embedding_dim), requires_grad=True) # shape: (1, 13, 1024)
-        nn.init.trunc_normal_(self.concepts, std=1.0 / math.sqrt(embedding_dim))
+        self.concepts = nn.Parameter(torch.zeros(1, n_concepts, self.embedding_dim), requires_grad=True) # shape: (1, 13, 1024)
+        nn.init.trunc_normal_(self.concepts, std=1.0 / math.sqrt(self.embedding_dim))
 
         self.dict_of_mapping_from_conceptid_to_softpromptid = None
         if n_concepts > 0:
@@ -440,7 +455,7 @@ class ConceptTransformerVIT(nn.Module):
                 self.dict_of_mapping_from_conceptid_to_softpromptid = collections.OrderedDict(sorted(dict_of_mapping_from_conceptid_to_softpromptid.items()))
             
             self.concept_tranformer = CrossAttention(
-                dim=embedding_dim,
+                dim=self.embedding_dim,
                 n_outputs=num_classes,
                 n_group_outputs=n_group_outputs,
                 num_heads=num_heads,
@@ -457,12 +472,12 @@ class ConceptTransformerVIT(nn.Module):
         # TODO: remove the next 2 lines, initialized with text embedding from CONCH text encoder shape (, 512)
         # TODO: Do we still need nn.Parameter? Is nn.Parameter for soft prompting?
         self.spatial_concepts = nn.Parameter(
-            torch.zeros(1, n_spatial_concepts, embedding_dim), requires_grad=True # shape: (1, 95, 1024)
+            torch.zeros(1, n_spatial_concepts, self.embedding_dim), requires_grad=True # shape: (1, 95, 1024)
         )
-        nn.init.trunc_normal_(self.spatial_concepts, std=1.0 / math.sqrt(embedding_dim))
+        nn.init.trunc_normal_(self.spatial_concepts, std=1.0 / math.sqrt(self.embedding_dim))
         if n_spatial_concepts > 0:
             self.spatial_concept_tranformer = CrossAttention(
-                dim=embedding_dim,
+                dim=self.embedding_dim,
                 n_outputs=num_classes,
                 num_heads=num_heads,
                 attention_dropout=attention_dropout,
@@ -651,9 +666,23 @@ class ConceptTransformerVIT(nn.Module):
                             concept_embeddings, _ = self._encode_text(text_tokens)
                             concept_embeddings /= concept_embeddings.norm(dim=-1, keepdim=True)
                     else:
-                        with torch.no_grad(): # for both CONCH and OPENCLIP
-                            concept_embeddings = self.model.encode_text(text_tokens) # shape: conch (630, 512); openclip (630, 768)
-                            concept_embeddings /= concept_embeddings.norm(dim=-1, keepdim=True)
+                        # with torch.no_grad(): # for both CONCH and OPENCLIP
+                        #     print('[**] text_tokens.shape: ', text_tokens.shape)
+                        #     concept_embeddings = self.model.encode_text(text_tokens) # shape: conch (630, 512); openclip (630, 768)
+                        #     print('[**] concept_embeddings.shape: ', concept_embeddings.shape)
+                        #     concept_embeddings /= concept_embeddings.norm(dim=-1, keepdim=True)
+
+                        concept_embeddings = torch.empty(text_tokens.shape[0], self.embedding_dim)
+    
+                        def process_txt(sub_txt_tokens):
+                             with torch.no_grad():
+                                 txt_feat = self.model.encode_text(sub_txt_tokens)
+                             return txt_feat
+    
+                        batchify_run(process_txt, text_tokens, concept_embeddings, 512, use_tqdm=True)
+                        # if save_path:
+                        #      torch.save(res, save_path)
+                        concept_embeddings = concept_embeddings.cuda()
 
                     self.concept_embeddings = concept_embeddings[None, :, :]
                     torch.save(self.concept_embeddings, self.concept_embeddings_save_dir)
@@ -670,6 +699,8 @@ class ConceptTransformerVIT(nn.Module):
             for concept_idx in range(self.concept_embeddings.shape[1]): # 630
                 corr_soft_label_int = self.dict_of_mapping_from_conceptid_to_softpromptid[concept_idx]
 
+                # print('[**] self.concept_embeddings.device: ', self.concept_embeddings.device)
+                # print('[**] soft_prompt_embeddings.device: ', soft_prompt_embeddings.device)
                 combined_embeddings.append(torch.cat((self.concept_embeddings[0, concept_idx], soft_prompt_embeddings[corr_soft_label_int]), 0))
 
             combined_embeddings = torch.stack(combined_embeddings) # (630, 1024)

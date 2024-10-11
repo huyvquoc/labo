@@ -4,7 +4,7 @@ data_root = 'exp/concept_trans/CUB/CUB_allshot_fac'
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting only when model checkpoint
 do_val_plotting=True
 lr = 1e-3
-bs = 512
+bs = 256
 
 concept_type = "all_submodular"
 # concept_select_fn = "submodular"
@@ -33,13 +33,13 @@ ckpt_path = '/data/hqvo3/weights/CONCH/pytorch_model.bin' # for CONCH
 num_workers = 4
 
 # concept_embeddings_save_dir = 'datasets/GlomCrawl/embs/concepttrans_concept_embs_512.pth' # CONCH
-concept_root = 'datasets/CUB/concepts_bl1/' # TODO: change datasets - relative path - manually generate `class2concepts.json`
+concept_root = 'datasets/CUB/concepts/' # TODO: change datasets - relative path - manually generate `class2concepts.json`
 raw_sen_path = concept_root + 'concepts_raw.npy'
 concept2cls_path = concept_root + 'concept2cls.npy'
 cls_name_path = concept_root + 'cls_names.npy'
-concept_embeddings_save_dir = 'datasets/CUB/embs/concepttrans_concept_embs_512_allconcepts.pth' # CONCH TODO: need to change if number of concepts changes
-img_embeddings_save_dir = 'datasets/CUB/embs/concepttrans_img_embs_512_aug0_iters1_{}.pth' # CONCH
-labels_save_dir = 'datasets/CUB/embs/concepttrans_labels_512_aug0_iters1_{}.pth' # CONCH
+concept_embeddings_save_dir = 'datasets/CUB/embs/concepttrans_eva_conceptori_embs_512_allconcepts.pth' # CONCH TODO: need to change if number of concepts changes
+img_embeddings_save_dir = 'datasets/CUB/embs/concepttrans_eva_img_embs_512_aug0_iters1_{}.pth' # CONCH
+labels_save_dir = 'datasets/CUB/embs/concepttrans_eva_labels_512_aug0_iters1_{}.pth' # CONCH
 
 # concept_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_vitL14_concept_embs_768.pth' # OPENCLIP
 # img_embeddings_save_dir = 'datasets/2_PanCancerTCGA/embs/concepttrans_vitL14_img_embs_768_aug2_iters20_{}.pth' # OPENCLIP
@@ -52,7 +52,7 @@ n_iters = 1
 aug_level = 0
 
 # ----- only for learnable prompts -----
-set_learnable_prompts = True
+set_learnable_prompts = False
 use_parent_level_learnable_prompts = False # whether to use 5 (parent) or 42 (child) soft prompts
 csc = True # whether to use class-specific contexts or a general context, append class name to soft prompts
 
@@ -72,4 +72,4 @@ balanced_weights_parents = None
 use_patches_embeddings = True
 
 # --- whether to use full concepts or partial 630 concept ---
-use_full_concepts = True
+use_full_concepts = False
