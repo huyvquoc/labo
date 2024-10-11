@@ -22,6 +22,18 @@ import models.ctc
 from models.ctc import concepts_cost, concepts_sparsity_cost, spatial_concepts_cost
 
 
+def topk_argmax(tensor, k):
+    # Get the top k values and their indices
+    topk_values, topk_indices = torch.topk(tensor, k)
+
+    # Sort the indices in descending order of values
+    sorted_topk_indices = torch.argsort(topk_values, descending=True)
+
+    # Get the top k argmax indices
+    topk_argmax_indices = topk_indices[sorted_topk_indices]
+
+    return topk_argmax_indices
+
 class CTCModel(pl.LightningModule):
 
     def __init__(
@@ -201,7 +213,7 @@ class CTCModel(pl.LightningModule):
         TODO: will keep mostly the ConceptTransformer code
         need to check if the required `batch` below matches with the argument `train_batch`
         '''
-        logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(train_batch, stage='train')
+        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(train_batch, stage='train')
         # logits.shape: (32, 200)
         # preds.shape: (32)
         loss = cls_loss
@@ -321,6 +333,7 @@ class CTCModel(pl.LightningModule):
         return (
             logits,
             preds,
+            y,
             cls_loss,
             cls_loss_group,
             cls_loss_qk_group,
@@ -375,7 +388,7 @@ class CTCModel(pl.LightningModule):
         TODO: Both `validation_step` have the same arguments `batch` and `batch_idx`. Both do not use batch_idx
         Need to check if the required `batch` is actually the argument `batch`
         '''
-        logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
+        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
 
         loss_dict = {
             "val_ce_loss": cls_loss,
@@ -401,7 +414,21 @@ class CTCModel(pl.LightningModule):
         '''
         TODO: do we need to append y and pred into overall lists?
         '''
-        logits, preds, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='test')
+        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, concept_attn, _ = self.shared_step(batch, stage='test')
+
+        for sample_id, cur_label in enumerate(y):
+            if sample_id == 5:
+                break
+            s_concept_id, e_concept_id = cur_label*50, (cur_label + 1)*50 - 1
+            print('[in testing] type(concept_attn): ', type(concept_attn))
+            print('[in testing] concept_attn.shape: ', concept_attn.shape)
+            top_concept_ids = topk_argmax(concept_attn[sample_id, 0], 50)
+            print('[in testing] top 50 concept id predicted by ConceptTransformer: ', top_concept_ids)
+
+            count_satisfied_concepts = ((top_concept_ids >= s_concept_id) & (top_concept_ids <= e_concept_id)).sum()
+            print('=> Count satisfied concepts: ', count_satisfied_concepts)
+            print('[in testing] y[0]: ', cur_label)
+            print(f'[in testing] Range of concept ids of current class: start {s_concept_id} - end {e_concept_id}')
 
         loss_dict = {
             "test_ce_loss": cls_loss,

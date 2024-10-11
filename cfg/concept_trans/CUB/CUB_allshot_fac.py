@@ -2,7 +2,7 @@ _base_ = 'CUB_base.py'
 n_shots = "all"
 data_root = 'exp/concept_trans/CUB/CUB_allshot_fac'
 best_val_metric_name = 'val_main_cls_acc_multiclass_top1_macro' # for plotting only when model checkpoint
-do_val_plotting=True
+do_val_plotting=False
 lr = 1e-3
 bs = 256
 
