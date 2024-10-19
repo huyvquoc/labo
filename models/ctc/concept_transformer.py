@@ -419,6 +419,7 @@ class CTCModel(pl.LightningModule):
         for sample_id, cur_label in enumerate(y):
             if sample_id == 5:
                 break
+            print('[in testing] cur_label: ', cur_label)
             s_concept_id, e_concept_id = cur_label*50, (cur_label + 1)*50 - 1
             print('[in testing] type(concept_attn): ', type(concept_attn))
             print('[in testing] concept_attn.shape: ', concept_attn.shape)

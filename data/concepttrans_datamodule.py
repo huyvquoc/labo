@@ -195,6 +195,7 @@ class ImgExplDataset(Dataset):
                  groupname2clsname=None,
                  num_concept=-1,
                  concept2cls=None, 
+                 concepts_raw=None,
                  split_name='train',
                  img_embeddings_save_dir=None,
                  labels_save_dir=None,
@@ -213,6 +214,7 @@ class ImgExplDataset(Dataset):
         self.labels = list_of_labels
         self.num_concept = num_concept
         self.concept2cls = concept2cls.tolist()[0]
+        self.concepts_raw = concepts_raw.tolist()
         self.only_visual_trunk = only_visual_trunk
         self.do_aug = do_aug
         self.n_iters = n_iters
@@ -222,10 +224,10 @@ class ImgExplDataset(Dataset):
         # Mapping class label to selected concepts'new indices. These new indices are not the indices in `self.select_idx`, but are the new indices have been assigned to the selected indices (0 -> 629)
         self.cls_names = cls_names
         self.cls2indices = {}
-        for idx, cls in enumerate(self.concept2cls):
+        for idx, cls in enumerate(self.concept2cls): 
             if cls not in self.cls2indices:
                 self.cls2indices[cls] = []
-            self.cls2indices[cls].append(idx)
+            self.cls2indices[cls].append(idx) # indices in a list of one class has already been sorted, because loop in increasing way of idx
 
         self.groupname2clsname = groupname2clsname
         self.groupnames = list(groupname2clsname.keys())
@@ -332,10 +334,12 @@ class ImgExplDataset(Dataset):
                 transformed = self.transform(image=image_np) # a dictionary of a key 'image'
                 img = transformed['image'] # shape: (3, 448, 448)
 
-        expl = self._get_explanations(int_target)
+        expl, gt_concepts_raw_indices = self._get_explanations(int_target) # shape: (10000)
+
+        # self.concepts_raw
 
         # spatial concepts are always set to None
-        return (img, expl, torch.tensor(float('nan')), target, target_group)
+        return (img, expl, self.concept_raws, gt_concepts_raw_indices, gt_concepts_raw, torch.tensor(float('nan')), target, target_group)
     
     def _get_explanations(self, cls):
         '''
@@ -343,11 +347,13 @@ class ImgExplDataset(Dataset):
         '''
         # Global explanations
         expl = torch.FloatTensor(self.num_concept).fill_(0) # self.num_non_spatial_attributes = 13, initialize all elements with nan, expl.shape = (13), for glom crawl: expl.shape = (630)
+        gt_concepts_raw_indices = []
 
         for index in self.cls2indices[cls]: # map each class to all of its concept indices
             expl[index] = 1
+            gt_concepts_raw_indices.append(index)
 
-        return expl # target expl and target spatial_expl is just to see which attributes exist in the current patch, just 0 or 1 value
+        return expl, gt_concepts_raw_indices # target expl and target spatial_expl is just to see which attributes exist in the current patch, just 0 or 1 value
     
 class ImgExplDataModule(pl.LightningDataModule):
 
@@ -387,16 +393,21 @@ class ImgExplDataModule(pl.LightningDataModule):
         if self.cfg.use_full_concepts:
             print('[datamodule] Use full concepts')
             self.concept2cls_path = self.concept_root.joinpath('concept2cls.npy')
+            self.concepts_raw_path = self.concept_root.joinpath('concepts_raw.npy')
 
             self.concept2cls = torch.from_numpy(np.load(self.concept2cls_path)).long().view(1, -1) # shape: (1, 630) # BEING USED
+            self.concepts_raw = np.load(self.concepts_raw_path)
             self.num_concept = self.concept2cls.shape[1]
         else:
             print('[datamodule] Use LaBo concepts')
             self.concept2cls_path = self.data_root.joinpath('concept2cls_selected.npy') # BEING USED
             self.select_idx_path = self.data_root.joinpath('select_idx.pth') # BEING USED
+            self.concepts_raw_path = self.data_root.joinpath('concepts_raw_selected.npy')
 
             self.select_idx = torch.load(self.select_idx_path)[:self.num_concept] # (630, ) # BEING USED
             self.concept2cls = torch.from_numpy(np.load(self.concept2cls_path)[self.select_idx]).long().view(1, -1) # shape: (1, 630) # BEING USED
+            self.concepts_raw = np.load(self.concepts_raw_path)[self.select_idx]
+
         print('[datamodule] Number of used concepts: ', self.concept2cls.shape[1])
 
         if model_name == 'conch_ViT-B-16':
@@ -456,6 +467,7 @@ class ImgExplDataModule(pl.LightningDataModule):
                                  groupname2clsname=self.cfg.groupname2clsname, \
                                  num_concept=self.num_concept, \
                                  concept2cls=self.concept2cls, \
+                                 concepts_raw=self.concepts_raw, \
                                  split_name=mode, \
                                  img_embeddings_save_dir=self.cfg.img_embeddings_save_dir,
                                  labels_save_dir=self.cfg.labels_save_dir,

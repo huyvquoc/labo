@@ -40,6 +40,24 @@
             ]
         },
         {
+            "name": "Train concept trans - CUB",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "justMyCode": true,
+            "cwd": "/data/hqvo3/codes/LaBo",
+            "env": {"CUDA_VISIBLE_DEVICES":"7",
+                    "PYTHONPATH":"${PYTHONPATH}:/data/hqvo3/codes/CONCH"},
+            "args": [
+                "--cfg",
+                "cfg/concept_trans/CUB/CUB_allshot_fac.py",
+                "--work-dir",
+                "exp/concept_trans/CUB/CUB_allshot_fac",
+                "--func",
+                "concept_trans_main",
+            ]
+        },
+        {
             "name": "Test LaBo concept trans",
             "type": "debugpy",
             "request": "launch",
