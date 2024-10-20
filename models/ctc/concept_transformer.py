@@ -255,7 +255,21 @@ class CTCModel(pl.LightningModule):
         # ==================== ConceptTransformer starts here ====================
         # MNIST: x.shape: (32, 1, 28, 28), expl.shape: (32, 10), spatial_expl.shape: (32), y.shape: (32)
         # CUB: x.shape: (32, 3, 224, 224), expl.shape: (32, 13), spatial_expl.shape: (32, 196, 95), y.shape: (32)
-        x, expl, spatial_expl, y, y_group = batch # TODO: data module needs return y_group
+
+        # self.concept_raw
+        # self.concept2cls
+
+        x, expl, gt_concepts_raw_indices, spatial_expl, y, y_group = batch # TODO: data module needs return y_group
+
+        batch_gt_concepts_raw = []
+        for sample_id in range(gt_concepts_raw_indices.shape[0]):
+            list_of_cur_indices = gt_concepts_raw_indices[sample_id].tolist()
+            gt_concepts_raw = []
+            for cur_index in list_of_cur_indices:
+                gt_concept_raw = self.concept_raw[cur_index]
+                gt_concepts_raw.append(gt_concept_raw)
+            batch_gt_concepts_raw.append(gt_concepts_raw)
+
         # MNIST:
         # CUB: logits.shape: (32, 200), unsup_concept_attn.shape: None, concept_attn.shape: (32, 1, 13), spatial_concept_attn.shape: (32, 196, 95)
         logits, logits_group, unsup_concept_attn, concept_attn, spatial_concept_attn, logits_qk_parent_class = self(x)

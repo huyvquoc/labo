@@ -339,7 +339,7 @@ class ImgExplDataset(Dataset):
         # self.concepts_raw
 
         # spatial concepts are always set to None
-        return (img, expl, self.concept_raws, gt_concepts_raw_indices, gt_concepts_raw, torch.tensor(float('nan')), target, target_group)
+        return (img, expl, gt_concepts_raw_indices, torch.tensor(float('nan')), target, target_group)
     
     def _get_explanations(self, cls):
         '''
@@ -352,6 +352,8 @@ class ImgExplDataset(Dataset):
         for index in self.cls2indices[cls]: # map each class to all of its concept indices
             expl[index] = 1
             gt_concepts_raw_indices.append(index)
+
+        gt_concepts_raw_indices = torch.tensor(gt_concepts_raw_indices, dtype=torch.int)
 
         return expl, gt_concepts_raw_indices # target expl and target spatial_expl is just to see which attributes exist in the current patch, just 0 or 1 value
     
@@ -437,9 +439,10 @@ class ImgExplDataModule(pl.LightningDataModule):
         if isinstance(batch, list):
             batch[0] = batch[0].to(device)
             batch[1] = batch[1].to(device)
-            batch[2] = batch[2].to(device)
+            # batch[2] = batch[2].to(device)
             batch[3] = batch[3].to(device)
             batch[4] = batch[4].to(device)
+            batch[5] = batch[5].to(device)
             return batch
         else:
             return super().transfer_batch_to_device(batch, device, dataloader_idx)
