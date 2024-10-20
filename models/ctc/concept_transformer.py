@@ -18,6 +18,7 @@ import wandb
 from loss.criterion import get_criterion
 
 from metrics.cls import MetricsCalculator
+from metrics.vis import plot_concept_attn_score_single_sample, plot_concept_attn_score_all_samples
 import models.ctc
 from models.ctc import concepts_cost, concepts_sparsity_cost, spatial_concepts_cost
 
@@ -213,7 +214,7 @@ class CTCModel(pl.LightningModule):
         TODO: will keep mostly the ConceptTransformer code
         need to check if the required `batch` below matches with the argument `train_batch`
         '''
-        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(train_batch, stage='train')
+        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _, _ = self.shared_step(train_batch, stage='train')
         # logits.shape: (32, 200)
         # preds.shape: (32)
         loss = cls_loss
@@ -261,7 +262,7 @@ class CTCModel(pl.LightningModule):
 
         x, expl, gt_concepts_raw_indices, spatial_expl, y, y_group = batch # TODO: data module needs return y_group
 
-        batch_gt_concepts_raw = []
+        batch_gt_concepts_raw = [] # list of batch samples. Each element is a list of concept raws corresponding to the current label.
         for sample_id in range(gt_concepts_raw_indices.shape[0]):
             list_of_cur_indices = gt_concepts_raw_indices[sample_id].tolist()
             gt_concepts_raw = []
@@ -356,6 +357,7 @@ class CTCModel(pl.LightningModule):
             unsup_concept_attn,
             concept_attn,
             spatial_concept_attn,
+            batch_gt_concepts_raw,
         )
         # ==================== ConceptTransformer ends here ====================
 
@@ -402,7 +404,7 @@ class CTCModel(pl.LightningModule):
         TODO: Both `validation_step` have the same arguments `batch` and `batch_idx`. Both do not use batch_idx
         Need to check if the required `batch` is actually the argument `batch`
         '''
-        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _ = self.shared_step(batch, stage='val')
+        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _, _ = self.shared_step(batch, stage='val')
 
         loss_dict = {
             "val_ce_loss": cls_loss,
@@ -428,7 +430,8 @@ class CTCModel(pl.LightningModule):
         '''
         TODO: do we need to append y and pred into overall lists?
         '''
-        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, concept_attn, _ = self.shared_step(batch, stage='test')
+        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, concept_attn, _, batch_gt_concepts_raw = self.shared_step(batch, stage='test')
+        # batch_gt_concepts_raw: list of sub lists, each sub list represents a sample in a batch. Each sub list contains n (50) groundtruth concepts of the corresponding class label of that sample
 
         for sample_id, cur_label in enumerate(y):
             if sample_id == 5:
@@ -439,6 +442,18 @@ class CTCModel(pl.LightningModule):
             print('[in testing] concept_attn.shape: ', concept_attn.shape)
             top_concept_ids = topk_argmax(concept_attn[sample_id, 0], 50)
             print('[in testing] top 50 concept id predicted by ConceptTransformer: ', top_concept_ids)
+
+            pred_concepts_raw = [] # list of predicted concepts of the current sample
+            for top_concept_id in top_concept_ids:
+                predicted_concept = self.concept_raw[top_concept_id.item()]
+                pred_concepts_raw.append(predicted_concept)
+
+            gt_concepts_raw = batch_gt_concepts_raw[sample_id] # n groundtruth concepts of the current sample
+            # TODO: check if 50 predicted concepts match with 50 groundtruth concepts (of a single sample)
+            # pred_concepts_raw: predictions
+            # gt_concepts_raw: groundtruths
+            plot_concept_attn_score_single_sample(gt_concepts_raw, pred_concepts_raw)
+
 
             count_satisfied_concepts = ((top_concept_ids >= s_concept_id) & (top_concept_ids <= e_concept_id)).sum()
             print('=> Count satisfied concepts: ', count_satisfied_concepts)
