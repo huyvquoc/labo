@@ -214,7 +214,7 @@ class CTCModel(pl.LightningModule):
         TODO: will keep mostly the ConceptTransformer code
         need to check if the required `batch` below matches with the argument `train_batch`
         '''
-        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _, _ = self.shared_step(train_batch, stage='train')
+        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _, _, _ = self.shared_step(train_batch, stage='train')
         # logits.shape: (32, 200)
         # preds.shape: (32)
         loss = cls_loss
@@ -260,7 +260,7 @@ class CTCModel(pl.LightningModule):
         # self.concept_raw
         # self.concept2cls
 
-        x, expl, gt_concepts_raw_indices, spatial_expl, y, y_group = batch # TODO: data module needs return y_group
+        x, expl, gt_concepts_raw_indices, img_names, spatial_expl, y, y_group = batch # TODO: data module needs return y_group
 
         batch_gt_concepts_raw = [] # list of batch samples. Each element is a list of concept raws corresponding to the current label.
         for sample_id in range(gt_concepts_raw_indices.shape[0]):
@@ -358,6 +358,7 @@ class CTCModel(pl.LightningModule):
             concept_attn,
             spatial_concept_attn,
             batch_gt_concepts_raw,
+            img_names,
         )
         # ==================== ConceptTransformer ends here ====================
 
@@ -404,7 +405,7 @@ class CTCModel(pl.LightningModule):
         TODO: Both `validation_step` have the same arguments `batch` and `batch_idx`. Both do not use batch_idx
         Need to check if the required `batch` is actually the argument `batch`
         '''
-        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _, _ = self.shared_step(batch, stage='val')
+        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, _, _, _, _ = self.shared_step(batch, stage='val')
 
         loss_dict = {
             "val_ce_loss": cls_loss,
@@ -430,7 +431,7 @@ class CTCModel(pl.LightningModule):
         '''
         TODO: do we need to append y and pred into overall lists?
         '''
-        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, concept_attn, _, batch_gt_concepts_raw = self.shared_step(batch, stage='test')
+        logits, preds, y, cls_loss, cls_loss_group, cls_loss_qk_group, expl_loss, l1_loss, _, concept_attn, _, batch_gt_concepts_raw, img_names = self.shared_step(batch, stage='test')
         # batch_gt_concepts_raw: list of sub lists, each sub list represents a sample in a batch. Each sub list contains n (50) groundtruth concepts of the corresponding class label of that sample
 
         for sample_id, cur_label in enumerate(y):
@@ -452,8 +453,7 @@ class CTCModel(pl.LightningModule):
             # TODO: check if 50 predicted concepts match with 50 groundtruth concepts (of a single sample)
             # pred_concepts_raw: predictions
             # gt_concepts_raw: groundtruths
-            plot_concept_attn_score_single_sample(gt_concepts_raw, pred_concepts_raw)
-
+            plot_concept_attn_score_single_sample(gt_concepts_raw, pred_concepts_raw, self.plotting_dir, sample_id, img_names[sample_id])
 
             count_satisfied_concepts = ((top_concept_ids >= s_concept_id) & (top_concept_ids <= e_concept_id)).sum()
             print('=> Count satisfied concepts: ', count_satisfied_concepts)

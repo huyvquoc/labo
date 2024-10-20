@@ -339,7 +339,8 @@ class ImgExplDataset(Dataset):
         # self.concepts_raw
 
         # spatial concepts are always set to None
-        return (img, expl, gt_concepts_raw_indices, torch.tensor(float('nan')), target, target_group)
+        str_img_name = self.img_names[idx].as_posix()
+        return (img, expl, gt_concepts_raw_indices, str_img_name, torch.tensor(float('nan')), target, target_group)
     
     def _get_explanations(self, cls):
         '''
@@ -440,9 +441,10 @@ class ImgExplDataModule(pl.LightningDataModule):
             batch[0] = batch[0].to(device)
             batch[1] = batch[1].to(device)
             # batch[2] = batch[2].to(device)
-            batch[3] = batch[3].to(device)
+            # batch[3] = batch[3].to(device)
             batch[4] = batch[4].to(device)
             batch[5] = batch[5].to(device)
+            batch[6] = batch[6].to(device)
             return batch
         else:
             return super().transfer_batch_to_device(batch, device, dataloader_idx)
