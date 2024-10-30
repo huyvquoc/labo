@@ -18,7 +18,7 @@ num_concept = num_cls * 50
 
 # weight matrix fitting
 lr = 1e-5
-max_epochs = 1
+max_epochs = 100
 
 # weight matrix
 use_rand_init = False
