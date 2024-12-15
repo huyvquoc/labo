@@ -65,6 +65,12 @@ Follow this [comment](https://github.com/YueYANG1996/LaBo/issues/14#issuecomment
 For error of negative in apricot, follow this [comment](https://github.com/YueYANG1996/LaBo/issues/1#issuecomment-1583107414). To check the source file of apricot in conda, follow this [comment](https://stackoverflow.com/questions/31003994/where-is-site-packages-located-in-a-conda-environment)
 
 Please cite our paper if you find it useful!
+
+### Config parameters
+
+In `cfg/concept_trans/CUB/CUB_allshot_fac.py`, to run a __multiple patch embedding__ experiment, we need to notice on 3 parameters: `use_patches_embeddings`, `use_extracted_img_embs`, and `only_visual_trunk`
+
+
 ```
 @inproceedings{yang2023language,
   title={Language in a bottle: Language model guided concept bottlenecks for interpretable image classification},

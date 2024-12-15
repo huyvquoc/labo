@@ -170,11 +170,11 @@ class CrossAttention(nn.Module):
     def forward(self, x, y):
         '''
         Inputs:
-        - x (or x_pooled): image features, MNIST shape (32, 1, 128), CUB no spatial shape (32, 1, 1024), CUB spatial shape (32, 196, 1024), GlomCrawl (990, 1, 512)
-        - y (or self.concepts): concepts, MNIST shape (1, 10, 128), CUB no spatial shape (1, 13, 1024), CUB spatial shape (1, 95, 1024), GlomCrawl with only concepts (1, 630, 512), GlomCrawl with concepts contexts (1, 630, 1024)
+        - x (or x_pooled): image features (batch size, entire (1) or mpe (), embedding dim), MNIST shape (32, 1, 128), CUB no spatial shape (32, 1, 1024), CUB spatial shape (32, 196, 1024), GlomCrawl (990, 1, 512)
+        - y (or self.concepts): concepts features (1, #concepts for all classes, embedding dim), MNIST shape (1, 10, 128), CUB no spatial shape (1, 13, 1024), CUB spatial shape (1, 95, 1024), GlomCrawl with only concepts (1, 630, 512), GlomCrawl with concepts contexts (1, 630, 1024)
         '''
-        B, Nx, C = x.shape # MNIST: 32, 1, 128; CUB no spatial: 32, 1, 1024; CUB spatial: 32, 196, 1024, GlomCrawl - one emb for an entire image: (990, 1, 512)
-        By, Ny, Cy = y.shape # MNIST: 1, 10, 128; CUB no spatial: 1, 13, 1024; CUB spatial: 1, 95, 1024, GlomCrawl - one emb for an entire image: (1, 630, 512)
+        B, Nx, C = x.shape # MNIST: 32, 1, 128; CUB no spatial: 32, 1, 1024; CUB spatial: 32, 196, 1024, GlomCrawl - one emb for an entire image: (990, 1, 512), CUB - multiple patch embeddings (mpe): (256, 1, 768)
+        By, Ny, Cy = y.shape # MNIST: 1, 10, 128; CUB no spatial: 1, 13, 1024; CUB spatial: 1, 95, 1024, GlomCrawl - one emb for an entire image: (1, 630, 512), CUB - multiple patch embeddings (mpe): (1, 10000, 768)
 
         # if not self.both_concepts_and_contexts:
         #     assert C == Cy, "Feature size of x and y must be the same"

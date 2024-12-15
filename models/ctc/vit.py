@@ -224,13 +224,21 @@ class CVIT(nn.Module):
 
         self.model_name = model_name
 
+        self.use_patches_embeddings = use_patches_embeddings
+        if self.use_patches_embeddings:
+            self.use_extracted_img_embs = False
+            self.only_visual_trunk = True
+        else:
+            self.use_extracted_img_embs = use_extracted_img_embs
+            self.only_visual_trunk = only_visual_trunk
+
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if self.model_name == 'vit_base_patch16_224':
             self.feature_extractor = timm.create_model(self.model_name, pretrained=True, num_classes=num_classes) # CoCa model.visual
             del self.feature_extractor.head
         elif self.model_name == 'conch_ViT-B-16':
             self.feature_extractor, self.preprocess = create_model_from_pretrained(self.model_name, ckpt_path, device=device)
-            if only_visual_trunk:
+            if self.only_visual_trunk:
                 self.feature_extractor = self.feature_extractor.visual.trunk
             # _ = self.feature_extractor.eval()
             self.embed_dim = self.feature_extractor.embed_dim
@@ -238,11 +246,19 @@ class CVIT(nn.Module):
             # === OPENCLIP ===
             # model, preprocess_train, preprocess_val
             self.model_weight_name = cfg.clip_model_weight
+
             self.feature_extractor, self.preprocess, _ = open_clip.create_model_and_transforms(self.model_name, pretrained=self.model_weight_name, device=device)
             try:
                 self.embed_dim = self.feature_extractor.ln_final.weight.shape[0]
             except:
                 self.embed_dim = self.feature_extractor.text.ln_final.weight.shape[0]
+
+            if self.only_visual_trunk:
+                self.feature_extractor = self.feature_extractor.visual.trunk
+                try:
+                    self.embed_dim = self.feature_extractor.head.weight.shape[0] # OpenCLIP EVA
+                except:
+                    self.embed_dim = self.feature_extractor.text.ln_final.weight.shape[0] # TODO: fix here
 
         self.set_learnable_prompts = set_learnable_prompts
         self.concept2cls = torch.squeeze(concept2cls) # to child classes
@@ -262,15 +278,13 @@ class CVIT(nn.Module):
             model_name=self.model_name,
             ckpt_path=ckpt_path,
             concept_embeddings_save_dir=concept_embeddings_save_dir,
-            only_visual_trunk=only_visual_trunk,
+            only_visual_trunk=self.only_visual_trunk,
             set_learnable_prompts=self.set_learnable_prompts,
             concept2cls=self.concept2cls, # to child classes
             *args,
             **kwargs, # {'batch_size': 32, 'debug': False, 'data_dir': '/data/hqvo3/data/cub2011', 'finetune_unfreeze_epoch': 0, 'num_workers': 8, 'seed': 42, 'data_name': 'CUB2011Parts'}
         )
 
-        self.use_extracted_img_embs = use_extracted_img_embs
-        self.use_patches_embeddings = use_patches_embeddings
 
     def forward(self, x, x_concepts):
         '''
@@ -280,8 +294,21 @@ class CVIT(nn.Module):
         OR
         - Extracted embeds - x.shape: (batch_size, 512) or (batch_size, 768) for conch.vision.trunk
         '''
-        if not self.use_extracted_img_embs:
-            if self.use_patches_embeddings:
+        activation = {}
+        def get_activation(name):
+            '''
+            https://discuss.pytorch.org/t/how-can-l-load-my-best-model-as-a-feature-extractor-evaluator/17254/6
+            '''
+            def hook(model, input, output):
+                activation[name] = output.detach()
+            return hook
+
+        if self.use_patches_embeddings:
+            if self.model_name == 'conch_ViT-B-16':
+                '''
+                TODO: Follow the link below to extract output from intermediate layer, follow the elif below
+                https://discuss.pytorch.org/t/how-can-l-load-my-best-model-as-a-feature-extractor-evaluator/17254/6
+                '''
                 x = self.feature_extractor.patch_embed(x) # (32, 196, 1024), TODO: CoCa model.visual.trunk.patch_embed: Conv2d(3, 768, kernel_size=(16, 16), stride=(16, 16)) shape (128, 14, 14, 768)
                 if self.model_name == 'conch_ViT-B-16':
                     x = torch.flatten(x, start_dim=1, end_dim=2) # (128, 196, 768)
@@ -304,7 +331,25 @@ class CVIT(nn.Module):
                 x = self.feature_extractor.norm(x) # shape: (32, 197, 1024)
 
                 x /= x.norm(dim=-1, keepdim=True) # shape (990, 1, 512)
-            else:
+            elif self.model_name == 'EVA02-L-14':
+                # x = self.feature_extractor.patch_embed(x)
+                # x = self.feature_extractor.pos_drop(x)
+                # # x = self.feature_extractor.rope(x)
+                # blocks_module = nn.Sequential(*self.feature_extractor.blocks)
+                # x = blocks_module(x)
+                # x = self.feature_extractor.norm(x)
+                # x = self.feature_extractor.fc_norm(x)
+                # x = self.feature_extractor.head_drop(x)
+                # x = self.feature_extractor.head(x)
+                self.feature_extractor.norm.register_forward_hook(get_activation('norm')) # https://discuss.pytorch.org/t/how-can-l-load-my-best-model-as-a-feature-extractor-evaluator/17254/6
+                self.feature_extractor.norm.register_forward_hook(get_activation('fc_norm'))
+                self.feature_extractor.norm.register_forward_hook(get_activation('head_drop'))
+                self.feature_extractor.norm.register_forward_hook(get_activation('head'))
+                out = self.feature_extractor(x)
+                x = activation['head']
+
+        else:
+            if not self.use_extracted_img_embs:
                 # === for training with unfrozen vision layers ===
                 # Reference from CONCH's authors: /conch/open_clip_custom/vision_tower.py 
                 # x is an image tensor with shape(batch_size, 3, 448, 448)
@@ -317,8 +362,8 @@ class CVIT(nn.Module):
 
                 x = F.normalize(x, dim=-1) # shape (990, 512)
                 x = x[:, None, :]
-        else:
-            x /= x.norm(dim=-1, keepdim=True)
+            else:
+                x /= x.norm(dim=-1, keepdim=True)
  
 
         out, out_group, unsup_concept_attn, concept_attn, spatial_concept_attn, qk_parent_class = self.classifier(
